@@ -41,7 +41,7 @@ graph TD
         C1[Database Helper] --> C2[SQLite Database]
         C2 --> C3[Players Table]
         C2 --> C4[Games Table]
-        C2 --> C5[Teams Table]
+
         C2 --> C6[Darts Table]
     end
     
@@ -119,7 +119,7 @@ classDiagram
     class SQLite {
         +Players Table
         +Games Table
-        +Teams Table
+
         +Darts Table
     }
     
@@ -145,6 +145,7 @@ classDiagram
         TEXT game_id PK
         TEXT game_type
         TEXT game_config
+        TEXT participants_json  // Contains both players and teams
         TEXT start_time
         TEXT end_time
         TEXT winner
@@ -152,11 +153,7 @@ classDiagram
         TEXT game_state
     }
     
-    class Teams {
-        TEXT team_id PK
-        TEXT team_name
-        TEXT game_id FK
-    }
+
     
     class Darts {
         INTEGER dart_id PK
@@ -176,17 +173,15 @@ classDiagram
         TEXT participant_type
     }
     
-    Games "1" -- "0..*" Teams : contains
     Games "1" -- "0..*" Darts : records
     Players "1" -- "0..*" Darts : throws
     Games "1" -- "1..*" GameParticipants : includes
     Players "1" -- "0..*" GameParticipants : participates
-    Teams "1" -- "1..*" GameParticipants : participates
     
     note for Players "Core player information"
-    note for Games "Game sessions and metadata"
+    note for Games "Game sessions, metadata, and embedded participant information"
     note for Darts "Individual dart throws"
-    note for GameParticipants "Flexible participant model"
+    note for GameParticipants "Links players to games (teams embedded in game records)"
 ```
 
 ## Backend Integration Architecture

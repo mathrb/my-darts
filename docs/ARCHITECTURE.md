@@ -84,10 +84,9 @@ For the complete database schema and detailed table structures, refer to the [Da
 The database follows a relational design with these core entities:
 
 - **Players**: Stores player information with UUID identification
-- **Games**: Tracks game sessions with configuration and state
-- **Teams**: Manages team compositions for team-based games
+- **Games**: Tracks game sessions with configuration and state, including embedded team information
 - **Darts**: Records every dart throw with detailed scoring information
-- **Game Participants**: Links players/teams to specific games
+- **Game Participants**: Links players to specific games (teams are embedded in game records)
 
 ### Design Principles
 
