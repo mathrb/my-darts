@@ -25,16 +25,43 @@
 - **Self-hosted:** User configurable
 
 ### Authentication
-- **Method:** JWT Bearer tokens
+- **Method:** JWT Bearer tokens (email/password)
 - **Token lifetime:** 15 minutes (access), 7 days (refresh)
 - **Storage:** Secure platform-specific storage (Flutter Secure Storage)
+- **Future:** OAuth providers (Google, Apple) may be added based on user demand
 
 ### API Phases
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| Phase 1 | REST API - Auth, Sync, Data | **Current Spec** |
-| Phase 2 | WebSocket - Real-time Multiplayer | **Future Feature** |
+| Phase 1 | REST API - Custom Auth, Sync, Data | **Current Spec** |
+| Phase 2 | OAuth Providers (Optional Enhancement) | **Future Feature** |
+| Phase 3 | WebSocket - Real-time Multiplayer | **Future Feature** |
+
+---
+
+## Authentication Architecture
+
+### Current Implementation: Custom Auth (Email/Password)
+
+This API currently implements JWT-based email/password authentication. This approach provides:
+- ✅ **Simple setup** - No external dependencies
+- ✅ **Self-hosting friendly** - Works on any server
+- ✅ **Full control** - Complete control over auth flow
+- ✅ **Privacy** - No third-party tracking
+
+### Future Extensibility: OAuth Providers
+
+OAuth providers (Google, Apple, etc.) may be added in the future without breaking changes. When implemented:
+- Both authentication methods will coexist
+- Existing users continue using email/password
+- New users can choose their preferred method
+- Backend will auto-detect token type
+- No migration required for existing accounts
+
+**Database ready:** User schema uses nullable password field to accommodate future OAuth users.
+
+**Token format:** Backend inspects token claims to determine type (custom JWT vs OAuth).
 
 ---
 
@@ -57,6 +84,13 @@ Content-Type: application/json
   "name": "John Doe"
 }
 ```
+
+**Password Requirements:**
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+- At least one special character recommended
 
 **Response: 201 Created**
 ```json
@@ -673,9 +707,62 @@ GET /api/v1/games?limit=20&offset=40
 
 ---
 
-## Phase 2: WebSocket API (Future Feature)
+## Future Features (Not in MVP)
 
-**Note:** This section defines the future real-time multiplayer API. It is not part of the MVP implementation.
+### Phase 2: OAuth Authentication (Optional Enhancement)
+
+**Note:** OAuth providers will be added based on user demand. When implemented, the following capabilities will be available.
+
+**Supported Providers:**
+- Google Sign-In
+- Apple Sign-In
+- (Others may be added)
+
+**Integration Approach:**
+
+OAuth will coexist with custom auth:
+- Users can choose their preferred sign-in method
+- Backend auto-detects token type by inspecting claims
+- No breaking changes to existing API
+- Same authorization header format: `Authorization: Bearer {token}`
+
+**Detection Endpoint:**
+```http
+GET /api/v1/auth/capabilities
+```
+
+**Response:**
+```json
+{
+  "auth_methods": ["custom"],
+  "oauth_providers": [],
+  "custom_auth_enabled": true,
+  "anonymous_allowed": true
+}
+```
+
+When OAuth is enabled, response will include:
+```json
+{
+  "auth_methods": ["custom", "oauth"],
+  "oauth_providers": ["google", "apple"],
+  "custom_auth_enabled": true,
+  "anonymous_allowed": true
+}
+```
+
+**Client Implementation:**
+1. Check capabilities endpoint to see what's supported
+2. Present appropriate sign-in options to user
+3. For OAuth: Use provider's SDK to get token
+4. Send token in Authorization header (same format as custom auth)
+5. Backend validates with appropriate provider
+
+---
+
+### Phase 3: WebSocket API (Real-Time Multiplayer)
+
+**Note:** Real-time multiplayer is a planned future feature for remote play. It is not part of the MVP implementation.
 
 ### Connection
 
@@ -836,9 +923,21 @@ All WebSocket messages use JSON:
 
 ### Input Validation
 - All inputs validated server-side
-- SQL injection prevention
+- SQL injection prevention (use parameterized queries)
 - XSS prevention in any text fields
 - Max request size: 10MB
+
+**Password Storage:**
+- Use bcrypt or Argon2 for password hashing
+- Minimum cost factor: 12 for bcrypt
+- Store salt with hash
+- Password field nullable in database (for future OAuth users)
+
+**Token Generation:**
+- Use cryptographically secure random for JWT secrets
+- Minimum 256-bit secret key
+- Sign tokens with HS256 or RS256
+- Include expiration in all tokens
 
 ### Rate Limiting
 - Per-IP limits for auth endpoints
@@ -867,6 +966,101 @@ GET /api/v1/health
 ---
 
 ## Client Implementation Guidelines
+
+### Authentication Flow
+
+```dart
+// Login with email/password
+class AuthService {
+  final Dio dio;
+  final FlutterSecureStorage secureStorage;
+
+  Future<User> login(String email, String password) async {
+    final response = await dio.post(
+      '/api/v1/auth/login',
+      data: {
+        'email': email,
+        'password': password,
+      },
+    );
+
+    final accessToken = response.data['access_token'];
+    final refreshToken = response.data['refresh_token'];
+
+    // Store tokens securely
+    await secureStorage.write(key: 'access_token', value: accessToken);
+    await secureStorage.write(key: 'refresh_token', value: refreshToken);
+
+    return User.fromJson(response.data);
+  }
+
+  Future<void> logout() async {
+    final token = await secureStorage.read(key: 'access_token');
+    
+    await dio.post(
+      '/api/v1/auth/logout',
+      options: Options(
+        headers: {'Authorization': 'Bearer $token'},
+      ),
+    );
+
+    // Clear stored tokens
+    await secureStorage.delete(key: 'access_token');
+    await secureStorage.delete(key: 'refresh_token');
+  }
+
+  // Add authenticated requests interceptor
+  void setupInterceptors() {
+    dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final token = await secureStorage.read(key: 'access_token');
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        handler.next(options);
+      },
+      onError: (error, handler) async {
+        // Auto-refresh on 401
+        if (error.response?.statusCode == 401) {
+          final newToken = await refreshAccessToken();
+          if (newToken != null) {
+            // Retry original request with new token
+            final opts = error.requestOptions;
+            opts.headers['Authorization'] = 'Bearer $newToken';
+            final response = await dio.fetch(opts);
+            return handler.resolve(response);
+          }
+        }
+        handler.next(error);
+      },
+    ));
+  }
+
+  Future<String?> refreshAccessToken() async {
+    final refreshToken = await secureStorage.read(key: 'refresh_token');
+    if (refreshToken == null) return null;
+
+    try {
+      final response = await dio.post(
+        '/api/v1/auth/refresh',
+        data: {'refresh_token': refreshToken},
+      );
+
+      final newAccessToken = response.data['access_token'];
+      final newRefreshToken = response.data['refresh_token'];
+
+      await secureStorage.write(key: 'access_token', value: newAccessToken);
+      await secureStorage.write(key: 'refresh_token', value: newRefreshToken);
+
+      return newAccessToken;
+    } catch (e) {
+      // Refresh failed - user needs to login again
+      await logout();
+      return null;
+    }
+  }
+}
+```
 
 ### Error Handling
 
@@ -925,6 +1119,198 @@ try {
 
 ---
 
+## Backend Implementation Guidelines
+
+### Custom Authentication Implementation
+
+**Recommended Libraries:**
+- **Python:** `passlib` (password hashing), `PyJWT` (token generation)
+- **Node.js:** `bcrypt`, `jsonwebtoken`
+- **Rust:** `argon2`, `jsonwebtoken`
+
+**Example Implementation (Python/FastAPI):**
+
+```python
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from passlib.context import CryptContext
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
+
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# JWT configuration
+SECRET_KEY = "your-secret-key-min-256-bits"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 15
+REFRESH_TOKEN_EXPIRE_DAYS = 7
+
+security = HTTPBearer()
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(user_id: str) -> str:
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode = {
+        "sub": user_id,
+        "exp": expire,
+        "iss": "darts-app-backend",
+        "type": "access"
+    }
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def create_refresh_token(user_id: str) -> str:
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode = {
+        "sub": user_id,
+        "exp": expire,
+        "iss": "darts-app-backend",
+        "type": "refresh"
+    }
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    """Verify JWT token and return user_id"""
+    token = credentials.credentials
+    
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        return user_id
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+@app.post("/api/v1/auth/register")
+async def register(email: str, password: str, name: str):
+    # Validate password strength
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="Password too short")
+    
+    # Check if user exists
+    if await user_exists(email):
+        raise HTTPException(status_code=409, detail="Email already registered")
+    
+    # Create user
+    user_id = str(uuid4())
+    hashed_password = hash_password(password)
+    
+    await db.create_user(
+        user_id=user_id,
+        email=email,
+        password_hash=hashed_password,
+        name=name
+    )
+    
+    # Generate tokens
+    access_token = create_access_token(user_id)
+    refresh_token = create_refresh_token(user_id)
+    
+    return {
+        "user_id": user_id,
+        "email": email,
+        "name": name,
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    }
+
+@app.post("/api/v1/auth/login")
+async def login(email: str, password: str):
+    # Get user
+    user = await db.get_user_by_email(email)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Verify password
+    if not verify_password(password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Generate tokens
+    access_token = create_access_token(user.user_id)
+    refresh_token = create_refresh_token(user.user_id)
+    
+    return {
+        "user_id": user.user_id,
+        "email": user.email,
+        "name": user.name,
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    }
+
+@app.post("/api/v1/auth/refresh")
+async def refresh(refresh_token: str):
+    try:
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        
+        user_id = payload.get("sub")
+        
+        # Generate new tokens
+        new_access_token = create_access_token(user_id)
+        new_refresh_token = create_refresh_token(user_id)
+        
+        return {
+            "access_token": new_access_token,
+            "refresh_token": new_refresh_token,
+            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        }
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+# Protect routes with token verification
+@app.get("/api/v1/games")
+async def get_games(user_id: str = Depends(verify_token)):
+    games = await db.get_user_games(user_id)
+    return {"games": games}
+```
+
+**Future OAuth Extension:**
+
+When adding OAuth, the `verify_token` function becomes:
+
+```python
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    token = credentials.credentials
+    
+    # Try custom JWT
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("iss") == "darts-app-backend":
+            return payload.get("sub")
+    except JWTError:
+        pass
+    
+    # Try Firebase (when OAuth is added)
+    try:
+        from firebase_admin import auth
+        decoded = auth.verify_id_token(token)
+        user_id = decoded['uid']
+        
+        # Get or create user from OAuth
+        user = await db.get_or_create_oauth_user(user_id, decoded)
+        return user.user_id
+    except:
+        pass
+    
+    raise HTTPException(status_code=401, detail="Invalid token")
+```
+
+**Note:** Only 15 lines need to be added to support OAuth later.
+
+---
+
 ## API Client Code Generation
 
 **Recommended approach:**
@@ -939,21 +1325,31 @@ try {
 
 ## Summary
 
-### Phase 1 (MVP) - REST API
-- ✅ Authentication (register, login, refresh, logout)
-- ✅ Player management (CRUD, linking)
-- ✅ Game upload (completed games with events)
-- ✅ Game retrieval (list, single game)
-- ✅ Statistics (player stats, game stats)
-- ✅ Sync (event batching, sequence-based sync)
+### Phase 1 (MVP) - REST API ✅
+- ✅ **Custom Authentication** (email/password register, login, refresh, logout)
+- ✅ **Player management** (CRUD, linking to accounts)
+- ✅ **Game upload** (completed games with events)
+- ✅ **Game retrieval** (list, single game with filters)
+- ✅ **Statistics** (player stats, game stats, projections)
+- ✅ **Sync** (event batching, sequence-based sync)
+- ✅ **Anonymous mode** (local-only play without account)
 
-### Phase 2 (Future) - WebSocket API
+### Phase 2 (Future) - OAuth Enhancement
+- ⏳ Google Sign-In integration
+- ⏳ Apple Sign-In integration
+- ⏳ Multi-provider support
+- ⏳ Coexistence with custom auth
+
+### Phase 3 (Future) - WebSocket API
 - ⏳ Real-time multiplayer sessions
 - ⏳ Live game state synchronization
 - ⏳ Player presence and matchmaking
 
 ### Next Steps
-1. Implement REST API backend
+1. Implement REST API backend with custom auth
 2. Implement REST API client in Flutter
 3. Test offline-first sync workflow
-4. Defer WebSocket implementation until user demand justifies it
+4. Gather user feedback on auth preferences
+5. Add OAuth if users request it (1-2 days of work)
+6. Defer WebSocket implementation until user demand justifies it
+
