@@ -6,6 +6,110 @@
 
 ---
 
+## Executive Summary
+
+### Core Decision
+**Use Riverpod** as the state management solution for the Flutter darts application.
+
+### Why Riverpod?
+- Compile-time safety (catches errors before runtime)
+- No BuildContext dependency (access state anywhere)
+- Easy to test (simple mocking and isolation)
+- Type-safe with full inference
+- Mature ecosystem with active maintenance
+
+### Key Architecture Principles
+1. **Immutable State**: All state classes use Freezed for immutability
+2. **Clean Separation**: UI → Notifiers → UseCases → Repositories (no shortcuts)
+3. **AsyncValue Pattern**: All async operations wrapped in AsyncValue for proper loading/error/data handling
+4. **Event-Based Communication**: UI dispatches events via notifier methods, never mutates state directly
+5. **Auto-Dispose by Default**: Providers clean up automatically unless explicitly marked keepAlive
+
+### Provider Type Quick Reference
+
+| Provider Type | Use For | Example |
+|--------------|---------|---------|
+| `Provider` | Immutable dependencies (repositories, use cases) | Database, API clients |
+| `StateProvider` | Simple values (no business logic) | Selected filter, toggle states |
+| `NotifierProvider` | Synchronous state with logic | Game setup wizard |
+| `AsyncNotifierProvider` | Async state (database, network) | Active game, player list |
+| `StreamProvider` | Real-time data streams | Multiplayer updates, sync status |
+
+### Critical Patterns
+
+**State Structure:**
+```dart
+@freezed
+class GameState with _$GameState {
+  const factory GameState({
+    required String gameId,
+    required bool isComplete,
+    // ... all fields
+  }) = _GameState;
+}
+```
+
+**Async Operations:**
+```dart
+state = await AsyncValue.guard(() async {
+  return await someAsyncOperation();
+});
+```
+
+**UI State Handling:**
+```dart
+ref.watch(activeGameProvider).when(
+  data: (game) => GameView(game: game),
+  loading: () => LoadingIndicator(),
+  error: (error, stack) => ErrorView(error: error),
+);
+```
+
+### File Organization
+```
+lib/features/<feature>/presentation/
+├── providers/     # Provider definitions
+├── state/         # State classes (Freezed)
+├── widgets/       # UI components
+└── pages/         # Full screens
+```
+
+### Testing Strategy
+- Override providers in tests with mocks
+- Test notifiers in isolation from UI
+- Use ProviderContainer for unit tests
+- Use ProviderScope for widget tests
+
+### Anti-Patterns to Avoid
+❌ Mutating state directly  
+❌ Business logic in UI  
+❌ Using `read()` in build methods (use `watch()`)  
+❌ Catching exceptions when using AsyncValue.guard  
+❌ Creating circular provider dependencies  
+
+### What Developers Need to Know
+1. **Every feature has its own providers** (in feature/presentation/providers/)
+2. **All state is immutable** (use copyWith to update)
+3. **Always handle all three AsyncValue states** (data, loading, error)
+4. **Notifier methods are the only way to change state** (no direct mutation)
+5. **Dependencies flow down** (UI → Notifiers → UseCases → Repositories)
+
+### Quick Start Checklist
+- [ ] Add dependencies: `riverpod`, `flutter_riverpod`, `freezed`, `riverpod_generator`
+- [ ] Set up build_runner for code generation
+- [ ] Create core providers (database, repositories) in `core/providers/`
+- [ ] Create feature-specific providers in each `features/<feature>/presentation/providers/`
+- [ ] Use `@riverpod` annotation with code generation
+- [ ] Wrap root widget with `ProviderScope`
+
+---
+
+## Detailed Specification
+
+The following sections provide comprehensive examples and patterns for implementing the state management architecture outlined above.
+
+---
+
 ## 1. State Management Decision
 
 ### 1.1 Selected Solution: **Riverpod**
@@ -1123,3 +1227,4 @@ class PlayersCache extends _$PlayersCache {
 6. Test with provider overrides
 7. Derive state when possible
 8. Handle all AsyncValue states
+
