@@ -69,3 +69,24 @@ final parsedSegment = Segment.parse(
 - No database migrations required
 - No breaking changes to existing functionality
 - Should be tested with all game types that use bull segments (X01, Cricket, etc.)
+
+## Review
+
+**Date:** Sunday, February 22, 2026  
+**Reviewer:** Gemini CLI  
+
+### Review Summary
+
+The implementation for DART-006.1 is **verified and complete**.
+
+1.  **Code Change:** The parsing logic in `StatelessX01Engine` was correctly updated to handle the `multiplier == 1` and `segment == 'bull'` case by passing `'SB'` to `Segment.parse()`. This ensures that single bull throws no longer cause a `FormatException`.
+2.  **Existing Functionality:** Double bull and triple bull parsing logic remains intact, and regular number parsing is unaffected.
+3.  **Testing:** A dedicated test group `DART-006.1 - Single Bull Segment Parsing Bug Fix` was added to `test/features/game/domain/engines/stateless_x01_engine_test.dart`. It covers:
+    - Basic single bull parsing (scores 25 points, recorded as `'SB'`).
+    - In-strategy validation (Single bull does not satisfy double-in or master-in).
+    - Straight-in strategy (Single bull scores immediately).
+    - Bust scenarios (Single bull leaves 0 without being a double).
+    - Regression tests for double bull and regular numbers.
+
+### Status
+✅ **Closed** - Bug fixed and verified with tests.
