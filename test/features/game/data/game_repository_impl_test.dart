@@ -44,6 +44,13 @@ void main() {
       );
     ''');
 
+    // Add unique partial index to ensure only one active game
+    await db.execute('''
+      CREATE UNIQUE INDEX idx_games_single_active
+      ON games(is_complete)
+      WHERE is_complete = 0;
+    ''');
+
     await db.execute('''
       CREATE TABLE competitors (
         competitor_id  TEXT  NOT NULL PRIMARY KEY,

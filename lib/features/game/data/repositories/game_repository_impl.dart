@@ -19,13 +19,25 @@ class GameRepositoryImpl implements GameRepository {
 
   @override
   Future<Game?> getActiveGame() async {
+    // First, check if there are multiple incomplete games
+    final countResult = await _db.rawQuery(
+      'SELECT COUNT(*) as count FROM games WHERE is_complete = 0',
+    );
+    final count = countResult.first['count'] as int;
+    
+    if (count > 1) {
+      throw const MultipleActiveGamesException();
+    }
+
+    if (count == 0) return null;
+
+    // Only one incomplete game exists, return it
     final result = await _db.query(
       'games',
       where: 'is_complete = 0',
       limit: 1,
     );
 
-    if (result.isEmpty) return null;
     final map = Map<String, dynamic>.from(result.first);
     map['config_json'] = jsonDecode(map['config_json'] as String);
     if (map['game_state_json'] != null) {
@@ -141,62 +153,77 @@ class GameRepositoryImpl implements GameRepository {
       }
     }
     
-    await _db.transaction((txn) async {
-      // Check for duplicate game ID
-      final existing = await txn.query(
-        'games',
-        where: 'game_id = ?',
-        whereArgs: [game.gameId],
-        limit: 1,
-      );
+    try {
+      await _db.transaction((txn) async {
+        // Check for duplicate game ID
+        final existing = await txn.query(
+          'games',
+          where: 'game_id = ?',
+          whereArgs: [game.gameId],
+          limit: 1,
+        );
 
-      if (existing.isNotEmpty) {
-        throw DuplicateGameException(game.gameId);
-      }
+        if (existing.isNotEmpty) {
+          throw DuplicateGameException(game.gameId);
+        }
 
-      // Insert game
-      await txn.insert(
-        'games',
-        {
-          'game_id': game.gameId,
-          'game_type': game.gameType.name,
-          'config_json': jsonEncode(game.config),
-          'start_time': game.startTime.toIso8601String(),
-          'end_time': game.endTime?.toIso8601String(),
-          'winner_competitor_id': game.winnerCompetitorId,
-          'is_complete': game.isComplete == true ? 1 : 0,
-          'game_state_json': game.activeState != null ? jsonEncode(game.activeState) : null,
-        },
-        conflictAlgorithm: ConflictAlgorithm.fail,
-      );
-
-      // Insert competitors
-      for (final competitor in competitors) {
+        // Insert game
         await txn.insert(
-          'competitors',
+          'games',
           {
-            'competitor_id': competitor.competitorId,
-            'game_id': competitor.gameId,
-            'type': competitor.type.name,
-            'name': competitor.name,
+            'game_id': game.gameId,
+            'game_type': game.gameType.name,
+            'config_json': jsonEncode(game.config),
+            'start_time': game.startTime.toIso8601String(),
+            'end_time': game.endTime?.toIso8601String(),
+            'winner_competitor_id': game.winnerCompetitorId,
+            'is_complete': game.isComplete == true ? 1 : 0,
+            'game_state_json': game.activeState != null ? jsonEncode(game.activeState) : null,
           },
           conflictAlgorithm: ConflictAlgorithm.fail,
         );
 
-        // Insert competitor players
-        for (final player in competitor.players) {
+        // Insert competitors
+        for (final competitor in competitors) {
           await txn.insert(
-            'competitor_players',
+            'competitors',
             {
               'competitor_id': competitor.competitorId,
-              'player_id': player.playerId,
-              'rotation_position': player.rotationPosition,
+              'game_id': competitor.gameId,
+              'type': competitor.type.name,
+              'name': competitor.name,
             },
             conflictAlgorithm: ConflictAlgorithm.fail,
           );
+
+          // Insert competitor players
+          for (final player in competitor.players) {
+            await txn.insert(
+              'competitor_players',
+              {
+                'competitor_id': competitor.competitorId,
+                'player_id': player.playerId,
+                'rotation_position': player.rotationPosition,
+              },
+              conflictAlgorithm: ConflictAlgorithm.fail,
+            );
+          }
+        }
+      });
+    } on DatabaseException catch (e) {
+      if (e.isUniqueConstraintError()) {
+        // Check if this is the active game constraint violation
+        if (e.toString().contains('idx_games_single_active') || 
+            e.toString().contains('is_complete')) {
+          throw const ActiveGameAlreadyExistsException();
+        }
+        // For other unique constraint violations, check if it's a duplicate game ID
+        if (e.toString().contains('game_id') || e.toString().contains('PRIMARY KEY')) {
+          throw DuplicateGameException(game.gameId);
         }
       }
-    });
+      rethrow;
+    }
   }
 
   @override
