@@ -47,6 +47,9 @@ class DatabaseHelper {
         await DatabaseMigrations.createVersion2Migration(db);
         await DatabaseMigrations.createVersion2(db);
       }
+      if (upgradeVersion == 3) {
+        await DatabaseMigrations.createVersion3(db);
+      }
       // Add future version upgrades here
     }
   }

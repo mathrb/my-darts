@@ -14,6 +14,7 @@
 |---------|--------|
 | 1       | Initial schema — players, games, competitors, competitor_players, dart_throws, game_events |
 | 2       | Add event envelope fields (actor_id, global_sequence, source) to game_events table + backend extension (accounts, sync_queue, game_sessions) |
+| 3       | Add unique partial index `idx_games_single_active` to enforce single active game constraint |
 
 Migration logic lives in `DatabaseHelper`. Each version block is applied incrementally via `onUpgrade`.
 
@@ -63,6 +64,11 @@ CREATE TABLE games (
     is_complete           INTEGER  NOT NULL DEFAULT 0,    -- 0 = active, 1 = complete (SQLite boolean)
     game_state_json       TEXT                            -- JSON: resumable runtime state (see DATA.md §8), NULL once complete
 );
+
+-- Unique partial index to enforce single active game constraint
+CREATE UNIQUE INDEX idx_games_single_active
+ON games(is_complete)
+WHERE is_complete = 0;
 ```
 
 **Notes:**
@@ -70,6 +76,7 @@ CREATE TABLE games (
 - `game_state_json` is only present for active games. It is set to `NULL` on completion. It is never used for statistics queries.
 - `is_complete = 1` makes a game read-only. Application logic enforces this; no database trigger is used.
 - `winner_competitor_id` is not a foreign key because the referenced `competitors` row is game-scoped and may be queried infrequently. Application logic ensures consistency.
+- **Single active game constraint**: The `idx_games_single_active` unique partial index enforces that at most one game can have `is_complete = 0` at any time. This prevents "ghost game" scenarios where multiple incomplete games could accumulate. The database constraint provides the primary enforcement; application logic in `GameRepositoryImpl.getActiveGame()` provides additional validation.
 
 ---
 
@@ -278,6 +285,11 @@ CREATE TABLE games (
     is_complete           INTEGER NOT NULL DEFAULT 0,
     game_state_json       TEXT
 );
+
+-- Unique partial index to enforce single active game constraint
+CREATE UNIQUE INDEX idx_games_single_active
+ON games(is_complete)
+WHERE is_complete = 0;
 
 CREATE TABLE competitors (
     competitor_id TEXT NOT NULL PRIMARY KEY,

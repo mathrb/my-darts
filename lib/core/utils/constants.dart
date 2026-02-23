@@ -71,7 +71,7 @@ enum EventSource {
 // Database Constants
 class DatabaseConstants {
   static const String databaseName = 'darts_app.db';
-  static const int databaseVersion = 2;
+  static const int databaseVersion = 3;
   
   // Table names
   static const String playersTable = 'players';

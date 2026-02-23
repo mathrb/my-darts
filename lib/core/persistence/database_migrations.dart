@@ -30,6 +30,13 @@ class DatabaseMigrations {
       );
     ''');
 
+    // Create unique partial index to ensure only one active game
+    await db.execute('''
+      CREATE UNIQUE INDEX idx_games_single_active
+      ON ${DatabaseConstants.gamesTable}(is_complete)
+      WHERE is_complete = 0;
+    ''');
+
     // Create competitors table
     await db.execute('''
       CREATE TABLE ${DatabaseConstants.competitorsTable} (
@@ -191,6 +198,26 @@ class DatabaseMigrations {
     await db.execute('''
       CREATE INDEX idx_game_sessions_game_id ON game_sessions(game_id);
     ''');
+  }
+
+  static Future createVersion3(Database db) async {
+    // Add unique partial index to ensure only one active game
+    // This prevents multiple games from having is_complete = 0
+    try {
+      await db.execute('''
+        CREATE UNIQUE INDEX idx_games_single_active
+        ON ${DatabaseConstants.gamesTable}(is_complete)
+        WHERE is_complete = 0;
+      ''');
+    } catch (e) {
+      // Index may already exist or there may be existing data violations
+      // For existing data violations, we'll handle them at the application level
+      // rethrow if it's not a constraint violation
+      if (!e.toString().contains('already exists') && 
+          !e.toString().contains('UNIQUE constraint failed')) {
+        rethrow;
+      }
+    }
   }
 
   static Future createFullMigrationScript(Database db) async {
