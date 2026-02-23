@@ -43,6 +43,8 @@ void runGameEventRepositoryContractTests({
         occurredAt: DateTime.now(),
         payload: {'ruleset': 'X01'},
         synced: false,
+        actorId: 'system',
+        source: EventSource.client,
       );
 
       await repo.appendEvent(event);
@@ -65,6 +67,8 @@ void runGameEventRepositoryContractTests({
         occurredAt: DateTime.now(),
         payload: {'ruleset': 'X01'},
         synced: false,
+        actorId: 'system',
+        source: EventSource.client,
       );
 
       await repo.appendEvent(event);
@@ -87,6 +91,8 @@ void runGameEventRepositoryContractTests({
         occurredAt: DateTime.now(),
         payload: {},
         synced: false,
+        actorId: 'system',
+        source: EventSource.client,
       ));
 
       expect(
@@ -98,6 +104,8 @@ void runGameEventRepositoryContractTests({
           occurredAt: DateTime.now(),
           payload: {},
           synced: false,
+          actorId: 'system',
+          source: EventSource.client,
         )),
         throwsA(isA<SequenceConflictException>()),
       );
@@ -117,6 +125,8 @@ void runGameEventRepositoryContractTests({
         occurredAt: DateTime.now(),
         payload: {},
         synced: false,
+        actorId: 'system',
+        source: EventSource.client,
       ));
 
       await repo.markSynced(['e1']);

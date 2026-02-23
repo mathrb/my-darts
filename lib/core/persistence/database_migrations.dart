@@ -100,6 +100,9 @@ class DatabaseMigrations {
         occurred_at     TEXT     NOT NULL,
         payload_json    TEXT     NOT NULL,
         synced          INTEGER  NOT NULL DEFAULT 0,
+        actor_id        TEXT     NOT NULL,
+        global_sequence INTEGER,
+        source          INTEGER  NOT NULL DEFAULT 0,
         UNIQUE (game_id, local_sequence)
       );
     ''');
@@ -113,7 +116,23 @@ class DatabaseMigrations {
     ''');
   }
 
+  static Future createVersion2Migration(Database db) async {
+    // Add new columns to game_events table for version 2
+    await db.execute('''
+      ALTER TABLE ${DatabaseConstants.gameEventsTable} ADD COLUMN actor_id TEXT NOT NULL DEFAULT 'system';
+    ''');
+    await db.execute('''
+      ALTER TABLE ${DatabaseConstants.gameEventsTable} ADD COLUMN global_sequence INTEGER;
+    ''');
+    await db.execute('''
+      ALTER TABLE ${DatabaseConstants.gameEventsTable} ADD COLUMN source INTEGER NOT NULL DEFAULT 0;
+    ''');
+  }
+
   static Future createVersion2(Database db) async {
+    // Add new columns to game_events table first
+    await createVersion2Migration(db);
+    
     // Create accounts table
     await db.execute('''
       CREATE TABLE accounts (
@@ -172,5 +191,14 @@ class DatabaseMigrations {
     await db.execute('''
       CREATE INDEX idx_game_sessions_game_id ON game_sessions(game_id);
     ''');
+  }
+
+  static Future createFullMigrationScript(Database db) async {
+    // Version 1 - Core Schema
+    await createVersion1(db);
+    
+    // Version 2 - Add event envelope fields and backend extension
+    await createVersion2Migration(db);
+    await createVersion2(db);
   }
 }

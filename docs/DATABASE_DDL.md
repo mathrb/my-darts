@@ -13,7 +13,7 @@
 | Version | Change |
 |---------|--------|
 | 1       | Initial schema — players, games, competitors, competitor_players, dart_throws, game_events |
-| 2       | Optional backend extension — accounts, sync_queue, game_sessions |
+| 2       | Add event envelope fields (actor_id, global_sequence, source) to game_events table + backend extension (accounts, sync_queue, game_sessions) |
 
 Migration logic lives in `DatabaseHelper`. Each version block is applied incrementally via `onUpgrade`.
 
@@ -152,6 +152,9 @@ CREATE TABLE game_events (
     occurred_at     TEXT     NOT NULL,              -- ISO 8601
     payload_json    TEXT     NOT NULL,              -- JSON: event-type-specific payload (see GAME-EVENT-SPECIFICATIONS.md §4)
     synced          INTEGER  NOT NULL DEFAULT 0,    -- 0 = local only, 1 = confirmed by backend
+    actor_id        TEXT     NOT NULL,              -- UUID: player or system actor who caused the event
+    global_sequence INTEGER,                        -- Server-assigned sequence (null until synced)
+    source          INTEGER  NOT NULL DEFAULT 0,    -- 0=client, 1=server, 2=vision
 
     UNIQUE (game_id, local_sequence)
 );
@@ -162,8 +165,10 @@ CREATE INDEX idx_game_events_sequence ON game_events(game_id, local_sequence);
 
 **Notes:**
 - Events are immutable once inserted. `DartCorrected` does not modify an existing row; it inserts a new event that references the original.
-- `local_sequence` is assigned by the client and is unique per game. The backend assigns its own `global_sequence` on sync; this is not stored locally.
+- `local_sequence` is assigned by the client and is unique per game. The backend assigns its own `global_sequence` on sync; this is stored in the `global_sequence` column.
 - `synced = 0` rows are candidates for the backend sync queue (see Version 2 — `sync_queue`).
+- `actor_id` identifies the player or system actor who caused the event. For player actions, this is the player UUID. For system events, it's 'system'.
+- `source` indicates the origin: 0=client app, 1=server, 2=computer vision system.
 - Duplicate `event_id` values must be silently ignored on insert (idempotency), not rejected.
 
 ---
@@ -311,13 +316,16 @@ CREATE INDEX idx_dart_throws_competitor_id ON dart_throws(competitor_id);
 CREATE INDEX idx_dart_throws_turn_order    ON dart_throws(game_id, turn_number, dart_number);
 
 CREATE TABLE game_events (
-    event_id       TEXT    NOT NULL PRIMARY KEY,
-    game_id        TEXT    NOT NULL REFERENCES games(game_id) ON DELETE CASCADE,
-    event_type     TEXT    NOT NULL,
-    local_sequence INTEGER NOT NULL,
-    occurred_at    TEXT    NOT NULL,
-    payload_json   TEXT    NOT NULL,
-    synced         INTEGER NOT NULL DEFAULT 0,
+    event_id        TEXT    NOT NULL PRIMARY KEY,
+    game_id         TEXT    NOT NULL REFERENCES games(game_id) ON DELETE CASCADE,
+    event_type      TEXT    NOT NULL,
+    local_sequence  INTEGER NOT NULL,
+    occurred_at     TEXT    NOT NULL,
+    payload_json    TEXT    NOT NULL,
+    synced          INTEGER NOT NULL DEFAULT 0,
+    actor_id        TEXT    NOT NULL,
+    global_sequence INTEGER,
+    source          INTEGER NOT NULL DEFAULT 0,
     UNIQUE (game_id, local_sequence)
 );
 

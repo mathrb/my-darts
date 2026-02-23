@@ -43,6 +43,9 @@ void main() {
         occurred_at     TEXT     NOT NULL,
         payload_json    TEXT     NOT NULL,
         synced          INTEGER  NOT NULL DEFAULT 0,
+        actor_id        TEXT     NOT NULL,
+        global_sequence INTEGER,
+        source          INTEGER  NOT NULL DEFAULT 0,
         UNIQUE (game_id, local_sequence)
       );
     ''');

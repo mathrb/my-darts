@@ -225,6 +225,15 @@ class MockGameEventRepository extends _i1.Mock
           as _i3.Future<void>);
 
   @override
+  _i3.Future<void> updateGlobalSequences(Map<String, int>? eventIdToSequence) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateGlobalSequences, [eventIdToSequence]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
   _i3.Stream<List<_i9.GameEvent>> watchEventsForGame(String? gameId) =>
       (super.noSuchMethod(
             Invocation.method(#watchEventsForGame, [gameId]),
