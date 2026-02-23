@@ -37,7 +37,7 @@ class DatabaseHelper {
   }
 
   Future _createDB(sqflite.Database db, int version) async {
-    await DatabaseMigrations.createFullMigrationScript(db);
+    await DatabaseMigrations.createLatestSchema(db);
   }
 
   Future _upgradeDB(sqflite.Database db, int oldVersion, int newVersion) async {
