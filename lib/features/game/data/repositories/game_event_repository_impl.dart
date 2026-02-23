@@ -6,6 +6,7 @@ import 'dart:convert';
 import '../../domain/entities/game_event.dart';
 import '../../domain/repositories/game_event_repository.dart';
 import 'package:my_darts/core/error/repository_exception.dart';
+import 'package:my_darts/core/utils/constants.dart';
 
 class GameEventRepositoryImpl implements GameEventRepository {
   final Database _db;
@@ -87,6 +88,9 @@ class GameEventRepositoryImpl implements GameEventRepository {
           'occurred_at': event.occurredAt.toIso8601String(),
           'payload_json': jsonEncode(event.payload),
           'synced': event.synced ? 1 : 0,
+          'actor_id': event.actorId,
+          'global_sequence': event.globalSequence,
+          'source': event.source.value,
         },
         conflictAlgorithm: ConflictAlgorithm.fail,
       );
@@ -150,6 +154,9 @@ class GameEventRepositoryImpl implements GameEventRepository {
               'occurred_at': event.occurredAt.toIso8601String(),
               'payload_json': jsonEncode(event.payload),
               'synced': event.synced ? 1 : 0,
+              'actor_id': event.actorId,
+              'global_sequence': event.globalSequence,
+              'source': event.source.value,
             },
             conflictAlgorithm: ConflictAlgorithm.fail,
           );
@@ -197,5 +204,21 @@ class GameEventRepositoryImpl implements GameEventRepository {
   @override
   Stream<List<GameEvent>> watchEventsForGame(String gameId) {
     return Stream.fromFuture(getEventsForGame(gameId));
+  }
+
+  @override
+  Future<void> updateGlobalSequences(Map<String, int> eventIdToSequence) async {
+    if (eventIdToSequence.isEmpty) return;
+
+    await _db.transaction((txn) async {
+      for (final entry in eventIdToSequence.entries) {
+        await txn.update(
+          'game_events',
+          {'global_sequence': entry.value},
+          where: 'event_id = ?',
+          whereArgs: [entry.key],
+        );
+      }
+    });
   }
 }

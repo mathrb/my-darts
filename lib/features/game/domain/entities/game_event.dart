@@ -3,6 +3,7 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'dart:convert';
+import 'package:my_darts/core/utils/constants.dart';
 
 part 'game_event.freezed.dart';
 part 'game_event.g.dart';
@@ -17,10 +18,29 @@ abstract class GameEvent with _$GameEvent {
     @JsonKey(name: 'occurred_at') required DateTime occurredAt,
     @JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload) required Map<String, dynamic> payload,
     @JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt) required bool synced,
+    @JsonKey(name: 'actor_id') required String actorId,
+    @JsonKey(name: 'global_sequence') int? globalSequence,
+    @JsonKey(name: 'source', fromJson: _parseSource, toJson: _sourceToInt) required EventSource source,
   }) = _GameEvent;
 
   factory GameEvent.fromJson(Map<String, dynamic> json) => _$GameEventFromJson(json);
 }
+
+// Source enum converters
+EventSource _parseSource(dynamic value) {
+  if (value is int) return EventSource.fromValue(value);
+  if (value is String) {
+    switch (value.toLowerCase()) {
+      case 'client': return EventSource.client;
+      case 'server': return EventSource.server;
+      case 'vision': return EventSource.vision;
+      default: return EventSource.client;
+    }
+  }
+  return EventSource.client;
+}
+
+int _sourceToInt(EventSource source) => source.value;
 
 Map<String, dynamic> _parsePayload(dynamic payload) {
   if (payload is String) return jsonDecode(payload) as Map<String, dynamic>;

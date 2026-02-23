@@ -10,6 +10,7 @@ import '../models/game_state.dart';
 import '../models/game_config.dart';
 import '../engines/base_game_engine.dart';
 import 'package:uuid/uuid.dart';
+import 'package:my_darts/core/utils/constants.dart';
 
 class ProcessDartUseCase {
   final GameEventRepository _eventRepository;
@@ -19,6 +20,25 @@ class ProcessDartUseCase {
     this._eventRepository,
     this._dartThrowRepository,
   );
+
+  /// Extracts the current player ID from the game state for the given competitor
+  String _getCurrentPlayerId(GameState state, String competitorId) {
+    // Find the competitor in the current state
+    final competitor = state.competitors.firstWhere(
+      (c) => c.competitorId == competitorId,
+      orElse: () => throw Exception('Competitor not found: $competitorId'),
+    );
+    
+    // For solo competitors, return the first player ID
+    // For team competitors, we might need more complex logic
+    // For now, return the first player as a simple approach
+    if (competitor.playerIds.isNotEmpty) {
+      return competitor.playerIds.first;
+    }
+    
+    // Fallback to system ID if no players found
+    return 'system';
+  }
 
   Future<GameState> execute(GameState currentState, DartThrow dartThrow) async {
     // 1. Get engine and validate
@@ -33,6 +53,9 @@ class ProcessDartUseCase {
     int nextSeq = await _eventRepository.getLatestSequence(currentState.gameId) + 1;
 
     // 4. Create DartThrown event
+    // Extract current player ID for actor_id
+    final currentPlayerId = _getCurrentPlayerId(currentState, dartThrow.competitorId);
+    
     final dartEvent = GameEvent(
       eventId: dartThrow.dartId,
       gameId: currentState.gameId,
@@ -46,6 +69,8 @@ class ProcessDartUseCase {
         'input_method': 'manual',
       },
       synced: false,
+      actorId: currentPlayerId,
+      source: EventSource.client,
     );
 
     if (!engine.isValid(currentState, dartEvent)) {
@@ -68,6 +93,8 @@ class ProcessDartUseCase {
           'winner_competitor_id': result.winnerCompetitorId,
         },
         synced: false,
+        actorId: 'system', // System-generated event
+        source: EventSource.client,
       );
 
       result = engine.apply(result.state, legEvent);
@@ -86,6 +113,8 @@ class ProcessDartUseCase {
           'winner_id': result.winnerCompetitorId,
         },
         synced: false,
+        actorId: 'system', // System-generated event
+        source: EventSource.client,
       );
 
       result = engine.apply(result.state, gameEvent);

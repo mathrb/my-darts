@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$GameEvent {
 
-@JsonKey(name: 'event_id') String get eventId;@JsonKey(name: 'game_id') String get gameId;@JsonKey(name: 'event_type') String get eventType;@JsonKey(name: 'local_sequence') int get localSequence;@JsonKey(name: 'occurred_at') DateTime get occurredAt;@JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload) Map<String, dynamic> get payload;@JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt) bool get synced;
+@JsonKey(name: 'event_id') String get eventId;@JsonKey(name: 'game_id') String get gameId;@JsonKey(name: 'event_type') String get eventType;@JsonKey(name: 'local_sequence') int get localSequence;@JsonKey(name: 'occurred_at') DateTime get occurredAt;@JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload) Map<String, dynamic> get payload;@JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt) bool get synced;@JsonKey(name: 'actor_id') String get actorId;@JsonKey(name: 'global_sequence') int? get globalSequence;@JsonKey(name: 'source', fromJson: _parseSource, toJson: _sourceToInt) EventSource get source;
 /// Create a copy of GameEvent
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $GameEventCopyWith<GameEvent> get copyWith => _$GameEventCopyWithImpl<GameEvent>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GameEvent&&(identical(other.eventId, eventId) || other.eventId == eventId)&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.localSequence, localSequence) || other.localSequence == localSequence)&&(identical(other.occurredAt, occurredAt) || other.occurredAt == occurredAt)&&const DeepCollectionEquality().equals(other.payload, payload)&&(identical(other.synced, synced) || other.synced == synced));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GameEvent&&(identical(other.eventId, eventId) || other.eventId == eventId)&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.localSequence, localSequence) || other.localSequence == localSequence)&&(identical(other.occurredAt, occurredAt) || other.occurredAt == occurredAt)&&const DeepCollectionEquality().equals(other.payload, payload)&&(identical(other.synced, synced) || other.synced == synced)&&(identical(other.actorId, actorId) || other.actorId == actorId)&&(identical(other.globalSequence, globalSequence) || other.globalSequence == globalSequence)&&(identical(other.source, source) || other.source == source));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,eventId,gameId,eventType,localSequence,occurredAt,const DeepCollectionEquality().hash(payload),synced);
+int get hashCode => Object.hash(runtimeType,eventId,gameId,eventType,localSequence,occurredAt,const DeepCollectionEquality().hash(payload),synced,actorId,globalSequence,source);
 
 @override
 String toString() {
-  return 'GameEvent(eventId: $eventId, gameId: $gameId, eventType: $eventType, localSequence: $localSequence, occurredAt: $occurredAt, payload: $payload, synced: $synced)';
+  return 'GameEvent(eventId: $eventId, gameId: $gameId, eventType: $eventType, localSequence: $localSequence, occurredAt: $occurredAt, payload: $payload, synced: $synced, actorId: $actorId, globalSequence: $globalSequence, source: $source)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $GameEventCopyWith<$Res>  {
   factory $GameEventCopyWith(GameEvent value, $Res Function(GameEvent) _then) = _$GameEventCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'event_id') String eventId,@JsonKey(name: 'game_id') String gameId,@JsonKey(name: 'event_type') String eventType,@JsonKey(name: 'local_sequence') int localSequence,@JsonKey(name: 'occurred_at') DateTime occurredAt,@JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload) Map<String, dynamic> payload,@JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt) bool synced
+@JsonKey(name: 'event_id') String eventId,@JsonKey(name: 'game_id') String gameId,@JsonKey(name: 'event_type') String eventType,@JsonKey(name: 'local_sequence') int localSequence,@JsonKey(name: 'occurred_at') DateTime occurredAt,@JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload) Map<String, dynamic> payload,@JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt) bool synced,@JsonKey(name: 'actor_id') String actorId,@JsonKey(name: 'global_sequence') int? globalSequence,@JsonKey(name: 'source', fromJson: _parseSource, toJson: _sourceToInt) EventSource source
 });
 
 
@@ -65,7 +65,7 @@ class _$GameEventCopyWithImpl<$Res>
 
 /// Create a copy of GameEvent
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? eventId = null,Object? gameId = null,Object? eventType = null,Object? localSequence = null,Object? occurredAt = null,Object? payload = null,Object? synced = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? eventId = null,Object? gameId = null,Object? eventType = null,Object? localSequence = null,Object? occurredAt = null,Object? payload = null,Object? synced = null,Object? actorId = null,Object? globalSequence = freezed,Object? source = null,}) {
   return _then(_self.copyWith(
 eventId: null == eventId ? _self.eventId : eventId // ignore: cast_nullable_to_non_nullable
 as String,gameId: null == gameId ? _self.gameId : gameId // ignore: cast_nullable_to_non_nullable
@@ -74,7 +74,10 @@ as String,localSequence: null == localSequence ? _self.localSequence : localSequ
 as int,occurredAt: null == occurredAt ? _self.occurredAt : occurredAt // ignore: cast_nullable_to_non_nullable
 as DateTime,payload: null == payload ? _self.payload : payload // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,synced: null == synced ? _self.synced : synced // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,actorId: null == actorId ? _self.actorId : actorId // ignore: cast_nullable_to_non_nullable
+as String,globalSequence: freezed == globalSequence ? _self.globalSequence : globalSequence // ignore: cast_nullable_to_non_nullable
+as int?,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
+as EventSource,
   ));
 }
 
@@ -159,10 +162,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'event_id')  String eventId, @JsonKey(name: 'game_id')  String gameId, @JsonKey(name: 'event_type')  String eventType, @JsonKey(name: 'local_sequence')  int localSequence, @JsonKey(name: 'occurred_at')  DateTime occurredAt, @JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload)  Map<String, dynamic> payload, @JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt)  bool synced)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'event_id')  String eventId, @JsonKey(name: 'game_id')  String gameId, @JsonKey(name: 'event_type')  String eventType, @JsonKey(name: 'local_sequence')  int localSequence, @JsonKey(name: 'occurred_at')  DateTime occurredAt, @JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload)  Map<String, dynamic> payload, @JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt)  bool synced, @JsonKey(name: 'actor_id')  String actorId, @JsonKey(name: 'global_sequence')  int? globalSequence, @JsonKey(name: 'source', fromJson: _parseSource, toJson: _sourceToInt)  EventSource source)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _GameEvent() when $default != null:
-return $default(_that.eventId,_that.gameId,_that.eventType,_that.localSequence,_that.occurredAt,_that.payload,_that.synced);case _:
+return $default(_that.eventId,_that.gameId,_that.eventType,_that.localSequence,_that.occurredAt,_that.payload,_that.synced,_that.actorId,_that.globalSequence,_that.source);case _:
   return orElse();
 
 }
@@ -180,10 +183,10 @@ return $default(_that.eventId,_that.gameId,_that.eventType,_that.localSequence,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'event_id')  String eventId, @JsonKey(name: 'game_id')  String gameId, @JsonKey(name: 'event_type')  String eventType, @JsonKey(name: 'local_sequence')  int localSequence, @JsonKey(name: 'occurred_at')  DateTime occurredAt, @JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload)  Map<String, dynamic> payload, @JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt)  bool synced)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'event_id')  String eventId, @JsonKey(name: 'game_id')  String gameId, @JsonKey(name: 'event_type')  String eventType, @JsonKey(name: 'local_sequence')  int localSequence, @JsonKey(name: 'occurred_at')  DateTime occurredAt, @JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload)  Map<String, dynamic> payload, @JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt)  bool synced, @JsonKey(name: 'actor_id')  String actorId, @JsonKey(name: 'global_sequence')  int? globalSequence, @JsonKey(name: 'source', fromJson: _parseSource, toJson: _sourceToInt)  EventSource source)  $default,) {final _that = this;
 switch (_that) {
 case _GameEvent():
-return $default(_that.eventId,_that.gameId,_that.eventType,_that.localSequence,_that.occurredAt,_that.payload,_that.synced);case _:
+return $default(_that.eventId,_that.gameId,_that.eventType,_that.localSequence,_that.occurredAt,_that.payload,_that.synced,_that.actorId,_that.globalSequence,_that.source);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +203,10 @@ return $default(_that.eventId,_that.gameId,_that.eventType,_that.localSequence,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'event_id')  String eventId, @JsonKey(name: 'game_id')  String gameId, @JsonKey(name: 'event_type')  String eventType, @JsonKey(name: 'local_sequence')  int localSequence, @JsonKey(name: 'occurred_at')  DateTime occurredAt, @JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload)  Map<String, dynamic> payload, @JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt)  bool synced)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'event_id')  String eventId, @JsonKey(name: 'game_id')  String gameId, @JsonKey(name: 'event_type')  String eventType, @JsonKey(name: 'local_sequence')  int localSequence, @JsonKey(name: 'occurred_at')  DateTime occurredAt, @JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload)  Map<String, dynamic> payload, @JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt)  bool synced, @JsonKey(name: 'actor_id')  String actorId, @JsonKey(name: 'global_sequence')  int? globalSequence, @JsonKey(name: 'source', fromJson: _parseSource, toJson: _sourceToInt)  EventSource source)?  $default,) {final _that = this;
 switch (_that) {
 case _GameEvent() when $default != null:
-return $default(_that.eventId,_that.gameId,_that.eventType,_that.localSequence,_that.occurredAt,_that.payload,_that.synced);case _:
+return $default(_that.eventId,_that.gameId,_that.eventType,_that.localSequence,_that.occurredAt,_that.payload,_that.synced,_that.actorId,_that.globalSequence,_that.source);case _:
   return null;
 
 }
@@ -215,7 +218,7 @@ return $default(_that.eventId,_that.gameId,_that.eventType,_that.localSequence,_
 @JsonSerializable()
 
 class _GameEvent implements GameEvent {
-  const _GameEvent({@JsonKey(name: 'event_id') required this.eventId, @JsonKey(name: 'game_id') required this.gameId, @JsonKey(name: 'event_type') required this.eventType, @JsonKey(name: 'local_sequence') required this.localSequence, @JsonKey(name: 'occurred_at') required this.occurredAt, @JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload) required final  Map<String, dynamic> payload, @JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt) required this.synced}): _payload = payload;
+  const _GameEvent({@JsonKey(name: 'event_id') required this.eventId, @JsonKey(name: 'game_id') required this.gameId, @JsonKey(name: 'event_type') required this.eventType, @JsonKey(name: 'local_sequence') required this.localSequence, @JsonKey(name: 'occurred_at') required this.occurredAt, @JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload) required final  Map<String, dynamic> payload, @JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt) required this.synced, @JsonKey(name: 'actor_id') required this.actorId, @JsonKey(name: 'global_sequence') this.globalSequence, @JsonKey(name: 'source', fromJson: _parseSource, toJson: _sourceToInt) required this.source}): _payload = payload;
   factory _GameEvent.fromJson(Map<String, dynamic> json) => _$GameEventFromJson(json);
 
 @override@JsonKey(name: 'event_id') final  String eventId;
@@ -231,6 +234,9 @@ class _GameEvent implements GameEvent {
 }
 
 @override@JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt) final  bool synced;
+@override@JsonKey(name: 'actor_id') final  String actorId;
+@override@JsonKey(name: 'global_sequence') final  int? globalSequence;
+@override@JsonKey(name: 'source', fromJson: _parseSource, toJson: _sourceToInt) final  EventSource source;
 
 /// Create a copy of GameEvent
 /// with the given fields replaced by the non-null parameter values.
@@ -245,16 +251,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GameEvent&&(identical(other.eventId, eventId) || other.eventId == eventId)&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.localSequence, localSequence) || other.localSequence == localSequence)&&(identical(other.occurredAt, occurredAt) || other.occurredAt == occurredAt)&&const DeepCollectionEquality().equals(other._payload, _payload)&&(identical(other.synced, synced) || other.synced == synced));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GameEvent&&(identical(other.eventId, eventId) || other.eventId == eventId)&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.localSequence, localSequence) || other.localSequence == localSequence)&&(identical(other.occurredAt, occurredAt) || other.occurredAt == occurredAt)&&const DeepCollectionEquality().equals(other._payload, _payload)&&(identical(other.synced, synced) || other.synced == synced)&&(identical(other.actorId, actorId) || other.actorId == actorId)&&(identical(other.globalSequence, globalSequence) || other.globalSequence == globalSequence)&&(identical(other.source, source) || other.source == source));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,eventId,gameId,eventType,localSequence,occurredAt,const DeepCollectionEquality().hash(_payload),synced);
+int get hashCode => Object.hash(runtimeType,eventId,gameId,eventType,localSequence,occurredAt,const DeepCollectionEquality().hash(_payload),synced,actorId,globalSequence,source);
 
 @override
 String toString() {
-  return 'GameEvent(eventId: $eventId, gameId: $gameId, eventType: $eventType, localSequence: $localSequence, occurredAt: $occurredAt, payload: $payload, synced: $synced)';
+  return 'GameEvent(eventId: $eventId, gameId: $gameId, eventType: $eventType, localSequence: $localSequence, occurredAt: $occurredAt, payload: $payload, synced: $synced, actorId: $actorId, globalSequence: $globalSequence, source: $source)';
 }
 
 
@@ -265,7 +271,7 @@ abstract mixin class _$GameEventCopyWith<$Res> implements $GameEventCopyWith<$Re
   factory _$GameEventCopyWith(_GameEvent value, $Res Function(_GameEvent) _then) = __$GameEventCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'event_id') String eventId,@JsonKey(name: 'game_id') String gameId,@JsonKey(name: 'event_type') String eventType,@JsonKey(name: 'local_sequence') int localSequence,@JsonKey(name: 'occurred_at') DateTime occurredAt,@JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload) Map<String, dynamic> payload,@JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt) bool synced
+@JsonKey(name: 'event_id') String eventId,@JsonKey(name: 'game_id') String gameId,@JsonKey(name: 'event_type') String eventType,@JsonKey(name: 'local_sequence') int localSequence,@JsonKey(name: 'occurred_at') DateTime occurredAt,@JsonKey(name: 'payload_json', fromJson: _parsePayload, toJson: _stringifyPayload) Map<String, dynamic> payload,@JsonKey(name: 'synced', fromJson: _parseBool, toJson: _boolToInt) bool synced,@JsonKey(name: 'actor_id') String actorId,@JsonKey(name: 'global_sequence') int? globalSequence,@JsonKey(name: 'source', fromJson: _parseSource, toJson: _sourceToInt) EventSource source
 });
 
 
@@ -282,7 +288,7 @@ class __$GameEventCopyWithImpl<$Res>
 
 /// Create a copy of GameEvent
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? eventId = null,Object? gameId = null,Object? eventType = null,Object? localSequence = null,Object? occurredAt = null,Object? payload = null,Object? synced = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? eventId = null,Object? gameId = null,Object? eventType = null,Object? localSequence = null,Object? occurredAt = null,Object? payload = null,Object? synced = null,Object? actorId = null,Object? globalSequence = freezed,Object? source = null,}) {
   return _then(_GameEvent(
 eventId: null == eventId ? _self.eventId : eventId // ignore: cast_nullable_to_non_nullable
 as String,gameId: null == gameId ? _self.gameId : gameId // ignore: cast_nullable_to_non_nullable
@@ -291,7 +297,10 @@ as String,localSequence: null == localSequence ? _self.localSequence : localSequ
 as int,occurredAt: null == occurredAt ? _self.occurredAt : occurredAt // ignore: cast_nullable_to_non_nullable
 as DateTime,payload: null == payload ? _self._payload : payload // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,synced: null == synced ? _self.synced : synced // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,actorId: null == actorId ? _self.actorId : actorId // ignore: cast_nullable_to_non_nullable
+as String,globalSequence: freezed == globalSequence ? _self.globalSequence : globalSequence // ignore: cast_nullable_to_non_nullable
+as int?,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
+as EventSource,
   ));
 }
 

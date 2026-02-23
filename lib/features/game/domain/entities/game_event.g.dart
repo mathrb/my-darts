@@ -14,6 +14,9 @@ _GameEvent _$GameEventFromJson(Map<String, dynamic> json) => _GameEvent(
   occurredAt: DateTime.parse(json['occurred_at'] as String),
   payload: _parsePayload(json['payload_json']),
   synced: _parseBool(json['synced']),
+  actorId: json['actor_id'] as String,
+  globalSequence: (json['global_sequence'] as num?)?.toInt(),
+  source: _parseSource(json['source']),
 );
 
 Map<String, dynamic> _$GameEventToJson(_GameEvent instance) =>
@@ -25,4 +28,7 @@ Map<String, dynamic> _$GameEventToJson(_GameEvent instance) =>
       'occurred_at': instance.occurredAt.toIso8601String(),
       'payload_json': _stringifyPayload(instance.payload),
       'synced': _boolToInt(instance.synced),
+      'actor_id': instance.actorId,
+      'global_sequence': instance.globalSequence,
+      'source': _sourceToInt(instance.source),
     };
