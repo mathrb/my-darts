@@ -13,9 +13,8 @@ part of 'database_provider.dart';
 final databaseProvider = DatabaseProvider._();
 
 final class DatabaseProvider
-    extends
-        $FunctionalProvider<AsyncValue<Database>, Database, FutureOr<Database>>
-    with $FutureModifier<Database>, $FutureProvider<Database> {
+    extends $FunctionalProvider<AsyncValue<Object>, Object, FutureOr<Object>>
+    with $FutureModifier<Object>, $FutureProvider<Object> {
   DatabaseProvider._()
     : super(
         from: null,
@@ -32,16 +31,16 @@ final class DatabaseProvider
 
   @$internal
   @override
-  $FutureProviderElement<Database> $createElement($ProviderPointer pointer) =>
+  $FutureProviderElement<Object> $createElement($ProviderPointer pointer) =>
       $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Database> create(Ref ref) {
+  FutureOr<Object> create(Ref ref) {
     return database(ref);
   }
 }
 
-String _$databaseHash() => r'8bba13c10920bca10c78bb929ff2d0201c984441';
+String _$databaseHash() => r'acc4c4713e99924000bb39f036996b9300c7deb1';
 
 @ProviderFor(playerRepository)
 final playerRepositoryProvider = PlayerRepositoryProvider._();
@@ -87,7 +86,7 @@ final class PlayerRepositoryProvider
   }
 }
 
-String _$playerRepositoryHash() => r'4180feaa1fdaa6f204073a89c463876aa8ff2820';
+String _$playerRepositoryHash() => r'f2736bab1daaa1468c86204623ecb4f33324a654';
 
 @ProviderFor(gameRepository)
 final gameRepositoryProvider = GameRepositoryProvider._();
@@ -128,7 +127,7 @@ final class GameRepositoryProvider
   }
 }
 
-String _$gameRepositoryHash() => r'6e309f86db79a642f19b2cf56a88222f85c081cb';
+String _$gameRepositoryHash() => r'083e9f6689b0b7ab344b51a60ee4d6f834c54eb9';
 
 @ProviderFor(dartThrowRepository)
 final dartThrowRepositoryProvider = DartThrowRepositoryProvider._();
@@ -176,7 +175,7 @@ final class DartThrowRepositoryProvider
 }
 
 String _$dartThrowRepositoryHash() =>
-    r'e0f9c8faa818ead8c6421933e56c6a953a29951c';
+    r'fdd7ab1b41f3908f909ae4fa02e1f88078fc3f80';
 
 @ProviderFor(gameEventRepository)
 final gameEventRepositoryProvider = GameEventRepositoryProvider._();
@@ -224,7 +223,7 @@ final class GameEventRepositoryProvider
 }
 
 String _$gameEventRepositoryHash() =>
-    r'96a3a804931ac52d59fe10cdfe78a499e60f83d5';
+    r'8b3290749051685f2f4b24bba6f9efad955f2208';
 
 @ProviderFor(statisticsRepository)
 final statisticsRepositoryProvider = StatisticsRepositoryProvider._();
@@ -272,7 +271,7 @@ final class StatisticsRepositoryProvider
 }
 
 String _$statisticsRepositoryHash() =>
-    r'1ce759818ddaea94f4372436d742f2aa16fe93a7';
+    r'69351339e1646555ed4e39dd7beb944daa1c58b8';
 
 @ProviderFor(x01Engine)
 final x01EngineProvider = X01EngineProvider._();

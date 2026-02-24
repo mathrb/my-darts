@@ -22,6 +22,10 @@ dependencies:
   path: ^1.8.3
   path_provider: ^2.1.1
   
+  # Web database (Drift with SQLite WASM)
+  drift: ^2.31.0
+  sqlite3_flutter_libs: ^0.5.41
+  
   # Utility packages
   uuid: ^4.5.2
   intl: ^0.20.2
@@ -42,6 +46,7 @@ dev_dependencies:
   riverpod_generator: ^4.0.3
   freezed: ^3.2.5
   json_serializable: ^6.12.0
+  drift_dev: ^2.13.0
   
   # Linting
   flutter_lints: ^6.0.0

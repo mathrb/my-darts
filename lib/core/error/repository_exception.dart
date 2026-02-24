@@ -81,3 +81,9 @@ final class SequenceConflictException extends RepositoryException {
   const SequenceConflictException(this.gameId, this.localSequence)
       : super('Sequence $localSequence already taken in game $gameId');
 }
+
+final class EventNotFoundException extends RepositoryException {
+  final String eventId;
+  const EventNotFoundException(this.eventId)
+      : super('Event not found: $eventId');
+}
