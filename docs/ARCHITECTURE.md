@@ -29,7 +29,7 @@ The Darts App follows a layered architecture with clear separation of concerns. 
 
 ### 3. Data Layer (SQLite)
 - **Responsibility**: Local data persistence
-- **Implementation**: SQLite via `sqflite` and `path_provider` packages on mobile; web-compatible storage (e.g. `drift` with IndexedDB) when running as a web debug target
+- **Implementation**: SQLite via `sqflite` and `path_provider` packages on mobile; SQLite WASM (via `drift` with automatic OPFS/IndexedDB fallback) when running as a web debug target
 - **Key Components**:
   - Database schema management
   - Data Access Objects (DAOs)
@@ -91,7 +91,7 @@ The database follows a relational design with these core entities:
 
 ### Database Helper
 
-The Database Helper provides a singleton interface for all database operations, handling all CRUD operations and ensuring proper database initialization. It follows the repository pattern to abstract database operations from the business logic layer, with the underlying storage implementation varying by platform (SQLite via `sqflite` on mobile, a web-compatible backend such as `drift` with IndexedDB on web).
+The Database Helper provides a singleton interface for all database operations, handling all CRUD operations and ensuring proper database initialization. It follows the repository pattern to abstract database operations from the business logic layer, with the underlying storage implementation varying by platform (SQLite via `sqflite` on mobile, SQLite WASM via `drift` with automatic OPFS/IndexedDB fallback on web).
 
 Key responsibilities:
 - Database initialization and schema management
@@ -147,7 +147,7 @@ The state management system ensures consistent game state across the application
 
 ### 3. Repository Abstraction for Platform-Conditional Storage
 - **Rationale**: `sqflite` does not support Flutter Web; the data layer must be abstracted to allow platform-appropriate implementations
-- **Implementation**: Repository interfaces defined in the domain layer; mobile resolves to `sqflite`, web resolves to a compatible alternative (e.g. `drift` with a web worker and IndexedDB). Conditional wiring happens at the dependency injection root (`main.dart`)
+- **Implementation**: Repository interfaces defined in the domain layer; mobile resolves to `sqflite`, web resolves to SQLite WASM via `drift` with automatic OPFS/IndexedDB fallback. Conditional wiring happens at the dependency injection root (`main.dart`)
 - **Benefits**: Game logic and UI remain identical across platforms; storage implementation is swappable without touching business logic
 - **Web limitations**: The web build is a development/debug target only. Features requiring native APIs (camera for computer vision, native file system) are not available on web and should be stubbed or disabled when running in a browser
 
@@ -174,3 +174,33 @@ The state management system ensures consistent game state across the application
 4. **Implement Statistics Engine**: Compute various metrics from dart data
 5. **Add Optional Backend**: Computer vision integration
 6. **Testing**: Unit tests, integration tests, UI tests
+
+## Web Database Migration (Completed)
+
+### From IndexedDB to SQLite WASM
+
+The project has migrated from the deprecated `WebDatabase` (IndexedDB-only) to the modern `WasmDatabase` approach:
+
+**Key Improvements:**
+- **Cross-Platform Consistency**: Same SQLite engine on web and native platforms
+- **Automatic Storage Selection**: OPFS (preferred) → IndexedDB → Memory fallback
+- **Better Performance**: Native SQLite operations vs IndexedDB adapter overhead
+- **Simplified Architecture**: No manual web worker configuration required
+
+**Implementation Details:**
+- Uses `package:drift/wasm.dart` with `WasmDatabase.open()`
+- Automatic fallback chain based on browser capabilities
+- Maintains identical schema and behavior across platforms
+- Requires `sqlite3.wasm` and `drift_worker.dart.js` assets
+
+**Benefits for Contract Testing:**
+- True SQLite behavior on web matches native SQLite exactly
+- Eliminates subtle differences between IndexedDB and SQLite
+- More reliable constraint violation detection
+- Easier to verify identical behavior across platforms
+
+**Migration Status:** ✅ Complete
+- All repository implementations updated to use `DriftWrappedException`
+- Web factory uses modern WASM approach
+- Documentation updated to reflect new architecture
+- Deprecated API usage documented with migration path

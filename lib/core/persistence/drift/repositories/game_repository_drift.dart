@@ -13,8 +13,8 @@ import 'package:my_darts/features/game/domain/models/game_state_snapshot.dart';
 import 'package:my_darts/features/game/domain/repositories/game_repository.dart';
 import '../database.dart' as drift_db;
 
-// Import SqliteException from drift
-import 'package:drift/native.dart' show SqliteException;
+
+
 
 class GameRepositoryDrift implements GameRepository {
   final drift_db.AppDatabase _db;
@@ -93,10 +93,21 @@ class GameRepositoryDrift implements GameRepository {
           );
         }
       });
-    } on SqliteException catch (e) {
-      if (e.extendedResultCode == 1555 || // SQLITE_CONSTRAINT_PRIMARYKEY
-          e.extendedResultCode == 2067) { // SQLITE_CONSTRAINT_UNIQUE
-        throw DuplicateGameException(game.gameId);
+    } on Exception catch (e) {
+      // Handle drift-specific exceptions using DriftWrappedException
+      if (e is DriftWrappedException) {
+        final cause = e.cause.toString();
+        
+        // Index-specific constraint detection
+        if (cause.contains('idx_games_single_active')) {
+          throw const ActiveGameAlreadyExistsException();
+        }
+        // Generic unique constraint detection
+        else if (cause.contains('UNIQUE constraint failed') ||
+                 cause.contains('unique constraint failed') ||
+                 cause.contains('constraint failed')) {
+          throw DuplicateGameException(game.gameId);
+        }
       }
       rethrow;
     }
@@ -272,4 +283,5 @@ class GameRepositoryDrift implements GameRepository {
       orElse: () => GameType.x01,
     );
   }
+
 }

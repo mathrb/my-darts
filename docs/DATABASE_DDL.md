@@ -4,7 +4,7 @@
 **Scope:** Core local SQLite schema (mobile) — the authoritative source for all CREATE TABLE statements  
 **Derived from:** [DATA.md](docs/DATA.md), [GAME-EVENT-SPECIFICATIONS.md](docs/GAME-EVENT-SPECIFICATIONS.md), [BACKEND_INTEGRATION.md](docs/BACKEND_INTEGRATION.md)
 
-> **Web target note:** When running as a Flutter Web debug build, these statements are executed against a `drift`-managed IndexedDB backend. The schema is identical; only the underlying storage engine differs. See [ARCHITECTURE.md](docs/ARCHITECTURE.md) — Decision #3.
+> **Web target note:** When running as a Flutter Web debug build, these statements are executed against a `drift`-managed SQLite WASM backend with automatic OPFS/IndexedDB fallback. The schema is identical; only the underlying storage engine differs. See [ARCHITECTURE.md](docs/ARCHITECTURE.md) — Decision #3.
 
 ---
 

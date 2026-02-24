@@ -10,9 +10,6 @@ import 'package:my_darts/features/game/domain/entities/game_event.dart';
 import 'package:my_darts/features/game/domain/repositories/game_event_repository.dart';
 import '../database.dart' as drift_db;
 
-// Import SqlException from drift
-import 'package:drift/native.dart' show SqliteException;
-
 class GameEventRepositoryDrift implements GameEventRepository {
   final drift_db.AppDatabase _db;
 
@@ -72,10 +69,18 @@ class GameEventRepositoryDrift implements GameEventRepository {
         ),
         mode: InsertMode.insertOrFail,
       );
-    } on SqliteException catch (e) {
-      if (e.extendedResultCode == 1555 || // SQLITE_CONSTRAINT_PRIMARYKEY
-          e.extendedResultCode == 2067) { // SQLITE_CONSTRAINT_UNIQUE
-        throw SequenceConflictException(event.gameId, event.localSequence);
+    } on Exception catch (e) {
+      // Handle drift-specific exceptions using DriftWrappedException
+      if (e is DriftWrappedException) {
+        final cause = e.cause.toString();
+        
+        // Sequence-specific constraint detection for game events
+        if (cause.contains('game_events_local_sequence_key') ||
+            cause.contains('local_sequence') ||
+            cause.contains('UNIQUE constraint failed') ||
+            cause.contains('unique constraint failed')) {
+          throw SequenceConflictException(event.gameId, event.localSequence);
+        }
       }
       rethrow;
     }
@@ -103,10 +108,18 @@ class GameEventRepositoryDrift implements GameEventRepository {
             ),
             mode: InsertMode.insertOrFail,
           );
-        } on SqliteException catch (e) {
-          if (e.extendedResultCode == 1555 || // SQLITE_CONSTRAINT_PRIMARYKEY
-              e.extendedResultCode == 2067) { // SQLITE_CONSTRAINT_UNIQUE
-            throw SequenceConflictException(event.gameId, event.localSequence);
+        } on Exception catch (e) {
+          // Handle drift-specific exceptions using DriftWrappedException
+          if (e is DriftWrappedException) {
+            final cause = e.cause.toString();
+            
+            // Sequence-specific constraint detection for game events
+            if (cause.contains('game_events_local_sequence_key') ||
+                cause.contains('local_sequence') ||
+                cause.contains('UNIQUE constraint failed') ||
+                cause.contains('unique constraint failed')) {
+              throw SequenceConflictException(event.gameId, event.localSequence);
+            }
           }
           rethrow;
         }
@@ -212,10 +225,18 @@ class GameEventRepositoryDrift implements GameEventRepository {
         ),
         mode: InsertMode.insertOrFail,
       );
-    } on SqliteException catch (e) {
-      if (e.extendedResultCode == 1555 || // SQLITE_CONSTRAINT_PRIMARYKEY
-          e.extendedResultCode == 2067) { // SQLITE_CONSTRAINT_UNIQUE
-        throw SequenceConflictException(event.gameId, event.localSequence);
+    } on Exception catch (e) {
+      // Handle drift-specific exceptions using DriftWrappedException
+      if (e is DriftWrappedException) {
+        final cause = e.cause.toString();
+        
+        // Sequence-specific constraint detection for game events
+        if (cause.contains('game_events_local_sequence_key') ||
+            cause.contains('local_sequence') ||
+            cause.contains('UNIQUE constraint failed') ||
+            cause.contains('unique constraint failed')) {
+          throw SequenceConflictException(event.gameId, event.localSequence);
+        }
       }
       rethrow;
     }
@@ -242,10 +263,18 @@ class GameEventRepositoryDrift implements GameEventRepository {
             ),
             mode: InsertMode.insertOrFail,
           );
-        } on SqliteException catch (e) {
-          if (e.extendedResultCode == 1555 || // SQLITE_CONSTRAINT_PRIMARYKEY
-              e.extendedResultCode == 2067) { // SQLITE_CONSTRAINT_UNIQUE
-            throw SequenceConflictException(event.gameId, event.localSequence);
+        } on Exception catch (e) {
+          // Handle drift-specific exceptions using DriftWrappedException
+          if (e is DriftWrappedException) {
+            final cause = e.cause.toString();
+            
+            // Sequence-specific constraint detection for game events
+            if (cause.contains('game_events_local_sequence_key') ||
+                cause.contains('local_sequence') ||
+                cause.contains('UNIQUE constraint failed') ||
+                cause.contains('unique constraint failed')) {
+              throw SequenceConflictException(event.gameId, event.localSequence);
+            }
           }
           rethrow;
         }
@@ -324,4 +353,5 @@ class GameEventRepositoryDrift implements GameEventRepository {
       orElse: () => EventSource.values.first,
     );
   }
+
 }

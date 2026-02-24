@@ -58,10 +58,14 @@ class PlayerRepositoryDrift implements PlayerRepository {
         mode: InsertMode.insertOrFail,
       );
     } on Exception catch (e) {
-      // Handle drift-specific exceptions
-      if (e.toString().contains('UNIQUE constraint failed') ||
-          e.toString().contains('already exists')) {
-        throw DuplicatePlayerException(player.playerId);
+      // Handle drift-specific exceptions using DriftWrappedException
+      if (e is DriftWrappedException) {
+        final cause = e.cause.toString();
+        if (cause.contains('UNIQUE constraint failed') ||
+            cause.contains('unique constraint failed') ||
+            cause.contains('already exists')) {
+          throw DuplicatePlayerException(player.playerId);
+        }
       }
       rethrow;
     }

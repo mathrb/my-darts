@@ -1,7 +1,12 @@
 // Drift Database Helper
-// Singleton database access for web platforms
+// Singleton database access using conditional imports for platform-specific backends
 
-import 'package:drift/native.dart';
+// Conditional import: Dart compiler selects ONE of these at compile time.
+// The web compiler never sees database_factory_native.dart.
+// The native compiler never sees database_factory_web.dart.
+import 'database_factory_stub.dart'
+    if (dart.library.ffi) 'database_factory_native.dart'
+    if (dart.library.html) 'database_factory_web.dart';
 import 'database.dart';
 
 class DriftHelper {
@@ -11,10 +16,10 @@ class DriftHelper {
   DriftHelper._init();
 
   Future<AppDatabase> get database async {
-    if (_database != null) return _database!;
-    // For testing purposes, use in-memory database
-    // In production, this would use WasmDatabase for web
-    _database = AppDatabase(NativeDatabase.memory());
+    if (_database == null) {
+      final executor = await createDatabaseExecutor();
+      _database = AppDatabase(executor);
+    }
     return _database!;
   }
 
