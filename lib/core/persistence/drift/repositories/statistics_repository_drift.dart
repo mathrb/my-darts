@@ -63,25 +63,19 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
 
     final GameType effectiveGameType = gameType ?? GameType.x01;
     
-    if (gameType != null) {
+    if (gameType != null || from != null || to != null) {
       dartCountQuery.join([
         innerJoin(_db.games, _db.games.gameId.equalsExp(_db.dartThrows.gameId))
       ]);
-      dartCountQuery.where(_db.games.gameType.equals(gameType.name));
-    }
-
-    if (from != null) {
-      dartCountQuery.join([
-        innerJoin(_db.games, _db.games.gameId.equalsExp(_db.dartThrows.gameId))
-      ]);
-      dartCountQuery.where(_db.games.startTime.isBiggerOrEqualValue(from.toIso8601String()));
-    }
-
-    if (to != null) {
-      dartCountQuery.join([
-        innerJoin(_db.games, _db.games.gameId.equalsExp(_db.dartThrows.gameId))
-      ]);
-      dartCountQuery.where(_db.games.startTime.isSmallerOrEqualValue(to.toIso8601String()));
+      if (gameType != null) {
+        dartCountQuery.where(_db.games.gameType.equals(gameType.name));
+      }
+      if (from != null) {
+        dartCountQuery.where(_db.games.startTime.isBiggerOrEqualValue(from.toIso8601String()));
+      }
+      if (to != null) {
+        dartCountQuery.where(_db.games.startTime.isSmallerOrEqualValue(to.toIso8601String()));
+      }
     }
 
     final dartCountResult = await dartCountQuery.getSingle();
@@ -92,25 +86,19 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       ..addColumns([_db.dartThrows.score.avg()])
       ..where(_db.dartThrows.playerId.equals(playerId));
 
-    if (gameType != null) {
+    if (gameType != null || from != null || to != null) {
       avgScoreQuery.join([
         innerJoin(_db.games, _db.games.gameId.equalsExp(_db.dartThrows.gameId))
       ]);
-      avgScoreQuery.where(_db.games.gameType.equals(gameType.name));
-    }
-
-    if (from != null) {
-      avgScoreQuery.join([
-        innerJoin(_db.games, _db.games.gameId.equalsExp(_db.dartThrows.gameId))
-      ]);
-      avgScoreQuery.where(_db.games.startTime.isBiggerOrEqualValue(from.toIso8601String()));
-    }
-
-    if (to != null) {
-      avgScoreQuery.join([
-        innerJoin(_db.games, _db.games.gameId.equalsExp(_db.dartThrows.gameId))
-      ]);
-      avgScoreQuery.where(_db.games.startTime.isSmallerOrEqualValue(to.toIso8601String()));
+      if (gameType != null) {
+        avgScoreQuery.where(_db.games.gameType.equals(gameType.name));
+      }
+      if (from != null) {
+        avgScoreQuery.where(_db.games.startTime.isBiggerOrEqualValue(from.toIso8601String()));
+      }
+      if (to != null) {
+        avgScoreQuery.where(_db.games.startTime.isSmallerOrEqualValue(to.toIso8601String()));
+      }
     }
 
     final avgScoreResult = await avgScoreQuery.getSingle();
