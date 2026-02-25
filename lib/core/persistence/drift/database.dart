@@ -152,30 +152,9 @@ class AppDatabase extends _$AppDatabase {
     return MigrationStrategy(
       onCreate: (Migrator m) async {
         await m.createAll();
-      },
-      onUpgrade: (Migrator m, int from, int to) async {
-        // Handle migrations from previous versions
-        if (from < 2) {
-          // Add columns for version 2
-          await m.addColumn(gameEvents, gameEvents.actorId);
-          await m.addColumn(gameEvents, gameEvents.globalSequence);
-          await m.addColumn(gameEvents, gameEvents.source);
-          
-          // Create new tables for version 2
-          await m.createTable(accounts);
-          await m.createTable(syncQueue);
-          await m.createTable(gameSessions);
-          
-          // Add columns to existing tables
-          await m.addColumn(players, players.accountId);
-          await m.addColumn(players, players.avatarUrl);
-        }
-        
-        if (from < 3) {
-          // Add unique index for single active game
-          // Note: For simplicity, we'll skip the partial index in this implementation
-          // The application can enforce the single active game rule at the business logic level
-        }
+        await m.database.customStatement(
+          'CREATE UNIQUE INDEX idx_games_single_active ON games(is_complete) WHERE is_complete = 0;',
+        );
       },
     );
   }

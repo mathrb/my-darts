@@ -17,35 +17,50 @@ enum GameType {
   blindGolf,
   blindKiller,
   blindShanghai,
-  chaseTheDragon
+  chaseTheDragon,
 }
 
 // Competitor Types
-enum CompetitorType {
-  solo,
-  team
-}
+enum CompetitorType { solo, team }
 
 // Dart Segments
 class DartSegments {
   static const List<String> standardNumbers = [
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
-    '11', '12', '13', '14', '15', '16', '17', '18', '19', '20'
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10',
+    '11',
+    '12',
+    '13',
+    '14',
+    '15',
+    '16',
+    '17',
+    '18',
+    '19',
+    '20',
   ];
-  
+
   static const List<String> multipliers = ['', 'D', 'T'];
-  
+
   static const String singleBull = 'SB';
   static const String doubleBull = 'DB';
   static const String miss = 'MISS';
-  
+
   static final List<String> allSegments = [
     ...standardNumbers,
     ...standardNumbers.map((n) => 'D$n'),
     ...standardNumbers.map((n) => 'T$n'),
     singleBull,
     doubleBull,
-    miss
+    miss,
   ];
 }
 
@@ -54,16 +69,20 @@ enum EventSource {
   client(0),
   server(1),
   vision(2);
-  
+
   final int value;
   const EventSource(this.value);
-  
+
   static EventSource fromValue(int value) {
     switch (value) {
-      case 0: return EventSource.client;
-      case 1: return EventSource.server;
-      case 2: return EventSource.vision;
-      default: throw ArgumentError('Invalid EventSource value: $value');
+      case 0:
+        return EventSource.client;
+      case 1:
+        return EventSource.server;
+      case 2:
+        return EventSource.vision;
+      default:
+        throw ArgumentError('Invalid EventSource value: $value');
     }
   }
 }
@@ -71,8 +90,8 @@ enum EventSource {
 // Database Constants
 class DatabaseConstants {
   static const String databaseName = 'darts_app.db';
-  static const int databaseVersion = 3;
-  
+  static const int databaseVersion = 1;
+
   // Table names
   static const String playersTable = 'players';
   static const String gamesTable = 'games';
@@ -98,10 +117,26 @@ class GameConfigurationConstants {
   static const List<int> x01StartingScores = [301, 501, 701, 901];
   static const List<String> x01InStrategies = ['straight', 'double', 'master'];
   static const List<String> x01OutStrategies = ['straight', 'double', 'master'];
-  
-  static const List<String> cricketVariants = ['standard', 'cut-throat', 'no-score'];
-  static const List<String> cricketNumbers = ['15', '16', '17', '18', '19', '20', 'bull'];
-  
-  static const List<String> aroundTheClockDirections = ['ascending', 'descending', 'random'];
+
+  static const List<String> cricketVariants = [
+    'standard',
+    'cut-throat',
+    'no-score',
+  ];
+  static const List<String> cricketNumbers = [
+    '15',
+    '16',
+    '17',
+    '18',
+    '19',
+    '20',
+    'bull',
+  ];
+
+  static const List<String> aroundTheClockDirections = [
+    'ascending',
+    'descending',
+    'random',
+  ];
   static const List<int> aroundTheClockRequiredHits = [1, 2, 3];
 }
