@@ -4,6 +4,7 @@
 
 import 'package:sqflite/sqflite.dart';
 import 'dart:convert';
+import 'dart:async';
 import '../../domain/entities/player_stats.dart';
 import '../../domain/entities/game_stats.dart';
 import '../../domain/repositories/statistics_repository.dart';
@@ -117,6 +118,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         gameId: gameId,
         byCompetitor: competitorStats,
       );
+    } on RepositoryException {
+      rethrow;
     } on DatabaseException catch (e) {
       print('Database error in getGameStats: ${e.toString()}');
       throw StatisticsException('Failed to retrieve game statistics: ${e.toString()}');
@@ -128,10 +131,13 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
 
   @override
   Stream<GameStats> watchGameStats(String gameId) {
-    // TODO: Implement live statistics projection using event streaming
-    // For now, return a stream that emits current stats and updates on changes
-    print('WARNING: watchGameStats not fully implemented - returning single emission');
-    return Stream.fromFuture(getGameStats(gameId));
+    return Stream.periodic(const Duration(seconds: 5), (_) {})
+      .asyncMap((_) async => getGameStats(gameId))
+      .distinct()
+      .handleError((error) {
+        if (error is RepositoryException) throw error;
+        throw StatisticsException('Failed to watch game statistics: ${error.toString()}');
+      });
   }
 
   @override
@@ -151,7 +157,7 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
       );
 
       if (playerResult.isEmpty) {
-        throw StatisticsException('Player not found: $playerId');
+        throw PlayerNotFoundException(playerId);
       }
 
       // Build query for dart throws
@@ -234,6 +240,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         dartsPerLeg: dartsPerLeg,
         bustRate: bustRate,
       );
+    } on RepositoryException {
+      rethrow;
     } on DatabaseException catch (e) {
       print('Database error in getPlayerStats: ${e.toString()}');
       throw StatisticsException('Failed to retrieve player statistics: ${e.toString()}');
@@ -255,7 +263,19 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
       );
 
       if (participationCheck.isEmpty) {
-        throw StatisticsException('Player $playerId did not participate in game $gameId');
+        // Check if game exists first to throw the right exception
+        final gameCheck = await _db.query(
+          'games',
+          where: 'game_id = ?',
+          whereArgs: [gameId],
+          limit: 1,
+        );
+        
+        if (gameCheck.isEmpty) {
+          throw GameNotFoundException(gameId);
+        } else {
+          throw PlayerNotFoundException(playerId);
+        }
       }
 
       // Get game type
@@ -316,6 +336,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         dartsPerLeg: dartsPerLeg,
         bustRate: bustRate,
       );
+    } on RepositoryException {
+      rethrow;
     } on DatabaseException catch (e) {
       print('Database error in getPlayerStatsForGame: ${e.toString()}');
       throw StatisticsException('Failed to retrieve player game statistics: ${e.toString()}');
@@ -327,10 +349,15 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
 
   @override
   Stream<PlayerStats> watchPlayerStats(String playerId, {GameType? gameType}) {
-    // TODO: Implement live statistics stream using event watching
-    // For now, return a stream that emits current stats
-    print('WARNING: watchPlayerStats not fully implemented - returning single emission');
-    return Stream.fromFuture(getPlayerStats(playerId, gameType: gameType));
+    // Implement a polling mechanism since sqflite doesn't have built-in change detection
+    // This provides a stream that updates periodically
+    return Stream.periodic(const Duration(seconds: 5), (_) {})
+      .asyncMap((_) async => getPlayerStats(playerId, gameType: gameType))
+      .distinct()
+      .handleError((error) {
+        if (error is RepositoryException) throw error;
+        throw StatisticsException('Failed to watch player statistics: ${error.toString()}');
+      });
   }
 
   @override
@@ -366,6 +393,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
 
       // Apply limit
       return leaderboard.take(limit).toList();
+    } on RepositoryException {
+      rethrow;
     } on DatabaseException catch (e) {
       print('Database error in getLeaderboard: ${e.toString()}');
       throw StatisticsException('Failed to retrieve leaderboard: ${e.toString()}');
