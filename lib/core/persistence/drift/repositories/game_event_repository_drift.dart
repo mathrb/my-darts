@@ -185,126 +185,7 @@ class GameEventRepositoryDrift implements GameEventRepository {
     )).toList();
   }
 
-  Future<GameEvent?> getEvent(String eventId) async {
-    final query = _db.select(_db.gameEvents)
-      ..where((t) => t.eventId.equals(eventId))
-      ..limit(1);
 
-    final result = await query.getSingleOrNull();
-
-    if (result == null) return null;
-    
-    return GameEvent(
-      eventId: result.eventId,
-      gameId: result.gameId,
-      eventType: result.eventType,
-      localSequence: result.localSequence,
-      occurredAt: DateTime.parse(result.occurredAt),
-      payload: json.decode(result.payloadJson),
-      synced: result.synced == 1,
-      actorId: result.actorId,
-      globalSequence: result.globalSequence,
-      source: _parseEventSource(result.source),
-    );
-  }
-
-  Future<void> insertEvent(GameEvent event) async {
-    try {
-      await _db.into(_db.gameEvents).insert(
-        drift_db.GameEventsCompanion.insert(
-          eventId: event.eventId,
-          gameId: event.gameId,
-          eventType: event.eventType,
-          localSequence: event.localSequence,
-          occurredAt: event.occurredAt.toIso8601String(),
-          payloadJson: json.encode(event.payload),
-          synced: Value(event.synced ? 1 : 0),
-          actorId: event.actorId,
-          globalSequence: Value.absentIfNull(event.globalSequence),
-          source: Value(event.source.index),
-        ),
-        mode: InsertMode.insertOrFail,
-      );
-    } on Exception catch (e) {
-      // Handle drift-specific exceptions using DriftWrappedException
-      if (e is DriftWrappedException) {
-        final cause = e.cause.toString();
-        
-        // Sequence-specific constraint detection for game events
-        if (cause.contains('game_events_local_sequence_key') ||
-            cause.contains('local_sequence') ||
-            cause.contains('UNIQUE constraint failed') ||
-            cause.contains('unique constraint failed')) {
-          throw SequenceConflictException(event.gameId, event.localSequence);
-        }
-      }
-      rethrow;
-    }
-  }
-
-  Future<void> insertEvents(List<GameEvent> events) async {
-    if (events.isEmpty) return;
-
-    await _db.transaction(() async {
-      for (final event in events) {
-        try {
-          await _db.into(_db.gameEvents).insert(
-            drift_db.GameEventsCompanion.insert(
-              eventId: event.eventId,
-              gameId: event.gameId,
-              eventType: event.eventType,
-              localSequence: event.localSequence,
-              occurredAt: event.occurredAt.toIso8601String(),
-              payloadJson: json.encode(event.payload),
-              synced: Value(event.synced ? 1 : 0),
-              actorId: event.actorId,
-              globalSequence: Value.absentIfNull(event.globalSequence),
-              source: Value(event.source.index),
-            ),
-            mode: InsertMode.insertOrFail,
-          );
-        } on Exception catch (e) {
-          // Handle drift-specific exceptions using DriftWrappedException
-          if (e is DriftWrappedException) {
-            final cause = e.cause.toString();
-            
-            // Sequence-specific constraint detection for game events
-            if (cause.contains('game_events_local_sequence_key') ||
-                cause.contains('local_sequence') ||
-                cause.contains('UNIQUE constraint failed') ||
-                cause.contains('unique constraint failed')) {
-              throw SequenceConflictException(event.gameId, event.localSequence);
-            }
-          }
-          rethrow;
-        }
-      }
-    });
-  }
-
-  Future<void> updateEventSyncStatus(String eventId, bool synced) async {
-    final rowsAffected = await (_db.update(_db.gameEvents)
-      ..where((t) => t.eventId.equals(eventId)))
-      .write(
-        drift_db.GameEventsCompanion(
-          synced: Value(synced ? 1 : 0),
-        ),
-      );
-
-    if (rowsAffected == 0) {
-      throw EventNotFoundException(eventId);
-    }
-  }
-
-  Future<void> deleteEvent(String eventId) async {
-    final rowsAffected = await (_db.delete(_db.gameEvents)
-      ..where((t) => t.eventId.equals(eventId)))
-      .go();
-
-    if (rowsAffected == 0) {
-      throw EventNotFoundException(eventId);
-    }
-  }
 
   @override
   Future<List<GameEvent>> getUnsyncedEvents() async {
@@ -328,17 +209,6 @@ class GameEventRepositoryDrift implements GameEventRepository {
       globalSequence: row.globalSequence,
       source: _parseEventSource(row.source),
     )).toList();
-  }
-
-  Future<int> getNextLocalSequence(String gameId) async {
-    final query = _db.selectOnly(_db.gameEvents)
-      ..addColumns([_db.gameEvents.localSequence.max()])
-      ..where(_db.gameEvents.gameId.equals(gameId));
-
-    final result = await query.getSingleOrNull();
-    final maxSequence = result?.read(_db.gameEvents.localSequence.max());
-
-    return (maxSequence ?? 0) + 1;
   }
 
   @override

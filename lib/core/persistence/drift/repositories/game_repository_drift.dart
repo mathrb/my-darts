@@ -21,24 +21,6 @@ class GameRepositoryDrift implements GameRepository {
 
   GameRepositoryDrift(this._db);
 
-  Future<List<Game>> getAllGames() async {
-    final query = _db.select(_db.games)
-      ..orderBy([(t) => OrderingTerm(expression: t.startTime, mode: OrderingMode.desc)]);
-
-    final results = await query.get();
-
-    return results.map((row) => Game(
-      gameId: row.gameId,
-      gameType: _parseGameType(row.gameType),
-      config: GameConfig.fromJson(json.decode(row.configJson)),
-      startTime: DateTime.parse(row.startTime),
-      endTime: row.endTime != null ? DateTime.parse(row.endTime!) : null,
-      winnerCompetitorId: row.winnerCompetitorId,
-      isComplete: row.isComplete == 1,
-      activeState: row.gameStateJson != null ? GameStateSnapshot.fromJson(json.decode(row.gameStateJson!)) : null,
-    )).toList();
-  }
-
   @override
   Future<Game?> getGame(String gameId) async {
     final query = _db.select(_db.games)
@@ -138,26 +120,6 @@ class GameRepositoryDrift implements GameRepository {
     }
   }
 
-  Future<void> updateGame(Game game) async {
-    final rowsAffected = await (_db.update(_db.games)
-      ..where((t) => t.gameId.equals(game.gameId)))
-      .write(
-        drift_db.GamesCompanion(
-          gameType: Value(game.gameType.name),
-          configJson: Value(json.encode(game.config.toJson())),
-          startTime: Value(game.startTime.toIso8601String()),
-          endTime: Value.absentIfNull(game.endTime?.toIso8601String()),
-          winnerCompetitorId: Value.absentIfNull(game.winnerCompetitorId),
-          isComplete: Value(game.isComplete == true ? 1 : 0),
-          gameStateJson: Value.absentIfNull(game.activeState?.toJson() != null ? json.encode(game.activeState!.toJson()) : null),
-        ),
-      );
-
-    if (rowsAffected == 0) {
-      throw GameNotFoundException(game.gameId);
-    }
-  }
-
   @override
   Future<void> completeGame({
     required String gameId,
@@ -173,16 +135,6 @@ class GameRepositoryDrift implements GameRepository {
           endTime: Value(endTime.toIso8601String()),
         ),
       );
-
-    if (rowsAffected == 0) {
-      throw GameNotFoundException(gameId);
-    }
-  }
-
-  Future<void> deleteGame(String gameId) async {
-    final rowsAffected = await (_db.delete(_db.games)
-      ..where((t) => t.gameId.equals(gameId)))
-      .go();
 
     if (rowsAffected == 0) {
       throw GameNotFoundException(gameId);
@@ -209,10 +161,6 @@ class GameRepositoryDrift implements GameRepository {
       isComplete: result.isComplete == 1,
       activeState: result.gameStateJson != null ? GameStateSnapshot.fromJson(json.decode(result.gameStateJson!)) : null,
     );
-  }
-
-  Stream<List<Game>> watchAllGames() {
-    return Stream.fromFuture(getAllGames());
   }
 
   @override

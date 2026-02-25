@@ -41,10 +41,12 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
 
   @override
   Stream<GameStats> watchGameStats(String gameId) {
-    // Implement a simple stream that polls for changes
-    return Stream.periodic(const Duration(seconds: 1), (_) async {
-      return await getGameStats(gameId);
-    }).asyncMap((future) => future);
+    // Watch the dartThrows table for changes that affect game statistics
+    final dartThrowsQuery = _db.select(_db.dartThrows)
+      ..where((t) => t.gameId.equals(gameId));
+
+    return dartThrowsQuery.watch()
+      .asyncMap((_) async => getGameStats(gameId));
   }
 
   @override
@@ -181,10 +183,19 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
 
   @override
   Stream<PlayerStats> watchPlayerStats(String playerId, {GameType? gameType}) {
-    // Implement a simple stream that polls for changes
-    return Stream.periodic(const Duration(seconds: 1), (_) async {
-      return await getPlayerStats(playerId, gameType: gameType);
-    }).asyncMap((future) => future);
+    // Watch the dartThrows table for changes that affect player statistics
+    final dartThrowsQuery = _db.select(_db.dartThrows)
+      ..where((t) => t.playerId.equals(playerId));
+
+    if (gameType != null) {
+      dartThrowsQuery.join([
+        innerJoin(_db.games, _db.games.gameId.equalsExp(_db.dartThrows.gameId))
+      ]);
+      dartThrowsQuery.where((t) => _db.games.gameType.equals(gameType.name));
+    }
+
+    return dartThrowsQuery.watch()
+      .asyncMap((_) async => getPlayerStats(playerId, gameType: gameType));
   }
 
   @override
