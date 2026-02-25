@@ -3,7 +3,6 @@
 
 import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import '../../core/utils/constants.dart';
 import 'database_migrations.dart';
@@ -21,7 +20,7 @@ class DatabaseHelper {
   }
 
   Future<sqflite.Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
+    final dbPath = await sqflite.getDatabasesPath();
     final fullPath = path.join(dbPath, filePath);
 
     return await sqflite.openDatabase(
@@ -46,10 +45,7 @@ class DatabaseHelper {
   }
 }
 
-Future<String> getDatabasesPath() async {
-  final directory = await getApplicationDocumentsDirectory();
-  return directory.path;
-}
+
 
 extension DatabaseExceptionExtensions on sqflite.DatabaseException {
   bool isUniqueConstraintError() {

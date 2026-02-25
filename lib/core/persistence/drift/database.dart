@@ -151,10 +151,17 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (Migrator m) async {
+        // Enable foreign key constraints
+        await m.database.customStatement('PRAGMA foreign_keys = ON;');
+        
         await m.createAll();
         await m.database.customStatement(
           'CREATE UNIQUE INDEX idx_games_single_active ON games(is_complete) WHERE is_complete = 0;',
         );
+      },
+      beforeOpen: (OpeningDetails details) async {
+        // Enable foreign key constraints for every connection
+        await customStatement('PRAGMA foreign_keys = ON;');
       },
     );
   }

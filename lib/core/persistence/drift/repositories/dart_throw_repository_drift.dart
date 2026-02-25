@@ -129,9 +129,17 @@ class DartThrowRepositoryDrift implements DartThrowRepository {
         final cause = e.cause.toString();
         if (cause.contains('UNIQUE constraint failed') ||
             cause.contains('unique constraint failed') ||
-            cause.contains('already exists')) {
+            cause.contains('already exists') ||
+            cause.contains('constraint failed')) {
           throw DuplicateDartException(dart.dartId);
         }
+      }
+      // Handle SqliteException directly
+      if (e.toString().contains('UNIQUE constraint failed') ||
+          e.toString().contains('unique constraint failed') ||
+          e.toString().contains('already exists') ||
+          e.toString().contains('constraint failed')) {
+        throw DuplicateDartException(dart.dartId);
       }
       rethrow;
     }
@@ -181,9 +189,17 @@ class DartThrowRepositoryDrift implements DartThrowRepository {
             final cause = e.cause.toString();
             if (cause.contains('UNIQUE constraint failed') ||
                 cause.contains('unique constraint failed') ||
-                cause.contains('already exists')) {
+                cause.contains('already exists') ||
+                cause.contains('constraint failed')) {
               throw DuplicateDartException(dart.dartId);
             }
+          }
+          // Handle SqliteException directly
+          if (e.toString().contains('UNIQUE constraint failed') ||
+              e.toString().contains('unique constraint failed') ||
+              e.toString().contains('already exists') ||
+              e.toString().contains('constraint failed')) {
+            throw DuplicateDartException(dart.dartId);
           }
           rethrow;
         }

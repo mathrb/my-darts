@@ -22,6 +22,9 @@ Future<QueryExecutor> createDatabaseExecutor() async {
     );
   }
 
+  // Enable foreign key constraints as required by AGENTS.md
+  await db.resolvedExecutor.runCustom('PRAGMA foreign_keys = ON;', []);
+
   // Return the resolved executor that uses the best available storage
   return db.resolvedExecutor;
 }

@@ -63,6 +63,19 @@ class GameRepositoryDrift implements GameRepository {
 
   @override
   Future<void> createGame(Game game, List<Competitor> competitors) async {
+    // Validate no player appears in multiple competitors
+    final playerIds = <String>{};
+    for (final competitor in competitors) {
+      for (final player in competitor.players) {
+        if (playerIds.contains(player.playerId)) {
+          throw InvalidCompetitorException(
+            'Player ${player.playerId} appears in multiple competitors'
+          );
+        }
+        playerIds.add(player.playerId);
+      }
+    }
+
     try {
       await _db.transaction(() async {
         // Insert game
@@ -91,6 +104,18 @@ class GameRepositoryDrift implements GameRepository {
             ),
             mode: InsertMode.insertOrFail,
           );
+
+          // Insert competitor players
+          for (final player in competitor.players) {
+            await _db.into(_db.competitorPlayers).insert(
+              drift_db.CompetitorPlayersCompanion.insert(
+                competitorId: competitor.competitorId,
+                playerId: player.playerId,
+                rotationPosition: player.rotationPosition,
+              ),
+              mode: InsertMode.insertOrFail,
+            );
+          }
         }
       });
     } on Exception catch (e) {
@@ -192,20 +217,66 @@ class GameRepositoryDrift implements GameRepository {
 
   @override
   Future<List<Competitor>> getCompetitors(String gameId) async {
+    // Join competitors with competitor_players and players tables
     final query = _db.select(_db.competitors)
-      ..where((t) => t.gameId.equals(gameId));
+      ..where((c) => c.gameId.equals(gameId));
 
-    final results = await query.get();
+    final joinedQuery = query.join([
+      leftOuterJoin(
+        _db.competitorPlayers,
+        _db.competitorPlayers.competitorId.equalsExp(_db.competitors.competitorId),
+      ),
+      leftOuterJoin(
+        _db.players,
+        _db.players.playerId.equalsExp(_db.competitorPlayers.playerId),
+      ),
+    ]);
 
-    // For now, return competitors with empty player lists
-    // A full implementation would join with competitor_players table
-    return results.map((row) => Competitor(
-      competitorId: row.competitorId,
-      gameId: row.gameId,
-      type: _parseCompetitorType(row.type),
-      name: row.name,
-      players: [], // Empty list for now
-    )).toList();
+    final results = await joinedQuery.get();
+
+    // Group results by competitor_id to build nested structure
+    final competitorMap = <String, Map<String, dynamic>>{};
+    
+    for (final row in results) {
+      final competitorRow = row.readTable(_db.competitors);
+      final competitorPlayerRow = row.readTableOrNull(_db.competitorPlayers);
+      final playerRow = row.readTableOrNull(_db.players);
+
+      // Create or get existing competitor data
+      final competitorData = competitorMap.putIfAbsent(
+        competitorRow.competitorId,
+        () => {
+          'competitorId': competitorRow.competitorId,
+          'gameId': competitorRow.gameId,
+          'type': _parseCompetitorType(competitorRow.type),
+          'name': competitorRow.name,
+          'players': <CompetitorPlayer>[],
+        },
+      );
+
+      // Add player if this row has player data
+      if (competitorPlayerRow != null) {
+        competitorData['players'].add(CompetitorPlayer(
+          playerId: competitorPlayerRow.playerId,
+          rotationPosition: competitorPlayerRow.rotationPosition,
+        ));
+      }
+    }
+
+    // Convert to Competitor objects with proper ordering
+    return competitorMap.values.map((data) {
+      // Sort players by rotationPosition to ensure correct order
+      final sortedPlayers = List<CompetitorPlayer>.from(data['players'] as List<CompetitorPlayer>)
+        ..sort((a, b) => a.rotationPosition.compareTo(b.rotationPosition));
+      
+      return Competitor(
+        competitorId: data['competitorId'],
+        gameId: data['gameId'],
+        type: data['type'],
+        name: data['name'],
+        players: sortedPlayers,
+      );
+    }).toList();
   }
 
   // Helper method to parse competitor type from string
