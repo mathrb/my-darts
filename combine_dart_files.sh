@@ -11,7 +11,14 @@ echo "# Generated: $(date)" >> "$OUTPUT_FILE"
 echo "" >> "$OUTPUT_FILE"
 
 # Find all Dart files in lib/ and test/ directories, sorted alphabetically
-find lib/ test/ -name "*.dart" -type f | sort | while read -r file; do
+#find lib/ test/ -name "*.dart" -type f | sort | while read -r file; do
+find lib/core -name "*.dart" -type f | sort | while read -r file; do
+    echo "-- $file --" >> "$OUTPUT_FILE"
+    cat "$file" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+done
+
+find test/ -maxdepth 1 -name "*.dart" -type f | sort | while read -r file; do
     echo "-- $file --" >> "$OUTPUT_FILE"
     cat "$file" >> "$OUTPUT_FILE"
     echo "" >> "$OUTPUT_FILE"

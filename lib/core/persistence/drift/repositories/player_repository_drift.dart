@@ -104,9 +104,14 @@ class PlayerRepositoryDrift implements PlayerRepository {
 
   @override
   Stream<List<Player>> watchAllPlayers() {
-    // For drift, we need to implement a proper stream
-    // This is a simplified version - in production you'd want to use
-    // drift's watch() method with proper transformation
-    return Stream.fromFuture(getAllPlayers());
+    return (_db.select(_db.players)
+      ..orderBy([(t) => OrderingTerm(expression: t.lastActive, mode: OrderingMode.desc)]))
+      .watch()
+      .map((rows) => rows.map((row) => Player(
+            playerId: row.playerId,
+            name: row.name,
+            createdAt: DateTime.parse(row.createdAt),
+            lastActive: DateTime.parse(row.lastActive),
+          )).toList());
   }
 }

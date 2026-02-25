@@ -343,7 +343,24 @@ class GameEventRepositoryDrift implements GameEventRepository {
 
   @override
   Stream<List<GameEvent>> watchEventsForGame(String gameId) {
-    return Stream.fromFuture(getEventsForGame(gameId));
+    return (_db.select(_db.gameEvents)
+      ..where((t) => t.gameId.equals(gameId))
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.localSequence, mode: OrderingMode.asc),
+      ]))
+      .watch()
+      .map((rows) => rows.map((row) => GameEvent(
+            eventId: row.eventId,
+            gameId: row.gameId,
+            eventType: row.eventType,
+            localSequence: row.localSequence,
+            occurredAt: DateTime.parse(row.occurredAt),
+            payload: json.decode(row.payloadJson),
+            synced: row.synced == 1,
+            actorId: row.actorId,
+            globalSequence: row.globalSequence,
+            source: _parseEventSource(row.source),
+          )).toList());
   }
 
   // Helper method to parse event source from int

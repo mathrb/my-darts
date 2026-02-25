@@ -333,18 +333,43 @@ class GameRepositoryDrift implements GameRepository {
 
   @override
   Stream<Game?> watchActiveGame() {
-    // Implement a simple stream that polls for changes
-    return Stream.periodic(const Duration(seconds: 1), (_) async {
-      return await getActiveGame();
-    }).asyncMap((future) => future);
+    return (_db.select(_db.games)
+      ..where((t) => t.isComplete.equals(0))
+      ..limit(1))
+      .watchSingleOrNull()
+      .map((row) => row != null ? Game(
+            gameId: row.gameId,
+            gameType: _parseGameType(row.gameType),
+            config: GameConfig.fromJson(json.decode(row.configJson)),
+            startTime: DateTime.parse(row.startTime),
+            endTime: row.endTime != null ? DateTime.parse(row.endTime!) : null,
+            winnerCompetitorId: row.winnerCompetitorId,
+            isComplete: row.isComplete == 1,
+            activeState: row.gameStateJson != null ? GameStateSnapshot.fromJson(json.decode(row.gameStateJson!)) : null,
+          ) : null);
   }
 
   @override
   Stream<List<Game>> watchCompletedGames({GameType? filterByType}) {
-    // Implement a simple stream that polls for changes
-    return Stream.periodic(const Duration(seconds: 1), (_) async {
-      return await getCompletedGames(filterByType: filterByType);
-    }).asyncMap((future) => future);
+    final query = _db.select(_db.games)
+      ..where((t) => t.isComplete.equals(1))
+      ..orderBy([(t) => OrderingTerm(expression: t.endTime, mode: OrderingMode.desc)]);
+
+    if (filterByType != null) {
+      query.where((t) => t.gameType.equals(filterByType.name));
+    }
+
+    return query.watch()
+      .map((rows) => rows.map((row) => Game(
+            gameId: row.gameId,
+            gameType: _parseGameType(row.gameType),
+            config: GameConfig.fromJson(json.decode(row.configJson)),
+            startTime: DateTime.parse(row.startTime),
+            endTime: row.endTime != null ? DateTime.parse(row.endTime!) : null,
+            winnerCompetitorId: row.winnerCompetitorId,
+            isComplete: row.isComplete == 1,
+            activeState: row.gameStateJson != null ? GameStateSnapshot.fromJson(json.decode(row.gameStateJson!)) : null,
+          )).toList());
   }
 
   // Helper method to parse game type from string
