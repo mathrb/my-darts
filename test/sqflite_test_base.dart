@@ -79,6 +79,12 @@ class SqfliteTestBase implements DatabaseTestBase {
       )
     ''');
 
+    await db.execute('''
+      CREATE UNIQUE INDEX idx_games_single_active
+      ON games(is_complete)
+      WHERE is_complete = 0
+    ''');
+
     // Create competitors table
     await db.execute('''
       CREATE TABLE competitors (

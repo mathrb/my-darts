@@ -61,6 +61,12 @@ final class StatisticsException extends RepositoryException {
   const StatisticsException(super.message);
 }
 
+final class StatisticsNotFoundException extends RepositoryException {
+  final String entityId;
+  const StatisticsNotFoundException(this.entityId)
+      : super('No statistics found for: $entityId');
+}
+
 // Dart Throw Exceptions
 final class DartNotFoundException extends RepositoryException {
   final String dartId;
@@ -72,6 +78,17 @@ final class DuplicateDartException extends RepositoryException {
   final String dartId;
   const DuplicateDartException(this.dartId)
       : super('Dart throw already exists: $dartId');
+}
+
+// Game Engine Exceptions
+final class InvalidGameStateException extends RepositoryException {
+  const InvalidGameStateException(super.reason);
+}
+
+// Infrastructure Exceptions
+final class DatabaseException extends RepositoryException {
+  final Object? cause;
+  const DatabaseException(super.message, {this.cause});
 }
 
 // Game Event Exceptions

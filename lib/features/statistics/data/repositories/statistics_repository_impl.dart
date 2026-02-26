@@ -9,7 +9,7 @@ import '../../domain/entities/player_stats.dart';
 import '../../domain/entities/game_stats.dart';
 import '../../domain/repositories/statistics_repository.dart';
 import 'package:my_darts/core/utils/constants.dart';
-import 'package:my_darts/core/error/repository_exception.dart';
+import 'package:my_darts/core/error/repository_exception.dart' hide DatabaseException;
 
 
 class StatisticsRepositoryImpl implements StatisticsRepository {

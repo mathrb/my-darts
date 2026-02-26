@@ -58,6 +58,18 @@ class GameRepositoryDrift implements GameRepository {
       }
     }
 
+    // Pre-check for duplicate game_id before attempting insert.
+    // This must happen before the transaction so we can throw DuplicateGameException
+    // rather than relying on the PRIMARY KEY constraint, which SQLite may fire after
+    // the idx_games_single_active partial index (making them indistinguishable).
+    final existing = await (_db.select(_db.games)
+          ..where((t) => t.gameId.equals(game.gameId))
+          ..limit(1))
+        .getSingleOrNull();
+    if (existing != null) {
+      throw DuplicateGameException(game.gameId);
+    }
+
     try {
       await _db.transaction(() async {
         // Insert game
@@ -101,20 +113,9 @@ class GameRepositoryDrift implements GameRepository {
         }
       });
     } on Exception catch (e) {
-      // Handle drift-specific exceptions using DriftWrappedException
-      if (e is DriftWrappedException) {
-        final cause = e.cause.toString();
-        
-        // Index-specific constraint detection
-        if (cause.contains('idx_games_single_active')) {
-          throw const ActiveGameAlreadyExistsException();
-        }
-        // Generic unique constraint detection
-        else if (cause.contains('UNIQUE constraint failed') ||
-                 cause.contains('unique constraint failed') ||
-                 cause.contains('constraint failed')) {
-          throw DuplicateGameException(game.gameId);
-        }
+      final msg = e.toString();
+      if (msg.contains('is_complete') || msg.contains('idx_games_single_active')) {
+        throw const ActiveGameAlreadyExistsException();
       }
       rethrow;
     }
