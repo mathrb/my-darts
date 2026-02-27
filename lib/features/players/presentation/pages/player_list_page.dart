@@ -84,11 +84,18 @@ class _PlayerList extends ConsumerWidget {
         return PlayerCardWidget(
           player: p,
           onTap: () => context.push('/players/${p.playerId}'),
-          onEdit: () => context.push(
-            '/players/${p.playerId}/edit',
-            extra: p.name,
+          trailing: PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'edit') {
+                context.push('/players/${p.playerId}/edit', extra: p.name);
+              }
+              if (value == 'delete') _showDeleteConfirmation(context, ref, p);
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'edit', child: Text('Edit')),
+              PopupMenuItem(value: 'delete', child: Text('Delete')),
+            ],
           ),
-          onDelete: () => _showDeleteConfirmation(context, ref, p),
         );
       },
     );

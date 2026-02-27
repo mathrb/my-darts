@@ -1,6 +1,6 @@
 # TICKET-010: Router Integration
 
-**Status:** Todo
+**Status:** Done
 **Epic:** EPIC-002 — Player Management
 
 ---

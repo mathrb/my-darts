@@ -1,6 +1,6 @@
 # TICKET-009: PlayerCardWidget & PlayerAvatarWidget
 
-**Status:** Todo
+**Status:** Done
 **Epic:** EPIC-002 — Player Management
 
 ---
@@ -13,15 +13,15 @@ Build the two shared player UI components used across the player list, player se
 
 ## Acceptance Criteria
 
-- [ ] `PlayerCardWidget` is a `StatelessWidget` at `lib/features/players/presentation/widgets/player_card_widget.dart`
-- [ ] `PlayerCardWidget` accepts: `player` (Player), `onTap` (VoidCallback?), optional `trailing` (Widget?)
-- [ ] Displays: `PlayerAvatarWidget` on the left, player name in body text, last-active date as subtitle
-- [ ] Item height: 64pt; avatar 40×40pt; horizontal padding 16pt (per UI spec)
-- [ ] Tappable via `InkWell` / `ListTile`; `onTap` is nullable — widget renders non-interactively if null
-- [ ] `PlayerAvatarWidget` is a `StatelessWidget` at `lib/features/players/presentation/widgets/player_avatar_widget.dart`
-- [ ] `PlayerAvatarWidget` accepts: `player` (Player), `size` (double, default 40)
-- [ ] Renders a `CircleAvatar` with the player's initials (first letter of name, uppercase) as the fallback
-- [ ] Avatar background colour is derived deterministically from `player.playerId` (e.g., hash mod colour palette) so the same player always gets the same colour
+- [x] `PlayerCardWidget` is a `StatelessWidget` at `lib/features/players/presentation/widgets/player_card_widget.dart`
+- [x]`PlayerCardWidget` accepts: `player` (Player), `onTap` (VoidCallback?), optional `trailing` (Widget?)
+- [x]Displays: `PlayerAvatarWidget` on the left, player name in body text, last-active date as subtitle
+- [x]Item height: 64pt; avatar 40×40pt; horizontal padding 16pt (per UI spec)
+- [x]Tappable via `InkWell` / `ListTile`; `onTap` is nullable — widget renders non-interactively if null
+- [x]`PlayerAvatarWidget` is a `StatelessWidget` at `lib/features/players/presentation/widgets/player_avatar_widget.dart`
+- [x]`PlayerAvatarWidget` accepts: `player` (Player), `size` (double, default 40)
+- [x]Renders a `CircleAvatar` with the player's initials (first letter of name, uppercase) as the fallback
+- [x]Avatar background colour is derived deterministically from `player.playerId` (e.g., hash mod colour palette) so the same player always gets the same colour
 
 ---
 
