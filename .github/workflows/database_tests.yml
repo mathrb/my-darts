@@ -43,11 +43,11 @@ jobs:
 
       - name: Run SQLite Tests
         if: matrix.engine == 'sqlite'
-        run: flutter test --tags sqlite --reporter expanded
+        run: flutter test test/contracts/ --reporter expanded
 
       - name: Run Drift Tests
         if: matrix.engine == 'drift'
-        run: flutter test --tags drift --reporter expanded
+        run: flutter test test/contracts/ --reporter expanded
 
       - name: Run Hybrid Tests
         if: matrix.engine == 'both'
