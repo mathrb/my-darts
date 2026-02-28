@@ -11,6 +11,7 @@ X01GameConfig _$X01GameConfigFromJson(Map<String, dynamic> json) =>
       startingScore: (json['startingScore'] as num).toInt(),
       inStrategy: json['inStrategy'] as String,
       outStrategy: json['outStrategy'] as String,
+      legsToWin: (json['legsToWin'] as num?)?.toInt() ?? 1,
       $type: json['runtimeType'] as String?,
     );
 
@@ -19,6 +20,7 @@ Map<String, dynamic> _$X01GameConfigToJson(X01GameConfig instance) =>
       'startingScore': instance.startingScore,
       'inStrategy': instance.inStrategy,
       'outStrategy': instance.outStrategy,
+      'legsToWin': instance.legsToWin,
       'runtimeType': instance.$type,
     };
 

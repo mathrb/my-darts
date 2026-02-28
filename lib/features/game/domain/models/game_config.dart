@@ -13,6 +13,7 @@ abstract class GameConfig with _$GameConfig {
     required int startingScore,
     required String inStrategy, // 'straight', 'double', 'master'
     required String outStrategy, // 'straight', 'double', 'master'
+    @Default(1) int legsToWin,
   }) = X01GameConfig;
 
   const factory GameConfig.cricket({

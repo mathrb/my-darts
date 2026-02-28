@@ -85,6 +85,12 @@ final class InvalidGameStateException extends RepositoryException {
   const InvalidGameStateException(super.reason);
 }
 
+final class NoDartsToUndoException extends RepositoryException {
+  final String gameId;
+  const NoDartsToUndoException(this.gameId)
+      : super('No darts to undo in current turn for game: $gameId');
+}
+
 // Infrastructure Exceptions
 final class DatabaseException extends RepositoryException {
   final Object? cause;
@@ -103,4 +109,9 @@ final class EventNotFoundException extends RepositoryException {
   final String eventId;
   const EventNotFoundException(this.eventId)
       : super('Event not found: $eventId');
+}
+
+// Validation Exceptions
+final class ValidationException extends RepositoryException {
+  const ValidationException(super.message);
 }

@@ -9,11 +9,13 @@ class EngineResult {
   final GameState state;
   final LegOutcome outcome;
   final String? winnerCompetitorId;
-  
+  final bool isBust;
+
   const EngineResult({
     required this.state,
     this.outcome = LegOutcome.none,
     this.winnerCompetitorId,
+    this.isBust = false,
   });
 }
 

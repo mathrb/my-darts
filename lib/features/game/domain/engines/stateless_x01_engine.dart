@@ -25,11 +25,12 @@ class StatelessX01Engine implements GameEngine {
   
   /// Helper method that returns both state and outcome for DartThrown events
   EngineResult _applyDartThrownWithOutcome(GameState state, GameEvent event) {
-    final (newState, outcome, winnerId) = _applyDartThrown(state, event);
+    final (newState, outcome, winnerId, isBust) = _applyDartThrown(state, event);
     return EngineResult(
       state: newState,
       outcome: outcome,
-      winnerCompetitorId: winnerId
+      winnerCompetitorId: winnerId,
+      isBust: isBust,
     );
   }
 
@@ -41,7 +42,9 @@ class StatelessX01Engine implements GameEngine {
     switch (event.eventType) {
       case 'TurnStarted':
         final competitorId = event.payload['competitor_id'];
-        return !state.isComplete && state.competitors.any((c) => c.competitorId == competitorId);
+        return !state.isComplete &&
+               !state.turnActive &&
+               state.competitors.any((c) => c.competitorId == competitorId);
       case 'DartThrown':
         final competitorId = event.payload['competitor_id'];
         final currentCompetitor = state.competitors[state.currentTurnIndex];
@@ -111,15 +114,15 @@ class StatelessX01Engine implements GameEngine {
     );
   }
 
-  (GameState, LegOutcome, String?) _applyDartThrown(GameState state, GameEvent event) {
+  (GameState, LegOutcome, String?, bool) _applyDartThrown(GameState state, GameEvent event) {
     if (!state.turnActive) {
       // Turn not active, reject dart (Table B)
-      return (state, LegOutcome.none, null);
+      return (state, LegOutcome.none, null, false);
     }
-    
+
     if (state.dartsThrownInTurn >= 3) {
       // Already thrown 3 darts, reject (Table B)
-      return (state, LegOutcome.none, null);
+      return (state, LegOutcome.none, null, false);
     }
     
     final payload = event.payload;
@@ -127,11 +130,13 @@ class StatelessX01Engine implements GameEngine {
     final multiplier = payload['multiplier'] as int;
     
     // Create segment from base number and multiplier
-    final parsedSegment = multiplier == 1 ? 
-        (segment == 25 ? const Segment.singleBull() : Segment.single(segment)) :
-        (multiplier == 2 ? 
-            (segment == 25 ? const Segment.doubleBull() : Segment.doubleSegment(segment)) :
-            Segment.triple(segment));
+    final parsedSegment = (segment == 0)
+        ? const Segment.miss()
+        : multiplier == 1
+            ? (segment == 25 ? const Segment.singleBull() : Segment.single(segment))
+            : (multiplier == 2
+                ? (segment == 25 ? const Segment.doubleBull() : Segment.doubleSegment(segment))
+                : Segment.triple(segment));
     
     // Miss guard (Table 5 - Note 5)
     if (parsedSegment.isMiss) {
@@ -139,7 +144,7 @@ class StatelessX01Engine implements GameEngine {
       final newState = state.copyWith(
         dartsThrownInTurn: state.dartsThrownInTurn + 1,
       );
-      return (checkTurnEnd(newState), LegOutcome.none, null);
+      return (checkTurnEnd(newState), LegOutcome.none, null, false);
     }
     
     final scoreValue = parsedSegment.scoreValue;
@@ -164,9 +169,9 @@ class StatelessX01Engine implements GameEngine {
         updatedCompetitors[state.currentTurnIndex] = currentCompetitor.copyWith(
           dartThrows: [...currentCompetitor.dartThrows, parsedSegment.toCanonicalString()],
         );
-        
+
         newState = newState.copyWith(competitors: updatedCompetitors);
-        return (checkTurnEnd(newState), LegOutcome.none, null);
+        return (checkTurnEnd(newState), LegOutcome.none, null, false);
       }
       
       // Player gets in, apply scoring
@@ -238,12 +243,12 @@ class StatelessX01Engine implements GameEngine {
       updatedCompetitors[state.currentTurnIndex] = updatedCompetitors[state.currentTurnIndex].copyWith(
         score: bustRecoveryScore,
       );
-      
+
       final newState = state.copyWith(
         competitors: updatedCompetitors,
         dartsThrownInTurn: 3, // Force turn end (Table H)
       );
-      return (checkTurnEnd(newState), LegOutcome.none, null);
+      return (checkTurnEnd(newState), LegOutcome.none, null, true);
     }
     
     // Normal scoring
@@ -280,7 +285,7 @@ class StatelessX01Engine implements GameEngine {
           isComplete: true,
           status: GameEngineStatus.completed,
           turnActive: false,
-        ), LegOutcome.gameCompleted, legWinnerId);
+        ), LegOutcome.gameCompleted, legWinnerId, false);
       } else {
         // Reset leg for next leg (Table K)
         final stateBeforeReset = newState.copyWith(
@@ -290,11 +295,11 @@ class StatelessX01Engine implements GameEngine {
           winnerCompetitorId: legWinnerId,
         );
         final resetState = _resetLeg(stateBeforeReset);
-        return (resetState, LegOutcome.legCompleted, legWinnerId);
+        return (resetState, LegOutcome.legCompleted, legWinnerId, false);
       }
     }
-    
-    return (checkTurnEnd(newState), LegOutcome.none, null);
+
+    return (checkTurnEnd(newState), LegOutcome.none, null, false);
   }
 
   GameState _applyTurnEnded(GameState state, GameEvent event) {

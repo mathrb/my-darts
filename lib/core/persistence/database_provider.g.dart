@@ -366,4 +366,4 @@ final class ProcessDartUseCaseProvider
 }
 
 String _$processDartUseCaseHash() =>
-    r'8b1adf2660c7301ac096246aac3c0bdc6d0289de';
+    r'86971dd7466c710d1ec08b129845697e70f286cf';

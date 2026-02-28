@@ -3,13 +3,16 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_darts/features/game/domain/entities/dart_throw.dart';
+import 'package:my_darts/features/game/domain/entities/game_event.dart';
 import 'package:my_darts/features/game/domain/models/game_state.dart';
 import 'package:my_darts/features/game/domain/repositories/dart_throw_repository.dart';
 import 'package:my_darts/features/game/domain/repositories/game_event_repository.dart';
 import 'package:my_darts/features/game/domain/repositories/game_repository.dart';
 import 'package:my_darts/features/game/domain/usecases/process_dart_use_case.dart';
-import 'package:my_darts/core/utils/constants.dart';
+import 'package:my_darts/features/game/domain/engines/stateless_x01_engine.dart';
 import 'package:my_darts/features/game/domain/engines/base_game_engine.dart';
+import 'package:my_darts/core/utils/constants.dart';
+import 'package:my_darts/core/error/repository_exception.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 
@@ -18,56 +21,317 @@ import 'process_dart_use_case_test.mocks.dart';
 @GenerateMocks([GameRepository, GameEventRepository, DartThrowRepository])
 void main() {
   late ProcessDartUseCase useCase;
+  late MockGameRepository mockGameRepo;
   late MockGameEventRepository mockEventRepo;
   late MockDartThrowRepository mockDartRepo;
+  late StatelessX01Engine engine;
 
   setUp(() {
+    mockGameRepo = MockGameRepository();
     mockEventRepo = MockGameEventRepository();
     mockDartRepo = MockDartThrowRepository();
-    useCase = ProcessDartUseCase(mockEventRepo, mockDartRepo);
+    engine = StatelessX01Engine();
+    useCase = ProcessDartUseCase(mockGameRepo, mockEventRepo, mockDartRepo, engine);
+
+    // Common stubs
+    when(mockEventRepo.getLatestSequence(any)).thenAnswer((_) async => 5);
+    when(mockDartRepo.insertDart(any)).thenAnswer((_) async {});
+    when(mockEventRepo.appendEvents(any)).thenAnswer((_) async {});
+    when(mockGameRepo.completeGame(
+      gameId: anyNamed('gameId'),
+      winnerCompetitorId: anyNamed('winnerCompetitorId'),
+      endTime: anyNamed('endTime'),
+    )).thenAnswer((_) async {});
   });
 
-  test('should process a valid dart throw', () async {
-    // Start with turn not active
-    var initialState = GameState(
-      gameId: 'g1',
+  // ── helpers ──────────────────────────────────────────────────────────────
+
+  GameState _makeState({
+    String gameId = 'g1',
+    int score1 = 501,
+    int score2 = 501,
+    bool isComplete = false,
+    bool turnActive = true,
+    int dartsThrownInTurn = 0,
+    String outStrategy = 'double',
+    String inStrategy = 'straight',
+    int legsToWin = 1,
+    int legsWon1 = 0,
+    bool isIn1 = true,
+    int? turnStartScore1,
+    int startingScore = 501,
+  }) {
+    return GameState(
+      gameId: gameId,
       gameType: GameType.x01,
       competitors: [
-        const CompetitorState(competitorId: 'c1', name: 'P1', playerIds: ['p1'], score: 501, isIn: true),
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'P1',
+          playerIds: const ['p1'],
+          score: score1,
+          isIn: isIn1,
+          legsWon: legsWon1,
+          turnStartScore: turnStartScore1,
+        ),
+        CompetitorState(
+          competitorId: 'c2',
+          name: 'P2',
+          playerIds: const ['p2'],
+          score: score2,
+          isIn: true,
+        ),
       ],
       currentTurnIndex: 0,
-      dartsThrownInTurn: 0,
-      isComplete: false,
+      dartsThrownInTurn: dartsThrownInTurn,
+      isComplete: isComplete,
       status: GameEngineStatus.inProgress,
-      turnActive: false, // Turn not active initially
-      inStrategy: 'straight',
-      outStrategy: 'double',
+      turnActive: turnActive,
+      inStrategy: inStrategy,
+      outStrategy: outStrategy,
+      legsToWin: legsToWin,
+      startingScore: startingScore,
     );
-    
-    // Start the turn first
-    initialState = initialState.copyWith(turnActive: true);
+  }
 
-    final dartThrow = DartThrow(
-      dartId: 'd1',
+  DartThrow _makeDart({
+    String dartId = 'd1',
+    String segment = '20',
+    int score = 20,
+  }) {
+    return DartThrow(
+      dartId: dartId,
       gameId: 'g1',
       competitorId: 'c1',
       playerId: 'p1',
-      turnNumber: 0,
+      turnNumber: 1,
       dartNumber: 1,
-      segment: '20',
-      score: 20,
+      segment: segment,
+      score: score,
     );
+  }
 
-    when(mockEventRepo.getLatestSequence('g1')).thenAnswer((_) async => 0);
-    when(mockDartRepo.insertDart(any)).thenAnswer((_) async => {});
-    when(mockEventRepo.appendEvent(any)).thenAnswer((_) async => {});
+  List<GameEvent> _captureEvents() {
+    final captured = verify(mockEventRepo.appendEvents(captureAny)).captured;
+    return captured.first as List<GameEvent>;
+  }
 
-    final newState = await useCase.execute(initialState, dartThrow);
+  // ── tests ─────────────────────────────────────────────────────────────────
 
-    expect(newState.competitors[0].score, 481);
-    expect(newState.dartsThrownInTurn, 1);
+  group('GameAlreadyCompleteException', () {
+    test('throws when game is already complete and makes no repo calls', () async {
+      final state = _makeState(isComplete: true);
+      final dart = _makeDart();
 
-    verify(mockDartRepo.insertDart(dartThrow)).called(1);
-    verify(mockEventRepo.appendEvents(any)).called(1);
+      expect(
+        () => useCase.execute(state, dart),
+        throwsA(isA<GameAlreadyCompleteException>()),
+      );
+
+      verifyZeroInteractions(mockEventRepo);
+      verifyZeroInteractions(mockDartRepo);
+      verifyZeroInteractions(mockGameRepo);
+    });
+  });
+
+  group('InvalidGameStateException', () {
+    test('throws when isValid returns false and nothing is persisted', () async {
+      // Turn not active → DartThrown fails isValid
+      final state = _makeState(turnActive: false);
+      final dart = _makeDart();
+
+      expect(
+        () => useCase.execute(state, dart),
+        throwsA(isA<InvalidGameStateException>()),
+      );
+
+      verifyNever(mockDartRepo.insertDart(any));
+      verifyNever(mockEventRepo.appendEvents(any));
+    });
+  });
+
+  group('Single dart — no turn end', () {
+    test('only DartThrown appended, score updated', () async {
+      final state = _makeState(score1: 501, dartsThrownInTurn: 0);
+      final dart = _makeDart(segment: '20', score: 20);
+
+      final newState = await useCase.execute(state, dart);
+
+      // Score updated
+      expect(newState.competitors[0].score, 481);
+      expect(newState.dartsThrownInTurn, 1);
+      expect(newState.turnActive, true);
+
+      // Exactly one event persisted
+      final events = _captureEvents();
+      expect(events.length, 1);
+      expect(events[0].eventType, 'DartThrown');
+    });
+  });
+
+  group('3rd dart — turn ends normally', () {
+    test('DartThrown → TurnEnded → TurnStarted appended', () async {
+      final state = _makeState(score1: 501, dartsThrownInTurn: 2);
+      final dart = _makeDart(segment: '20', score: 20);
+
+      final newState = await useCase.execute(state, dart);
+
+      // Score updated, turn passed to c2
+      expect(newState.competitors[0].score, 481);
+      expect(newState.currentTurnIndex, 1);
+      expect(newState.turnActive, true);
+
+      final events = _captureEvents();
+      expect(events.length, 3);
+      expect(events[0].eventType, 'DartThrown');
+      expect(events[1].eventType, 'TurnEnded');
+      expect(events[2].eventType, 'TurnStarted');
+
+      // TurnEnded reason is normal
+      expect(events[1].payload['reason'], 'normal');
+      // TurnStarted goes to c2
+      expect(events[2].payload['competitor_id'], 'c2');
+    });
+  });
+
+  group('Bust dart', () {
+    test('DartThrown(bust=true) → TurnEnded(reason=bust) → TurnStarted', () async {
+      // score=2, throw single 1 → score becomes 1 → bust
+      final state = _makeState(score1: 2, dartsThrownInTurn: 0);
+      final dart = _makeDart(segment: '1', score: 1);
+
+      final newState = await useCase.execute(state, dart);
+
+      // Score restored (bust recovery), turn passed to c2
+      expect(newState.competitors[0].score, 2);
+      expect(newState.currentTurnIndex, 1);
+      expect(newState.turnActive, true);
+
+      final events = _captureEvents();
+      expect(events.length, 3);
+      expect(events[0].eventType, 'DartThrown');
+      expect(events[0].payload['bust'], true);
+      expect(events[1].eventType, 'TurnEnded');
+      expect(events[1].payload['reason'], 'bust');
+      expect(events[2].eventType, 'TurnStarted');
+      expect(events[2].payload['competitor_id'], 'c2');
+    });
+  });
+
+  group('Leg-completing checkout (multi-leg game)', () {
+    test('DartThrown → TurnEnded → LegCompleted → TurnStarted', () async {
+      // legsToWin=2, c1 has 0 legs won → checkout completes leg, not game
+      final state = _makeState(
+        score1: 32,
+        legsToWin: 2,
+        legsWon1: 0,
+        outStrategy: 'double',
+        startingScore: 501,
+      );
+      // D16 = double 16 = 32 points
+      final dart = _makeDart(segment: 'D16', score: 32);
+
+      final newState = await useCase.execute(state, dart);
+
+      // Leg reset: scores back to 501, new leg started, c1 goes first
+      expect(newState.competitors[0].score, 501);
+      expect(newState.turnActive, true);
+      expect(newState.currentLegIndex, 1);
+
+      final events = _captureEvents();
+      expect(events.length, 4);
+      expect(events[0].eventType, 'DartThrown');
+      expect(events[1].eventType, 'TurnEnded');
+      expect(events[1].payload['reason'], 'normal');
+      expect(events[2].eventType, 'LegCompleted');
+      expect(events[2].payload['winner_competitor_id'], 'c1');
+      expect(events[3].eventType, 'TurnStarted');
+
+      // completeGame must NOT be called
+      verifyNever(mockGameRepo.completeGame(
+        gameId: anyNamed('gameId'),
+        winnerCompetitorId: anyNamed('winnerCompetitorId'),
+        endTime: anyNamed('endTime'),
+      ));
+    });
+  });
+
+  group('Game-completing checkout', () {
+    test('DartThrown → TurnEnded → LegCompleted → GameCompleted; completeGame called', () async {
+      // legsToWin=1 → checkout completes the game
+      final state = _makeState(
+        score1: 32,
+        legsToWin: 1,
+        outStrategy: 'double',
+      );
+      final dart = _makeDart(segment: 'D16', score: 32);
+
+      final newState = await useCase.execute(state, dart);
+
+      expect(newState.isComplete, true);
+      expect(newState.winnerCompetitorId, 'c1');
+
+      final events = _captureEvents();
+      expect(events.length, 4);
+      expect(events[0].eventType, 'DartThrown');
+      expect(events[1].eventType, 'TurnEnded');
+      expect(events[1].payload['reason'], 'normal');
+      expect(events[2].eventType, 'LegCompleted');
+      expect(events[3].eventType, 'GameCompleted');
+      expect(events[3].payload['winner_id'], 'c1');
+
+      // completeGame MUST be called
+      verify(mockGameRepo.completeGame(
+        gameId: 'g1',
+        winnerCompetitorId: 'c1',
+        endTime: anyNamed('endTime'),
+      )).called(1);
+    });
+  });
+
+  group('Persistence ordering', () {
+    test('dart is persisted before events', () async {
+      final state = _makeState(score1: 501, dartsThrownInTurn: 0);
+      final dart = _makeDart();
+
+      await useCase.execute(state, dart);
+
+      verifyInOrder([
+        mockDartRepo.insertDart(dart),
+        mockEventRepo.appendEvents(any),
+      ]);
+    });
+  });
+
+  group('Event localSequence', () {
+    test('events have strictly ascending localSequence starting after latest', () async {
+      // getLatestSequence returns 5, so first event should be 6
+      when(mockEventRepo.getLatestSequence(any)).thenAnswer((_) async => 5);
+
+      // Use a 3-event scenario (3rd dart turn end)
+      final state = _makeState(score1: 501, dartsThrownInTurn: 2);
+      final dart = _makeDart(segment: '20', score: 20);
+
+      await useCase.execute(state, dart);
+
+      final events = _captureEvents();
+      expect(events.length, 3);
+      expect(events[0].localSequence, 6);
+      expect(events[1].localSequence, 7);
+      expect(events[2].localSequence, 8);
+    });
+  });
+
+  group('DartThrown eventId', () {
+    test('DartThrown eventId equals dart.dartId', () async {
+      final state = _makeState(score1: 501, dartsThrownInTurn: 0);
+      final dart = _makeDart(dartId: 'my-dart-uuid');
+
+      await useCase.execute(state, dart);
+
+      final events = _captureEvents();
+      expect(events[0].eventType, 'DartThrown');
+      expect(events[0].eventId, 'my-dart-uuid');
+    });
   });
 }

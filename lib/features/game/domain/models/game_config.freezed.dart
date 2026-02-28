@@ -239,10 +239,10 @@ return chaseTheDragon(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int startingScore,  String inStrategy,  String outStrategy)?  x01,TResult Function( String variant,  List<String> numbers,  int pointsToWin)?  cricket,TResult Function()?  aroundTheClock,TResult Function()?  killer,TResult Function()?  baseball,TResult Function()?  golf,TResult Function()?  shanghai,TResult Function()?  scram,TResult Function()?  halveIt,TResult Function()?  highScore,TResult Function()?  blindCricket,TResult Function()?  blindGolf,TResult Function()?  blindKiller,TResult Function()?  blindShanghai,TResult Function()?  chaseTheDragon,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int startingScore,  String inStrategy,  String outStrategy,  int legsToWin)?  x01,TResult Function( String variant,  List<String> numbers,  int pointsToWin)?  cricket,TResult Function()?  aroundTheClock,TResult Function()?  killer,TResult Function()?  baseball,TResult Function()?  golf,TResult Function()?  shanghai,TResult Function()?  scram,TResult Function()?  halveIt,TResult Function()?  highScore,TResult Function()?  blindCricket,TResult Function()?  blindGolf,TResult Function()?  blindKiller,TResult Function()?  blindShanghai,TResult Function()?  chaseTheDragon,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case X01GameConfig() when x01 != null:
-return x01(_that.startingScore,_that.inStrategy,_that.outStrategy);case CricketGameConfig() when cricket != null:
+return x01(_that.startingScore,_that.inStrategy,_that.outStrategy,_that.legsToWin);case CricketGameConfig() when cricket != null:
 return cricket(_that.variant,_that.numbers,_that.pointsToWin);case AroundTheClockGameConfig() when aroundTheClock != null:
 return aroundTheClock();case KillerGameConfig() when killer != null:
 return killer();case BaseballGameConfig() when baseball != null:
@@ -274,10 +274,10 @@ return chaseTheDragon();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int startingScore,  String inStrategy,  String outStrategy)  x01,required TResult Function( String variant,  List<String> numbers,  int pointsToWin)  cricket,required TResult Function()  aroundTheClock,required TResult Function()  killer,required TResult Function()  baseball,required TResult Function()  golf,required TResult Function()  shanghai,required TResult Function()  scram,required TResult Function()  halveIt,required TResult Function()  highScore,required TResult Function()  blindCricket,required TResult Function()  blindGolf,required TResult Function()  blindKiller,required TResult Function()  blindShanghai,required TResult Function()  chaseTheDragon,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int startingScore,  String inStrategy,  String outStrategy,  int legsToWin)  x01,required TResult Function( String variant,  List<String> numbers,  int pointsToWin)  cricket,required TResult Function()  aroundTheClock,required TResult Function()  killer,required TResult Function()  baseball,required TResult Function()  golf,required TResult Function()  shanghai,required TResult Function()  scram,required TResult Function()  halveIt,required TResult Function()  highScore,required TResult Function()  blindCricket,required TResult Function()  blindGolf,required TResult Function()  blindKiller,required TResult Function()  blindShanghai,required TResult Function()  chaseTheDragon,}) {final _that = this;
 switch (_that) {
 case X01GameConfig():
-return x01(_that.startingScore,_that.inStrategy,_that.outStrategy);case CricketGameConfig():
+return x01(_that.startingScore,_that.inStrategy,_that.outStrategy,_that.legsToWin);case CricketGameConfig():
 return cricket(_that.variant,_that.numbers,_that.pointsToWin);case AroundTheClockGameConfig():
 return aroundTheClock();case KillerGameConfig():
 return killer();case BaseballGameConfig():
@@ -308,10 +308,10 @@ return chaseTheDragon();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int startingScore,  String inStrategy,  String outStrategy)?  x01,TResult? Function( String variant,  List<String> numbers,  int pointsToWin)?  cricket,TResult? Function()?  aroundTheClock,TResult? Function()?  killer,TResult? Function()?  baseball,TResult? Function()?  golf,TResult? Function()?  shanghai,TResult? Function()?  scram,TResult? Function()?  halveIt,TResult? Function()?  highScore,TResult? Function()?  blindCricket,TResult? Function()?  blindGolf,TResult? Function()?  blindKiller,TResult? Function()?  blindShanghai,TResult? Function()?  chaseTheDragon,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int startingScore,  String inStrategy,  String outStrategy,  int legsToWin)?  x01,TResult? Function( String variant,  List<String> numbers,  int pointsToWin)?  cricket,TResult? Function()?  aroundTheClock,TResult? Function()?  killer,TResult? Function()?  baseball,TResult? Function()?  golf,TResult? Function()?  shanghai,TResult? Function()?  scram,TResult? Function()?  halveIt,TResult? Function()?  highScore,TResult? Function()?  blindCricket,TResult? Function()?  blindGolf,TResult? Function()?  blindKiller,TResult? Function()?  blindShanghai,TResult? Function()?  chaseTheDragon,}) {final _that = this;
 switch (_that) {
 case X01GameConfig() when x01 != null:
-return x01(_that.startingScore,_that.inStrategy,_that.outStrategy);case CricketGameConfig() when cricket != null:
+return x01(_that.startingScore,_that.inStrategy,_that.outStrategy,_that.legsToWin);case CricketGameConfig() when cricket != null:
 return cricket(_that.variant,_that.numbers,_that.pointsToWin);case AroundTheClockGameConfig() when aroundTheClock != null:
 return aroundTheClock();case KillerGameConfig() when killer != null:
 return killer();case BaseballGameConfig() when baseball != null:
@@ -337,13 +337,15 @@ return chaseTheDragon();case _:
 @JsonSerializable()
 
 class X01GameConfig implements GameConfig {
-  const X01GameConfig({required this.startingScore, required this.inStrategy, required this.outStrategy, final  String? $type}): $type = $type ?? 'x01';
+  const X01GameConfig({required this.startingScore, required this.inStrategy, required this.outStrategy, this.legsToWin = 1, final  String? $type}): $type = $type ?? 'x01';
   factory X01GameConfig.fromJson(Map<String, dynamic> json) => _$X01GameConfigFromJson(json);
 
  final  int startingScore;
  final  String inStrategy;
 // 'straight', 'double', 'master'
  final  String outStrategy;
+// 'straight', 'double', 'master'
+@JsonKey() final  int legsToWin;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -362,16 +364,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is X01GameConfig&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.inStrategy, inStrategy) || other.inStrategy == inStrategy)&&(identical(other.outStrategy, outStrategy) || other.outStrategy == outStrategy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is X01GameConfig&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.inStrategy, inStrategy) || other.inStrategy == inStrategy)&&(identical(other.outStrategy, outStrategy) || other.outStrategy == outStrategy)&&(identical(other.legsToWin, legsToWin) || other.legsToWin == legsToWin));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,startingScore,inStrategy,outStrategy);
+int get hashCode => Object.hash(runtimeType,startingScore,inStrategy,outStrategy,legsToWin);
 
 @override
 String toString() {
-  return 'GameConfig.x01(startingScore: $startingScore, inStrategy: $inStrategy, outStrategy: $outStrategy)';
+  return 'GameConfig.x01(startingScore: $startingScore, inStrategy: $inStrategy, outStrategy: $outStrategy, legsToWin: $legsToWin)';
 }
 
 
@@ -382,7 +384,7 @@ abstract mixin class $X01GameConfigCopyWith<$Res> implements $GameConfigCopyWith
   factory $X01GameConfigCopyWith(X01GameConfig value, $Res Function(X01GameConfig) _then) = _$X01GameConfigCopyWithImpl;
 @useResult
 $Res call({
- int startingScore, String inStrategy, String outStrategy
+ int startingScore, String inStrategy, String outStrategy, int legsToWin
 });
 
 
@@ -399,12 +401,13 @@ class _$X01GameConfigCopyWithImpl<$Res>
 
 /// Create a copy of GameConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? startingScore = null,Object? inStrategy = null,Object? outStrategy = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? startingScore = null,Object? inStrategy = null,Object? outStrategy = null,Object? legsToWin = null,}) {
   return _then(X01GameConfig(
 startingScore: null == startingScore ? _self.startingScore : startingScore // ignore: cast_nullable_to_non_nullable
 as int,inStrategy: null == inStrategy ? _self.inStrategy : inStrategy // ignore: cast_nullable_to_non_nullable
 as String,outStrategy: null == outStrategy ? _self.outStrategy : outStrategy // ignore: cast_nullable_to_non_nullable
-as String,
+as String,legsToWin: null == legsToWin ? _self.legsToWin : legsToWin // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

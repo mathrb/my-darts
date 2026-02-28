@@ -102,7 +102,9 @@ StatelessX01Engine x01Engine(Ref ref) {
 @Riverpod(keepAlive: true)
 ProcessDartUseCase processDartUseCase(Ref ref) {
   return ProcessDartUseCase(
+    ref.watch(gameRepositoryProvider),
     ref.watch(gameEventRepositoryProvider),
     ref.watch(dartThrowRepositoryProvider),
+    ref.watch(x01EngineProvider),
   );
 }
