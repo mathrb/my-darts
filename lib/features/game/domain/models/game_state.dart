@@ -71,7 +71,9 @@ abstract class GameState with _$GameState {
       winnerCompetitorId: game.winnerCompetitorId,
       status: GameEngineStatus.initialized,
       turnActive: false,
-      legsToWin: 1, // Default, could be extracted from config if available
+      legsToWin: (game.config is X01GameConfig)
+          ? (game.config as X01GameConfig).legsToWin
+          : 1,
       currentLegIndex: 0,
       inStrategy: inStrategy,
       outStrategy: outStrategy,

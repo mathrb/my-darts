@@ -1,53 +1,105 @@
-// Active Game Provider
-// Riverpod notifier for managing the active game state
-
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../domain/models/game_state.dart';
+import 'package:uuid/uuid.dart';
 import '../../domain/entities/dart_throw.dart';
+import '../../domain/models/game_config.dart';
+import '../../domain/models/game_state.dart';
+import '../state/active_game_state.dart';
 import '../../../../core/persistence/database_provider.dart';
 
 part 'active_game_provider.g.dart';
 
 @riverpod
-class ActiveGame extends _$ActiveGame {
+class ActiveGameNotifier extends _$ActiveGameNotifier {
   @override
-  Future<GameState?> build() async {
-    final gameRepository = ref.watch(gameRepositoryProvider);
-    final activeGame = await gameRepository.getActiveGame();
-    
-    if (activeGame == null) return null;
+  Future<ActiveGameState?> build(String gameId) async {
+    final game = await ref.read(gameRepositoryProvider).getGame(gameId);
+    if (game == null) return null;
 
-    // Get competitors for the game
-    final competitors = await gameRepository.getCompetitors(activeGame.gameId);
-    
-    // Get all events for the game
-    final gameEventRepository = ref.watch(gameEventRepositoryProvider);
-    final events = await gameEventRepository.getEventsForGame(activeGame.gameId);
-    
-    if (events.isEmpty) return null;
+    final competitors =
+        await ref.read(gameRepositoryProvider).getCompetitors(gameId);
+    final events =
+        await ref.read(gameEventRepositoryProvider).getEventsForGame(gameId);
 
-    // Reconstruct game state by replaying all events
-    final engine = ref.watch(x01EngineProvider);
-    var state = GameState.initial(activeGame, competitors);
-    
+    final engine = ref.read(x01EngineProvider);
+    var gs = GameState.initial(game, competitors);
     for (final event in events) {
-      final result = engine.apply(state, event);
-      state = result.state;
+      gs = engine.apply(gs, event).state;
     }
-    
-    return state;
+
+    return ActiveGameState(gameState: gs);
   }
 
-  Future<void> processDart(DartThrow dartThrow) async {
-    final currentState = state.value;
-    if (currentState == null) return;
+  Future<void> processDart(String segment) async {
+    final current = state.value;
+    if (current == null) return;
+
+    final gs = current.gameState;
+    final oldTurnIndex = gs.currentTurnIndex;
+    final oldLegIndex = gs.currentLegIndex;
+    final competitor = gs.competitors[oldTurnIndex];
+
+    final dart = DartThrow(
+      dartId: const Uuid().v4(),
+      gameId: gs.gameId,
+      competitorId: competitor.competitorId,
+      playerId: competitor.playerIds.isNotEmpty
+          ? competitor.playerIds.first
+          : 'sentinel',
+      turnNumber: gs.currentLegIndex,
+      dartNumber: gs.dartsThrownInTurn + 1,
+      segment: segment,
+      score: Segment.parse(segment).scoreValue,
+    );
 
     state = const AsyncValue.loading();
-    
     state = await AsyncValue.guard(() async {
-      final useCase = ref.read(processDartUseCaseProvider);
-      
-      return await useCase.execute(currentState, dartThrow);
+      final newGs =
+          await ref.read(processDartUseCaseProvider).execute(gs, dart);
+
+      final turnAdvanced = newGs.currentTurnIndex != oldTurnIndex;
+      final scoreUnchanged = newGs.competitors[oldTurnIndex].score ==
+          gs.competitors[oldTurnIndex].score;
+      final showBust = turnAdvanced && scoreUnchanged;
+
+      final legCompleted =
+          newGs.currentLegIndex > oldLegIndex && !newGs.isComplete;
+      final pendingLegWinnerId =
+          legCompleted ? competitor.competitorId : null;
+
+      final pendingGameWinnerId =
+          newGs.isComplete ? newGs.winnerCompetitorId : null;
+
+      return ActiveGameState(
+        gameState: newGs,
+        showBust: showBust,
+        pendingLegWinnerId: pendingLegWinnerId,
+        pendingGameWinnerId: pendingGameWinnerId,
+      );
     });
+  }
+
+  Future<void> undoDart() async {
+    final current = state.value;
+    if (current == null) return;
+
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final newGs = await ref
+          .read(undoLastDartUseCaseProvider)
+          .execute(current.gameState);
+      return ActiveGameState(gameState: newGs);
+    });
+  }
+
+  void dismissBust() {
+    state = state.whenData((s) => s?.copyWith(showBust: false));
+  }
+
+  void dismissLegModal() {
+    state = state.whenData((s) => s?.copyWith(pendingLegWinnerId: null));
+  }
+
+  void dismissGameModal() {
+    state = state.whenData((s) => s?.copyWith(pendingGameWinnerId: null));
   }
 }

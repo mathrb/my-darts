@@ -9,46 +9,93 @@ part of 'active_game_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(ActiveGame)
-final activeGameProvider = ActiveGameProvider._();
+@ProviderFor(ActiveGameNotifier)
+final activeGameProvider = ActiveGameNotifierFamily._();
 
-final class ActiveGameProvider
-    extends $AsyncNotifierProvider<ActiveGame, GameState?> {
-  ActiveGameProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'activeGameProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+final class ActiveGameNotifierProvider
+    extends $AsyncNotifierProvider<ActiveGameNotifier, ActiveGameState?> {
+  ActiveGameNotifierProvider._({
+    required ActiveGameNotifierFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'activeGameProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
 
   @override
-  String debugGetCreateSourceHash() => _$activeGameHash();
+  String debugGetCreateSourceHash() => _$activeGameNotifierHash();
+
+  @override
+  String toString() {
+    return r'activeGameProvider'
+        ''
+        '($argument)';
+  }
 
   @$internal
   @override
-  ActiveGame create() => ActiveGame();
+  ActiveGameNotifier create() => ActiveGameNotifier();
+
+  @override
+  bool operator ==(Object other) {
+    return other is ActiveGameNotifierProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
 }
 
-String _$activeGameHash() => r'e06195870e770efb52b2a7eeb7f391a5ddef21d5';
+String _$activeGameNotifierHash() =>
+    r'01d6b59e94378034d20b4295d83348358282feb7';
 
-abstract class _$ActiveGame extends $AsyncNotifier<GameState?> {
-  FutureOr<GameState?> build();
+final class ActiveGameNotifierFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          ActiveGameNotifier,
+          AsyncValue<ActiveGameState?>,
+          ActiveGameState?,
+          FutureOr<ActiveGameState?>,
+          String
+        > {
+  ActiveGameNotifierFamily._()
+    : super(
+        retry: null,
+        name: r'activeGameProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ActiveGameNotifierProvider call(String gameId) =>
+      ActiveGameNotifierProvider._(argument: gameId, from: this);
+
+  @override
+  String toString() => r'activeGameProvider';
+}
+
+abstract class _$ActiveGameNotifier extends $AsyncNotifier<ActiveGameState?> {
+  late final _$args = ref.$arg as String;
+  String get gameId => _$args;
+
+  FutureOr<ActiveGameState?> build(String gameId);
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<GameState?>, GameState?>;
+    final ref =
+        this.ref as $Ref<AsyncValue<ActiveGameState?>, ActiveGameState?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<GameState?>, GameState?>,
-              AsyncValue<GameState?>,
+              AnyNotifier<AsyncValue<ActiveGameState?>, ActiveGameState?>,
+              AsyncValue<ActiveGameState?>,
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    element.handleCreate(ref, () => build(_$args));
   }
 }
