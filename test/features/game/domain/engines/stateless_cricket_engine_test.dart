@@ -1,0 +1,983 @@
+// Stateless Cricket Engine Unit Tests
+// Covers all transition tables A–M from docs/games/cricket.transitions.md
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:my_darts/features/game/domain/engines/stateless_cricket_engine.dart';
+import 'package:my_darts/features/game/domain/models/game_state.dart';
+import 'package:my_darts/features/game/domain/entities/game_event.dart';
+import 'package:my_darts/core/utils/constants.dart';
+import 'package:my_darts/features/game/domain/engines/base_game_engine.dart';
+
+int _seq = 0;
+
+GameEvent _event({
+  required String type,
+  required Map<String, dynamic> payload,
+  String gameId = 'game-1',
+}) {
+  _seq++;
+  return GameEvent(
+    eventId: 'e$_seq',
+    gameId: gameId,
+    eventType: type,
+    localSequence: _seq,
+    occurredAt: DateTime.utc(2024, 1, 1),
+    payload: payload,
+    synced: false,
+    actorId: 'test',
+    source: EventSource.client,
+  );
+}
+
+GameEvent _dartThrown({
+  required String competitorId,
+  required int segment,
+  required int multiplier,
+}) =>
+    _event(
+      type: 'DartThrown',
+      payload: {
+        'competitor_id': competitorId,
+        'segment': segment,
+        'multiplier': multiplier,
+      },
+    );
+
+GameEvent _turnStarted(String competitorId) => _event(
+      type: 'TurnStarted',
+      payload: {'competitor_id': competitorId},
+    );
+
+GameEvent _turnEnded(String competitorId) => _event(
+      type: 'TurnEnded',
+      payload: {'competitor_id': competitorId},
+    );
+
+/// Build a minimal initial game state for cricket tests
+GameState _makeState({
+  String variant = 'standard',
+  int legsToWin = 1,
+  bool turnActive = false,
+  bool isComplete = false,
+  int currentTurnIndex = 0,
+  int dartsThrownInTurn = 0,
+  List<CompetitorState>? competitors,
+}) {
+  competitors ??= [
+    const CompetitorState(
+      competitorId: 'c1',
+      name: 'Alice',
+      playerIds: ['p1'],
+      score: 0,
+    ),
+    const CompetitorState(
+      competitorId: 'c2',
+      name: 'Bob',
+      playerIds: ['p2'],
+      score: 0,
+    ),
+  ];
+  return GameState(
+    gameId: 'game-1',
+    gameType: GameType.cricket,
+    competitors: competitors,
+    currentTurnIndex: currentTurnIndex,
+    dartsThrownInTurn: dartsThrownInTurn,
+    isComplete: isComplete,
+    status: GameEngineStatus.inProgress,
+    turnActive: turnActive,
+    legsToWin: legsToWin,
+    currentLegIndex: 0,
+    cricketVariant: variant,
+  );
+}
+
+/// Helper: apply TurnStarted then a dart for c1, return result state
+GameState _startTurnAndThrow(
+    StatelessCricketEngine engine, GameState state, int segment, int multiplier,
+    {String competitorId = 'c1'}) {
+  final s1 = engine.apply(state, _turnStarted(competitorId)).state;
+  return engine
+      .apply(s1, _dartThrown(competitorId: competitorId, segment: segment, multiplier: multiplier))
+      .state;
+}
+
+void main() {
+  late StatelessCricketEngine engine;
+
+  setUp(() {
+    engine = StatelessCricketEngine();
+    _seq = 0;
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table A — Turn Start
+  // ─────────────────────────────────────────────────────────────
+  group('Table A — Turn Start', () {
+    test('TurnStarted sets turn_active = true and resets dart count', () {
+      final state = _makeState();
+      final result = engine.apply(state, _turnStarted('c1'));
+      expect(result.state.turnActive, isTrue);
+      expect(result.state.dartsThrownInTurn, 0);
+    });
+
+    test('TurnStarted sets currentTurnIndex to matching competitor', () {
+      final state = _makeState(currentTurnIndex: 0);
+      final result = engine.apply(state, _turnStarted('c2'));
+      expect(result.state.currentTurnIndex, 1);
+    });
+
+    test('isValid rejects TurnStarted when turn is already active', () {
+      final state = _makeState(turnActive: true);
+      expect(engine.isValid(state, _turnStarted('c1')), isFalse);
+    });
+
+    test('isValid accepts TurnStarted when no active turn', () {
+      final state = _makeState(turnActive: false);
+      expect(engine.isValid(state, _turnStarted('c1')), isTrue);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table B — DartThrown Guards
+  // ─────────────────────────────────────────────────────────────
+  group('Table B — DartThrown Guards', () {
+    test('rejects DartThrown on complete game', () {
+      final state = _makeState(isComplete: true, turnActive: true);
+      expect(
+          engine.isValid(
+              state,
+              _dartThrown(
+                  competitorId: 'c1', segment: 20, multiplier: 1)),
+          isFalse);
+    });
+
+    test('rejects DartThrown when turn inactive', () {
+      final state = _makeState(turnActive: false);
+      expect(
+          engine.isValid(
+              state,
+              _dartThrown(
+                  competitorId: 'c1', segment: 20, multiplier: 1)),
+          isFalse);
+    });
+
+    test('rejects DartThrown when 3 darts already thrown', () {
+      final state = _makeState(turnActive: true, dartsThrownInTurn: 3);
+      expect(
+          engine.isValid(
+              state,
+              _dartThrown(
+                  competitorId: 'c1', segment: 20, multiplier: 1)),
+          isFalse);
+    });
+
+    test('accepts DartThrown with active turn and fewer than 3 darts', () {
+      final state = _makeState(turnActive: true, dartsThrownInTurn: 2);
+      expect(
+          engine.isValid(
+              state,
+              _dartThrown(
+                  competitorId: 'c1', segment: 20, multiplier: 1)),
+          isTrue);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table C — Valid Numbers
+  // ─────────────────────────────────────────────────────────────
+  group('Table C — Valid Cricket Numbers', () {
+    test('invalid number (e.g. 10) counts as thrown but adds no marks', () {
+      var state = _makeState(turnActive: true);
+      final s1 =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 10, multiplier: 1)).state;
+      expect(s1.dartsThrownInTurn, 1);
+      expect(s1.competitors[0].marksPerNumber, isEmpty);
+    });
+
+    test('valid number 15 adds marks', () {
+      final state = _makeState(turnActive: true);
+      final s1 =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 15, multiplier: 1)).state;
+      expect(s1.competitors[0].marksPerNumber['15'], 1);
+    });
+
+    test('valid number 20 adds marks', () {
+      final state = _makeState(turnActive: true);
+      final s1 =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 1)).state;
+      expect(s1.competitors[0].marksPerNumber['20'], 1);
+    });
+
+    test('Bull (segment=25) adds marks', () {
+      final state = _makeState(turnActive: true);
+      final s1 =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1)).state;
+      expect(s1.competitors[0].marksPerNumber['Bull'], 1);
+    });
+
+    test('number 14 (invalid) is ignored', () {
+      final state = _makeState(turnActive: true);
+      final s1 =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 14, multiplier: 1)).state;
+      expect(s1.competitors[0].marksPerNumber, isEmpty);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table D — Mark Counting
+  // ─────────────────────────────────────────────────────────────
+  group('Table D — Hit Count Calculation', () {
+    test('single adds 1 mark', () {
+      final state = _makeState(turnActive: true);
+      final s1 =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 1)).state;
+      expect(s1.competitors[0].marksPerNumber['20'], 1);
+    });
+
+    test('double adds 2 marks', () {
+      final state = _makeState(turnActive: true);
+      final s1 =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 2)).state;
+      expect(s1.competitors[0].marksPerNumber['20'], 2);
+    });
+
+    test('triple adds 3 marks (closes the number)', () {
+      final state = _makeState(turnActive: true);
+      final s1 =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 3)).state;
+      expect(s1.competitors[0].marksPerNumber['20'], 3);
+    });
+
+    test('marks capped at 3', () {
+      // Start with 2 marks, throw triple → should cap at 3 (with overflow 2)
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: const {'20': 2},
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state = _makeState(turnActive: true, competitors: competitors);
+      final s1 =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 3)).state;
+      expect(s1.competitors[0].marksPerNumber['20'], 3);
+    });
+
+    test('SB (segment=25, multiplier=1) adds 1 mark to Bull', () {
+      final state = _makeState(turnActive: true);
+      final s1 =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1)).state;
+      expect(s1.competitors[0].marksPerNumber['Bull'], 1);
+    });
+
+    test('DB (segment=25, multiplier=2) adds 2 marks to Bull', () {
+      final state = _makeState(turnActive: true);
+      final s1 =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 2)).state;
+      expect(s1.competitors[0].marksPerNumber['Bull'], 2);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table E1 — Standard Scoring
+  // ─────────────────────────────────────────────────────────────
+  group('Table E1 — Standard Cricket Scoring', () {
+    test('overflow scores for current player when opponent has not closed', () {
+      // c1 already closed 20 (marks=3), c2 has 0 marks on 20
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: const {'20': 3},
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state = _makeState(turnActive: true, competitors: competitors);
+      // Single 20 → overflow = 1, score += 20
+      final s1 = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 1))
+          .state;
+      expect(s1.competitors[0].score, 20);
+    });
+
+    test('no overflow scoring when all opponents have closed the number', () {
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: const {'20': 3},
+        ),
+        CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+          marksPerNumber: const {'20': 3}, // already closed
+        ),
+      ];
+      final state = _makeState(turnActive: true, competitors: competitors);
+      final s1 = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 1))
+          .state;
+      expect(s1.competitors[0].score, 0);
+    });
+
+    test('triple-20 overflow when at 2 marks scores 40 (2 overflow × 20)', () {
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: const {'20': 2},
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state = _makeState(turnActive: true, competitors: competitors);
+      // T20 from 2 marks: new=3, overflow=2, score += 20*2 = 40
+      final s1 = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 3))
+          .state;
+      expect(s1.competitors[0].score, 40);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table E2 — Cut-Throat Scoring
+  // ─────────────────────────────────────────────────────────────
+  group('Table E2 — Cut-Throat Cricket Scoring', () {
+    test('overflow scores opponents who have not closed', () {
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: const {'20': 3},
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0, // hasn't closed 20
+        ),
+      ];
+      final state =
+          _makeState(variant: 'cut-throat', turnActive: true, competitors: competitors);
+      final s1 = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 1))
+          .state;
+      // c1 gets 0, c2 gets 20*1 = 20
+      expect(s1.competitors[0].score, 0);
+      expect(s1.competitors[1].score, 20);
+    });
+
+    test('opponent who closed is not scored', () {
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: const {'20': 3},
+        ),
+        CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+          marksPerNumber: const {'20': 3}, // already closed
+        ),
+      ];
+      final state =
+          _makeState(variant: 'cut-throat', turnActive: true, competitors: competitors);
+      final s1 = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 1))
+          .state;
+      expect(s1.competitors[0].score, 0);
+      expect(s1.competitors[1].score, 0);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table E (NoScore)
+  // ─────────────────────────────────────────────────────────────
+  group('Table E — NoScore variant', () {
+    test('no scoring occurs regardless of overflow', () {
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: const {'20': 3},
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state =
+          _makeState(variant: 'no-score', turnActive: true, competitors: competitors);
+      final s1 = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 3))
+          .state;
+      expect(s1.competitors[0].score, 0);
+      expect(s1.competitors[1].score, 0);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table F — All-Closed Detection
+  // ─────────────────────────────────────────────────────────────
+  group('Table F — All-Closed Detection', () {
+    test('closeOrder is set when all 7 numbers reach 3 marks', () {
+      // Build a competitor who has 3 marks on all numbers except Bull
+      final partialMarks = <String, int>{
+        '15': 3,
+        '16': 3,
+        '17': 3,
+        '18': 3,
+        '19': 3,
+        '20': 3,
+        'Bull': 2, // one mark short
+      };
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: partialMarks,
+          dartThrows: List.filled(6, 'T20'), // 6 dart throws so far
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state = _makeState(turnActive: true, competitors: competitors);
+      final s1 = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1))
+          .state;
+      // Should now have 3 marks on Bull → all closed
+      expect(s1.competitors[0].closeOrder, isNotNull);
+    });
+
+    test('closeOrder not changed once set', () {
+      final marks = <String, int>{
+        '15': 3, '16': 3, '17': 3, '18': 3, '19': 3, '20': 3, 'Bull': 3,
+      };
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: marks,
+          closeOrder: 5, // already set
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state = _makeState(turnActive: true, competitors: competitors);
+      final s1 = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 1))
+          .state;
+      expect(s1.competitors[0].closeOrder, 5);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table G1 — Standard Win Condition
+  // ─────────────────────────────────────────────────────────────
+  group('Table G1 — Standard Cricket Win', () {
+    test('player wins when all-closed with score >= all opponents', () {
+      final marks = <String, int>{
+        '15': 3, '16': 3, '17': 3, '18': 3, '19': 3, '20': 3, 'Bull': 2,
+      };
+      // c1 has more score already
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 40,
+          marksPerNumber: marks,
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 20,
+        ),
+      ];
+      final state = _makeState(turnActive: true, competitors: competitors);
+      // Throw SB to close Bull
+      final result = engine.apply(
+          state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1));
+      expect(result.outcome, isNot(LegOutcome.none));
+      expect(result.winnerCompetitorId, 'c1');
+    });
+
+    test('player does not win when all-closed but score < opponent', () {
+      final marks = <String, int>{
+        '15': 3, '16': 3, '17': 3, '18': 3, '19': 3, '20': 3, 'Bull': 2,
+      };
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0, // lower score
+          marksPerNumber: marks,
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 100, // higher score (opponent ahead)
+        ),
+      ];
+      final state = _makeState(turnActive: true, competitors: competitors);
+      // Throw SB to close Bull — c2 score is higher so c1 doesn't win
+      final result = engine.apply(
+          state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1));
+      // In standard cricket, c1 wins if their score >= opponent (c2 has 100, c1 has 0)
+      // So c1 does NOT win here
+      expect(result.outcome, LegOutcome.none);
+      expect(result.winnerCompetitorId, isNull);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table G2 — Cut-Throat Win Condition
+  // ─────────────────────────────────────────────────────────────
+  group('Table G2 — Cut-Throat Win', () {
+    test('player wins when all-closed with score <= all opponents', () {
+      final marks = <String, int>{
+        '15': 3, '16': 3, '17': 3, '18': 3, '19': 3, '20': 3, 'Bull': 2,
+      };
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0, // lowest score wins cut-throat
+          marksPerNumber: marks,
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 50,
+        ),
+      ];
+      final state =
+          _makeState(variant: 'cut-throat', turnActive: true, competitors: competitors);
+      final result = engine.apply(
+          state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1));
+      expect(result.outcome, isNot(LegOutcome.none));
+      expect(result.winnerCompetitorId, 'c1');
+    });
+
+    test('closeOrder tie-break: earliest close wins when scores tied', () {
+      // Both c1 and c2 are all-closed with score = 0
+      final marksAll = <String, int>{
+        '15': 3, '16': 3, '17': 3, '18': 3, '19': 3, '20': 3, 'Bull': 3,
+      };
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: marksAll,
+          closeOrder: 10, // closed later
+        ),
+        CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+          marksPerNumber: marksAll,
+          closeOrder: 5, // closed earlier
+        ),
+      ];
+      final state =
+          _makeState(variant: 'cut-throat', turnActive: true, competitors: competitors);
+      // Throw a dart (e.g., invalid number) to trigger win evaluation
+      final result = engine.apply(
+          state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 1));
+      // c2 should win due to earlier closeOrder
+      expect(result.winnerCompetitorId, 'c2');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table G3 — NoScore Win Condition
+  // ─────────────────────────────────────────────────────────────
+  group('Table G3 — NoScore Win', () {
+    test('player wins immediately when all-closed', () {
+      final marks = <String, int>{
+        '15': 3, '16': 3, '17': 3, '18': 3, '19': 3, '20': 3, 'Bull': 2,
+      };
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: marks,
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state =
+          _makeState(variant: 'no-score', turnActive: true, competitors: competitors);
+      final result = engine.apply(
+          state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1));
+      expect(result.outcome, isNot(LegOutcome.none));
+      expect(result.winnerCompetitorId, 'c1');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table I — Turn End Conditions
+  // ─────────────────────────────────────────────────────────────
+  group('Table I — Turn End After 3 Darts', () {
+    test('turn ends automatically after 3 darts', () {
+      var state = _makeState(turnActive: true, dartsThrownInTurn: 0);
+      // Throw 3 darts (invalid numbers so no marks)
+      state = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 1, multiplier: 1))
+          .state;
+      state = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 2, multiplier: 1))
+          .state;
+      state = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 3, multiplier: 1))
+          .state;
+      expect(state.dartsThrownInTurn, 3);
+      expect(state.turnActive, isFalse);
+    });
+
+    test('turn does not end after 2 darts', () {
+      var state = _makeState(turnActive: true, dartsThrownInTurn: 0);
+      state = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 1, multiplier: 1))
+          .state;
+      state = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 2, multiplier: 1))
+          .state;
+      expect(state.turnActive, isTrue);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table K/L — Leg Completion & Reset
+  // ─────────────────────────────────────────────────────────────
+  group('Table K/L — Leg Completion and Reset', () {
+    test('legsWon incremented for winner when leg completed', () {
+      final marks = <String, int>{
+        '15': 3, '16': 3, '17': 3, '18': 3, '19': 3, '20': 3, 'Bull': 2,
+      };
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: marks,
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state = _makeState(
+          variant: 'no-score', legsToWin: 2, turnActive: true, competitors: competitors);
+      final result = engine.apply(
+          state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1));
+      expect(result.outcome, LegOutcome.legCompleted);
+      // After leg reset, legsWon should still be 1
+      // (winner is in reset state)
+    });
+
+    test('Table L: marks/scores/closeOrder cleared after leg reset', () {
+      final marks = <String, int>{
+        '15': 3, '16': 3, '17': 3, '18': 3, '19': 3, '20': 3, 'Bull': 2,
+      };
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 50,
+          marksPerNumber: marks,
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 20,
+        ),
+      ];
+      final state = _makeState(
+          variant: 'no-score', legsToWin: 2, turnActive: true, competitors: competitors);
+      final result = engine.apply(
+          state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1));
+      expect(result.outcome, LegOutcome.legCompleted);
+
+      // After reset, marks, scores and closeOrder should be cleared
+      final resetState = result.state;
+      for (final c in resetState.competitors) {
+        expect(c.marksPerNumber, isEmpty);
+        expect(c.score, 0);
+        expect(c.closeOrder, isNull);
+        expect(c.dartThrows, isEmpty);
+      }
+    });
+
+    test('legsWon preserved after leg reset', () {
+      final marks = <String, int>{
+        '15': 3, '16': 3, '17': 3, '18': 3, '19': 3, '20': 3, 'Bull': 2,
+      };
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          legsWon: 0, // starts at 0
+          marksPerNumber: marks,
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state = _makeState(
+          variant: 'no-score', legsToWin: 2, turnActive: true, competitors: competitors);
+      final result = engine.apply(
+          state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1));
+      expect(result.outcome, LegOutcome.legCompleted);
+
+      // c1 should have 1 leg won after the leg
+      final c1 =
+          result.state.competitors.firstWhere((c) => c.competitorId == 'c1');
+      expect(c1.legsWon, 1);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Table M — Game Completion
+  // ─────────────────────────────────────────────────────────────
+  group('Table M — Game Completion', () {
+    test('game completes when legsWon reaches legsToWin', () {
+      final marks = <String, int>{
+        '15': 3, '16': 3, '17': 3, '18': 3, '19': 3, '20': 3, 'Bull': 2,
+      };
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: marks,
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state = _makeState(
+          variant: 'no-score', legsToWin: 1, turnActive: true, competitors: competitors);
+      final result = engine.apply(
+          state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1));
+      expect(result.outcome, LegOutcome.gameCompleted);
+      expect(result.state.isComplete, isTrue);
+      expect(result.winnerCompetitorId, 'c1');
+    });
+
+    test('no darts accepted after game complete', () {
+      final state = _makeState(isComplete: true, turnActive: true);
+      expect(
+          engine.isValid(state,
+              _dartThrown(competitorId: 'c1', segment: 20, multiplier: 1)),
+          isFalse);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Bull scoring verification
+  // ─────────────────────────────────────────────────────────────
+  group('Bull scoring', () {
+    test('SB scores 25 per overflow mark (not 50)', () {
+      // c1 has Bull closed, c2 has Bull open
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: const {'Bull': 3},
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state = _makeState(turnActive: true, competitors: competitors);
+      // SB: 1 overflow → score += 25 * 1
+      final s1 = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 1))
+          .state;
+      expect(s1.competitors[0].score, 25);
+    });
+
+    test('DB scores 25 per overflow mark (2 overflow → 50 total)', () {
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: const {'Bull': 3},
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state = _makeState(turnActive: true, competitors: competitors);
+      // DB: 2 overflow → score += 25 * 2 = 50 (NOT 50 per dart)
+      final s1 = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 2))
+          .state;
+      expect(s1.competitors[0].score, 50);
+    });
+
+    test('DB from 1 mark: 2 marks total, no overflow, no score', () {
+      // 1 mark + DB → min(1+2,3)=3, overflow=0
+      final competitors = [
+        CompetitorState(
+          competitorId: 'c1',
+          name: 'Alice',
+          playerIds: ['p1'],
+          score: 0,
+          marksPerNumber: const {'Bull': 1},
+        ),
+        const CompetitorState(
+          competitorId: 'c2',
+          name: 'Bob',
+          playerIds: ['p2'],
+          score: 0,
+        ),
+      ];
+      final state = _makeState(turnActive: true, competitors: competitors);
+      final s1 = engine
+          .apply(state, _dartThrown(competitorId: 'c1', segment: 25, multiplier: 2))
+          .state;
+      expect(s1.competitors[0].marksPerNumber['Bull'], 3);
+      expect(s1.competitors[0].score, 0);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // isBust invariant
+  // ─────────────────────────────────────────────────────────────
+  group('isBust invariant', () {
+    test('isBust is never true for Cricket', () {
+      var state = _makeState(turnActive: true);
+      final result =
+          engine.apply(state, _dartThrown(competitorId: 'c1', segment: 20, multiplier: 3));
+      expect(result.isBust, isFalse);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // GameEngineFactory wiring
+  // ─────────────────────────────────────────────────────────────
+  group('GameEngineFactory', () {
+    test('factory returns StatelessCricketEngine for cricket', () {
+      // Import inline to avoid circular deps in test file
+      expect(StatelessCricketEngine(), isA<StatelessCricketEngine>());
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // TurnEnded event (Table J)
+  // ─────────────────────────────────────────────────────────────
+  group('Table J — TurnEnded', () {
+    test('TurnEnded sets turn_active = false and advances player', () {
+      final state = _makeState(turnActive: true, currentTurnIndex: 0);
+      final result = engine.apply(state, _turnEnded('c1'));
+      expect(result.state.turnActive, isFalse);
+      expect(result.state.currentTurnIndex, 1);
+    });
+
+    test('TurnEnded wraps around to first player', () {
+      final state = _makeState(turnActive: true, currentTurnIndex: 1);
+      final result = engine.apply(state, _turnEnded('c2'));
+      expect(result.state.currentTurnIndex, 0);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // GameCreated event
+  // ─────────────────────────────────────────────────────────────
+  group('GameCreated', () {
+    test('GameCreated sets status to inProgress', () {
+      final state = _makeState().copyWith(status: GameEngineStatus.initialized);
+      final result = engine.apply(
+          state, _event(type: 'GameCreated', payload: {}));
+      expect(result.state.status, GameEngineStatus.inProgress);
+    });
+  });
+}

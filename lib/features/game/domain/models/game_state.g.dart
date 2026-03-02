@@ -25,6 +25,7 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
   inStrategy: json['inStrategy'] as String? ?? 'straight',
   outStrategy: json['outStrategy'] as String? ?? 'double',
   startingScore: (json['startingScore'] as num?)?.toInt() ?? 501,
+  cricketVariant: json['cricketVariant'] as String? ?? 'standard',
 );
 
 Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
@@ -43,6 +44,7 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'inStrategy': instance.inStrategy,
       'outStrategy': instance.outStrategy,
       'startingScore': instance.startingScore,
+      'cricketVariant': instance.cricketVariant,
     };
 
 const _$GameTypeEnumMap = {
