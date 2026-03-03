@@ -1,6 +1,7 @@
 import 'base_game_engine.dart';
 import 'stateless_x01_engine.dart';
 import 'stateless_cricket_engine.dart';
+import 'stateless_around_the_clock_engine.dart';
 import 'package:my_darts/core/utils/constants.dart';
 
 /// Game Engine Factory
@@ -13,16 +14,19 @@ class GameEngineFactory {
         return StatelessX01Engine();
       case GameType.cricket:
         return StatelessCricketEngine();
+      case GameType.aroundTheClock:
+        return StatelessAroundTheClockEngine();
       default:
         throw GameEngineException('Game type $gameType not supported');
     }
   }
-  
+
   /// Get a list of all supported game types
   static List<GameType> getSupportedGameTypes() {
     return [
       GameType.x01,
       GameType.cricket,
+      GameType.aroundTheClock,
     ];
   }
   
