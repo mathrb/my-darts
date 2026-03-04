@@ -28,6 +28,12 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
   cricketVariant: json['cricketVariant'] as String? ?? 'standard',
   aroundTheClockVariant: json['aroundTheClockVariant'] as String? ?? 'standard',
   shanghaiTotalRounds: (json['shanghaiTotalRounds'] as num?)?.toInt() ?? 7,
+  catch40TotalRounds: (json['catch40TotalRounds'] as num?)?.toInt() ?? 8,
+  catch40RoundTargets:
+      (json['catch40RoundTargets'] as List<dynamic>?)
+          ?.map((e) => (e as num).toInt())
+          .toList() ??
+      const [10, 15, 20, 25, 30, 35, 40, 45],
 );
 
 Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
@@ -49,6 +55,8 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'cricketVariant': instance.cricketVariant,
       'aroundTheClockVariant': instance.aroundTheClockVariant,
       'shanghaiTotalRounds': instance.shanghaiTotalRounds,
+      'catch40TotalRounds': instance.catch40TotalRounds,
+      'catch40RoundTargets': instance.catch40RoundTargets,
     };
 
 const _$GameTypeEnumMap = {
