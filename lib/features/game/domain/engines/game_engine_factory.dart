@@ -5,6 +5,7 @@ import 'stateless_around_the_clock_engine.dart';
 import 'stateless_bobs_27_engine.dart';
 import 'stateless_shanghai_engine.dart';
 import 'stateless_catch_40_engine.dart';
+import 'stateless_checkout_practice_engine.dart';
 import 'package:my_darts/core/utils/constants.dart';
 
 /// Game Engine Factory
@@ -25,6 +26,8 @@ class GameEngineFactory {
         return StatelessShanghaiEngine();
       case GameType.catch40:
         return StatelessCatch40Engine();
+      case GameType.checkoutPractice:
+        return StatelessCheckoutPracticeEngine();
       default:
         throw GameEngineException('Game type $gameType not supported');
     }
@@ -39,6 +42,7 @@ class GameEngineFactory {
       GameType.bobs27,
       GameType.shanghai,
       GameType.catch40,
+      GameType.checkoutPractice,
     ];
   }
   

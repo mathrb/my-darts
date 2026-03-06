@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../../../core/utils/constants.dart';
 import '../engines/base_game_engine.dart';
+import '../engines/checkout_table.dart';
 import '../entities/game.dart';
 import '../entities/competitor.dart';
 import '../models/game_config.dart';
@@ -30,6 +31,7 @@ abstract class GameState with _$GameState {
     @Default(7) int shanghaiTotalRounds,
     @Default(8) int catch40TotalRounds,
     @Default([10, 15, 20, 25, 30, 35, 40, 45]) List<int> catch40RoundTargets,
+    @Default([]) List<int> checkoutPracticeOrder,
   }) = _GameState;
 
   factory GameState.fromJson(Map<String, dynamic> json) => _$GameStateFromJson(json);
@@ -48,6 +50,7 @@ abstract class GameState with _$GameState {
     int shanghaiTotalRounds = 7;
     int catch40TotalRounds = 8;
     List<int> catch40RoundTargets = [10, 15, 20, 25, 30, 35, 40, 45];
+    List<int> checkoutPracticeOrder = [];
 
     if (game.config is X01GameConfig) {
       final x01Config = game.config as X01GameConfig;
@@ -69,6 +72,11 @@ abstract class GameState with _$GameState {
       catch40RoundTargets = (game.config as Catch40GameConfig).roundTargets;
     } else if (game.config is Bobs27GameConfig) {
       startingScore = 27;
+    } else if (game.config is CheckoutPracticeGameConfig) {
+      startingScore = 0;
+      final config = game.config as CheckoutPracticeGameConfig;
+      final order = kCheckoutTable.map((e) => e['finish'] as int).toList();
+      checkoutPracticeOrder = config.randomOrder ? (order..shuffle()) : order;
     } else {
       startingScore = 0;
     }
@@ -78,7 +86,7 @@ abstract class GameState with _$GameState {
     if (game.config is AroundTheClockGameConfig) {
       initialTarget = aroundTheClockVariant == 'reverse' ? 20 : 1;
     } else if (game.config is CheckoutPracticeGameConfig) {
-      initialTarget = 170;
+      initialTarget = checkoutPracticeOrder.isNotEmpty ? checkoutPracticeOrder[0] : 170;
     }
 
     // Convert competitors to competitor states
@@ -118,6 +126,7 @@ abstract class GameState with _$GameState {
       shanghaiTotalRounds: shanghaiTotalRounds,
       catch40TotalRounds: catch40TotalRounds,
       catch40RoundTargets: catch40RoundTargets,
+      checkoutPracticeOrder: checkoutPracticeOrder,
     );
   }
 }
@@ -140,6 +149,7 @@ abstract class CompetitorState with _$CompetitorState {
     @Default(1) int practiceRound,
     @Default(0) int practiceAttempts,
     @Default(0) int practiceSuccesses,
+    @Default(0) int routeProgress,
   }) = _CompetitorState;
 
   factory CompetitorState.fromJson(Map<String, dynamic> json) => _$CompetitorStateFromJson(json);

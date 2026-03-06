@@ -34,6 +34,11 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
           ?.map((e) => (e as num).toInt())
           .toList() ??
       const [10, 15, 20, 25, 30, 35, 40, 45],
+  checkoutPracticeOrder:
+      (json['checkoutPracticeOrder'] as List<dynamic>?)
+          ?.map((e) => (e as num).toInt())
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
@@ -57,6 +62,7 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'shanghaiTotalRounds': instance.shanghaiTotalRounds,
       'catch40TotalRounds': instance.catch40TotalRounds,
       'catch40RoundTargets': instance.catch40RoundTargets,
+      'checkoutPracticeOrder': instance.checkoutPracticeOrder,
     };
 
 const _$GameTypeEnumMap = {
@@ -114,6 +120,7 @@ _CompetitorState _$CompetitorStateFromJson(Map<String, dynamic> json) =>
       practiceRound: (json['practiceRound'] as num?)?.toInt() ?? 1,
       practiceAttempts: (json['practiceAttempts'] as num?)?.toInt() ?? 0,
       practiceSuccesses: (json['practiceSuccesses'] as num?)?.toInt() ?? 0,
+      routeProgress: (json['routeProgress'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$CompetitorStateToJson(_CompetitorState instance) =>
@@ -133,4 +140,5 @@ Map<String, dynamic> _$CompetitorStateToJson(_CompetitorState instance) =>
       'practiceRound': instance.practiceRound,
       'practiceAttempts': instance.practiceAttempts,
       'practiceSuccesses': instance.practiceSuccesses,
+      'routeProgress': instance.routeProgress,
     };
