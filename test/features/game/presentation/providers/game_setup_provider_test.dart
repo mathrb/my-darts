@@ -11,25 +11,29 @@ import 'package:my_darts/features/game/domain/usecases/create_game_use_case.dart
 import 'package:my_darts/features/game/presentation/providers/game_setup_provider.dart';
 import 'package:my_darts/features/game/presentation/state/game_setup_state.dart';
 import 'package:my_darts/features/players/domain/entities/player.dart';
+import 'package:my_darts/features/game/domain/repositories/game_repository.dart';
 import 'package:my_darts/features/players/domain/repositories/player_repository.dart';
 import 'package:riverpod/riverpod.dart';
 
 import 'game_setup_provider_test.mocks.dart';
 
-@GenerateMocks([PlayerRepository, CreateGameUseCase])
+@GenerateMocks([PlayerRepository, CreateGameUseCase, GameRepository])
 void main() {
   late ProviderContainer container;
   late MockPlayerRepository mockPlayerRepo;
   late MockCreateGameUseCase mockCreateGameUseCase;
+  late MockGameRepository mockGameRepo;
 
   ProviderContainer makeContainer(
     MockPlayerRepository mock,
     MockCreateGameUseCase mockUseCase,
+    MockGameRepository mockGameRepo,
   ) {
     return ProviderContainer(
       overrides: [
         playerRepositoryProvider.overrideWithValue(mock),
         createGameUseCaseProvider.overrideWithValue(mockUseCase),
+        gameRepositoryProvider.overrideWithValue(mockGameRepo),
       ],
     );
   }
@@ -37,9 +41,12 @@ void main() {
   setUp(() {
     mockPlayerRepo = MockPlayerRepository();
     mockCreateGameUseCase = MockCreateGameUseCase();
+    mockGameRepo = MockGameRepository();
     // Default: no players — _lockedPlayerId stays null
     when(mockPlayerRepo.getAllPlayers()).thenAnswer((_) async => []);
-    container = makeContainer(mockPlayerRepo, mockCreateGameUseCase);
+    // Default: no active game in progress
+    when(mockGameRepo.getActiveGame()).thenAnswer((_) async => null);
+    container = makeContainer(mockPlayerRepo, mockCreateGameUseCase, mockGameRepo);
   });
 
   tearDown(() => container.dispose());
@@ -389,7 +396,9 @@ void main() {
               lastActive: DateTime(2023),
             ),
           ]);
-      lockedContainer = makeContainer(playersRepo, MockCreateGameUseCase());
+      final mockGameRepoLocked = MockGameRepository();
+      when(mockGameRepoLocked.getActiveGame()).thenAnswer((_) async => null);
+      lockedContainer = makeContainer(playersRepo, MockCreateGameUseCase(), mockGameRepoLocked);
     });
 
     tearDown(() => lockedContainer.dispose());

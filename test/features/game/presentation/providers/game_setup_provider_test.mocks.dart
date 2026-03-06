@@ -6,8 +6,13 @@
 import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:my_darts/core/utils/constants.dart' as _i9;
 import 'package:my_darts/features/game/domain/entities/competitor.dart' as _i7;
 import 'package:my_darts/features/game/domain/entities/game.dart' as _i2;
+import 'package:my_darts/features/game/domain/models/game_state_snapshot.dart'
+    as _i10;
+import 'package:my_darts/features/game/domain/repositories/game_repository.dart'
+    as _i8;
 import 'package:my_darts/features/game/domain/usecases/create_game_use_case.dart'
     as _i6;
 import 'package:my_darts/features/players/domain/entities/player.dart' as _i5;
@@ -126,4 +131,116 @@ class MockCreateGameUseCase extends _i1.Mock implements _i6.CreateGameUseCase {
             ),
           )
           as _i4.Future<_i2.Game>);
+}
+
+/// A class which mocks [GameRepository].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockGameRepository extends _i1.Mock implements _i8.GameRepository {
+  MockGameRepository() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i4.Future<_i2.Game?> getActiveGame() =>
+      (super.noSuchMethod(
+            Invocation.method(#getActiveGame, []),
+            returnValue: _i4.Future<_i2.Game?>.value(),
+          )
+          as _i4.Future<_i2.Game?>);
+
+  @override
+  _i4.Future<_i2.Game?> getGame(String? gameId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getGame, [gameId]),
+            returnValue: _i4.Future<_i2.Game?>.value(),
+          )
+          as _i4.Future<_i2.Game?>);
+
+  @override
+  _i4.Future<List<_i2.Game>> getCompletedGames({
+    int? limit = 20,
+    int? offset = 0,
+    _i9.GameType? filterByType,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getCompletedGames, [], {
+              #limit: limit,
+              #offset: offset,
+              #filterByType: filterByType,
+            }),
+            returnValue: _i4.Future<List<_i2.Game>>.value(<_i2.Game>[]),
+          )
+          as _i4.Future<List<_i2.Game>>);
+
+  @override
+  _i4.Future<List<_i7.Competitor>> getCompetitors(String? gameId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getCompetitors, [gameId]),
+            returnValue: _i4.Future<List<_i7.Competitor>>.value(
+              <_i7.Competitor>[],
+            ),
+          )
+          as _i4.Future<List<_i7.Competitor>>);
+
+  @override
+  _i4.Future<void> createGame(
+    _i2.Game? game,
+    List<_i7.Competitor>? competitors,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#createGame, [game, competitors]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> saveGameState(
+    String? gameId,
+    _i10.GameStateSnapshot? state,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveGameState, [gameId, state]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> completeGame({
+    required String? gameId,
+    required String? winnerCompetitorId,
+    required DateTime? endTime,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#completeGame, [], {
+              #gameId: gameId,
+              #winnerCompetitorId: winnerCompetitorId,
+              #endTime: endTime,
+            }),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Stream<_i2.Game?> watchActiveGame() =>
+      (super.noSuchMethod(
+            Invocation.method(#watchActiveGame, []),
+            returnValue: _i4.Stream<_i2.Game?>.empty(),
+          )
+          as _i4.Stream<_i2.Game?>);
+
+  @override
+  _i4.Stream<List<_i2.Game>> watchCompletedGames({
+    _i9.GameType? filterByType,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchCompletedGames, [], {
+              #filterByType: filterByType,
+            }),
+            returnValue: _i4.Stream<List<_i2.Game>>.empty(),
+          )
+          as _i4.Stream<List<_i2.Game>>);
 }
