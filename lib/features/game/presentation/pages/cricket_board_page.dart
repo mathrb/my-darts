@@ -112,6 +112,10 @@ class CricketBoardPage extends ConsumerWidget {
               ),
               _BottomBar(
                 enabled: !gameState.isComplete,
+                canUndo: !gameState.isComplete &&
+                    (gameState.dartsThrownInTurn > 0 ||
+                        gameState.competitors
+                            .any((c) => c.dartThrows.isNotEmpty)),
                 onUndo: () => ref
                     .read(activeCricketGameProvider(gameId).notifier)
                     .undoDart(),
@@ -133,12 +137,14 @@ class CricketBoardPage extends ConsumerWidget {
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
     required this.enabled,
+    required this.canUndo,
     required this.onUndo,
     required this.onMiss,
     required this.onNextRound,
   });
 
   final bool enabled;
+  final bool canUndo;
   final VoidCallback onUndo;
   final VoidCallback onMiss;
   final VoidCallback onNextRound;
@@ -152,7 +158,7 @@ class _BottomBar extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.undo),
-            onPressed: enabled ? onUndo : null,
+            onPressed: canUndo ? onUndo : null,
           ),
           OutlinedButton(
             onPressed: enabled ? onMiss : null,

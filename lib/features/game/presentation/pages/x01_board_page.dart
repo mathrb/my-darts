@@ -85,6 +85,10 @@ class X01BoardPage extends ConsumerWidget {
               ),
             ),
             _BottomBar(
+              canUndo: !gameState.isComplete &&
+                  (gameState.dartsThrownInTurn > 0 ||
+                      gameState.competitors
+                          .any((c) => c.dartThrows.isNotEmpty)),
               onUndo: () =>
                   ref.read(activeGameProvider(gameId).notifier).undoDart(),
               onNextRound: () {
@@ -142,8 +146,13 @@ class X01BoardPage extends ConsumerWidget {
 }
 
 class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.onUndo, required this.onNextRound});
+  const _BottomBar({
+    required this.canUndo,
+    required this.onUndo,
+    required this.onNextRound,
+  });
 
+  final bool canUndo;
   final VoidCallback onUndo;
   final VoidCallback onNextRound;
 
@@ -156,7 +165,7 @@ class _BottomBar extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.undo),
-            onPressed: onUndo,
+            onPressed: canUndo ? onUndo : null,
           ),
           FilledButton(
             onPressed: onNextRound,

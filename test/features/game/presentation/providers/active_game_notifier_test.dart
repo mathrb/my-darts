@@ -319,4 +319,57 @@ void main() {
     expect(result.gameState.dartsThrownInTurn, 1);
     expect(result.gameState.turnActive, true);
   });
+
+  // ── 12. undoDart is a no-op when no darts have been thrown ───────────────
+
+  test('undoDart is a no-op when no darts have been thrown in the game',
+      () async {
+    stubBuild(events: [turnStartedEvent()]);
+    await container.read(activeGameProvider('g1').future);
+
+    final before = container.read(activeGameProvider('g1')).value!;
+    expect(before.gameState.dartsThrownInTurn, 0);
+
+    // Should not throw or crash
+    await container.read(activeGameProvider('g1').notifier).undoDart();
+
+    final s = container.read(activeGameProvider('g1')).value!;
+    expect(s.gameState.competitors[0].score, 40);
+    expect(s.gameState.dartsThrownInTurn, 0);
+    expect(s, before);
+  });
+
+  // ── 13. undoDart at turn boundary rolls back to previous turn ────────────
+
+  test('undoDart at turn boundary restores last dart of previous turn',
+      () async {
+    // Turn 1 (c1): throws 20, ends turn (3 darts forced via bust)
+    // Then TurnStarted for c2 is replayed, dartsThrownInTurn == 0
+    // Calling undoDart() should roll back to after the first dart of c1's turn
+    final events = [
+      turnStartedEvent(competitorId: 'c1'),
+      dartThrownEvent(
+          segment: 20, multiplier: 1, seq: 2, eventId: 'e-dart-1'),
+      // T20 busts (60 > 40), turn ends, score restores to 40
+      dartThrownEvent(
+          segment: 20, multiplier: 3, seq: 3, eventId: 'e-dart-2'),
+      // Now c2's turn starts — dartsThrownInTurn resets to 0
+      turnStartedEvent(competitorId: 'c2', seq: 4),
+    ];
+    stubBuild(events: events);
+    await container.read(activeGameProvider('g1').future);
+
+    final before = container.read(activeGameProvider('g1')).value!;
+    // c2's turn is active, 0 darts thrown in current turn
+    expect(before.gameState.currentTurnIndex, 1);
+    expect(before.gameState.dartsThrownInTurn, 0);
+
+    // undoDart should undo T20 (bust dart) from c1's previous turn
+    await container.read(activeGameProvider('g1').notifier).undoDart();
+
+    final s = container.read(activeGameProvider('g1')).value!;
+    // After undo of T20 (bust), c1's turn should be active with 1 dart thrown
+    expect(s.gameState.dartsThrownInTurn, 1);
+    expect(s.gameState.competitors[0].score, 20); // after 20 single
+  });
 }

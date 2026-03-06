@@ -154,16 +154,17 @@ void main() {
   });
 
   group('NoDartsToUndoException', () {
-    test('throws when dartsThrownInTurn is 0', () async {
+    test('throws when no DartThrown events exist in the game', () async {
       final state = _makeState(dartsThrownInTurn: 0, turnActive: true);
+      when(mockEventRepo.getEventsForGame('g1'))
+          .thenAnswer((_) async => []);
 
       expect(
         () => useCase.execute(state),
         throwsA(isA<NoDartsToUndoException>()),
       );
 
-      verifyZeroInteractions(mockEventRepo);
-      verifyZeroInteractions(mockDartRepo);
+      verifyNever(mockDartRepo.deleteDart(any));
     });
 
     test('throws when all darts in event log are already corrected', () async {

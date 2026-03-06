@@ -32,12 +32,7 @@ class UndoLastDartUseCase {
       throw GameAlreadyCompleteException(currentState.gameId);
     }
 
-    // 2. Guard: nothing to undo in the current turn
-    if (currentState.dartsThrownInTurn == 0) {
-      throw NoDartsToUndoException(currentState.gameId);
-    }
-
-    // 3. Fetch the full event log
+    // 2. Fetch the full event log
     final events = await _eventRepository.getEventsForGame(currentState.gameId);
 
     // 4. Build the set of already-corrected event IDs
@@ -62,7 +57,31 @@ class UndoLastDartUseCase {
       throw NoDartsToUndoException(currentState.gameId);
     }
 
-    // 6. Append DartCorrected event — event log is updated before deletion so
+    // 6. Collect TurnStarted events that came after the undone dart and before
+    //    any subsequent non-corrected DartThrown. These events started the
+    //    current (empty) turn and must also be excluded from replay so the
+    //    result correctly lands on the previous turn at the undone dart.
+    final Set<String> turnStartedIdsToSkip = {};
+    bool pastLastDart = false;
+    for (final event in events) {
+      if (event.eventId == lastDartEvent.eventId) {
+        pastLastDart = true;
+        continue;
+      }
+      if (pastLastDart) {
+        if (event.eventType == 'DartThrown' &&
+            !alreadyCorrectedIds.contains(event.eventId)) {
+          // A non-corrected dart exists after the target — this is a mid-turn
+          // undo; no TurnStarted exclusion needed.
+          break;
+        }
+        if (event.eventType == 'TurnStarted') {
+          turnStartedIdsToSkip.add(event.eventId);
+        }
+      }
+    }
+
+    // 7. Append DartCorrected event — event log is updated before deletion so
     //    the audit trail remains complete even if deletion subsequently fails.
     final nextSeq =
         await _eventRepository.getLatestSequence(currentState.gameId) + 1;
@@ -84,10 +103,10 @@ class UndoLastDartUseCase {
 
     await _eventRepository.appendEvent(correctionEvent);
 
-    // 7. Delete the physical dart throw record
+    // 8. Delete the physical dart throw record
     await _dartThrowRepository.deleteDart(lastDartEvent.eventId);
 
-    // 8. Full replay to rebuild authoritative state
+    // 9. Full replay to rebuild authoritative state
     //    - Skip ALL corrected DartThrown events (prior corrections + this one)
     //    - Skip TurnEnded / LegCompleted / GameCompleted — the engine folds
     //      these transitions into _applyDartThrown; applying them again during
@@ -105,6 +124,10 @@ class UndoLastDartUseCase {
           event.eventType == 'LegCompleted' ||
           event.eventType == 'GameCompleted' ||
           event.eventType == 'DartCorrected') {
+        continue;
+      }
+      if (event.eventType == 'TurnStarted' &&
+          turnStartedIdsToSkip.contains(event.eventId)) {
         continue;
       }
       replayState = _engine.apply(replayState, event).state;

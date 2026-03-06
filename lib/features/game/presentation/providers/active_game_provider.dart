@@ -78,7 +78,16 @@ class ActiveGameNotifier extends _$ActiveGameNotifier {
     });
   }
 
+  bool get canUndo {
+    final s = state.value;
+    if (s == null) return false;
+    final gs = s.gameState;
+    return gs.dartsThrownInTurn > 0 ||
+        gs.competitors.any((c) => c.dartThrows.isNotEmpty);
+  }
+
   Future<void> undoDart() async {
+    if (!canUndo) return;
     final current = state.value;
     if (current == null) return;
 

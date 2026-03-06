@@ -293,6 +293,56 @@ void main() {
     expect(s.gameState, before.gameState);
   });
 
+  // ── 8a. undoDart is a no-op when no darts have been thrown ──────────────
+
+  test('undoDart is a no-op when no darts have been thrown in the game',
+      () async {
+    stubBuild(events: [turnStartedEvent()]);
+    await container.read(activeCricketGameProvider('g1').future);
+
+    final before = container.read(activeCricketGameProvider('g1')).value!;
+    expect(before.gameState.dartsThrownInTurn, 0);
+
+    await container
+        .read(activeCricketGameProvider('g1').notifier)
+        .undoDart();
+
+    final s = container.read(activeCricketGameProvider('g1')).value!;
+    expect(s, before);
+  });
+
+  // ── 8b. undoDart at turn boundary rolls back into previous turn ──────────
+
+  test('undoDart at turn boundary restores last dart of previous turn',
+      () async {
+    // Turn 1 (c1): T20 (closes 20), T19 (closes 19), T18 (closes 18) → turn ends
+    // Turn 2 (c2): starts — dartsThrownInTurn == 0
+    final events = [
+      turnStartedEvent(competitorId: 'c1', turnIndex: 0, seq: 1),
+      dartThrownEvent(competitorId: 'c1', segment: 20, multiplier: 3, seq: 2),
+      dartThrownEvent(competitorId: 'c1', segment: 19, multiplier: 3, seq: 3),
+      dartThrownEvent(competitorId: 'c1', segment: 18, multiplier: 3, seq: 4),
+      turnStartedEvent(competitorId: 'c2', turnIndex: 1, seq: 5),
+    ];
+    stubBuild(events: events);
+    await container.read(activeCricketGameProvider('g1').future);
+
+    final before = container.read(activeCricketGameProvider('g1')).value!;
+    expect(before.gameState.currentTurnIndex, 1); // c2's turn
+    expect(before.gameState.dartsThrownInTurn, 0);
+
+    await container
+        .read(activeCricketGameProvider('g1').notifier)
+        .undoDart();
+
+    final s = container.read(activeCricketGameProvider('g1')).value!;
+    // After undoing T18, c1 should be active with 2 darts thrown
+    expect(s.gameState.dartsThrownInTurn, 2);
+    expect(s.gameState.competitors[0].marksPerNumber['20'], 3); // 20 still closed
+    expect(s.gameState.competitors[0].marksPerNumber['19'], 3); // 19 still closed
+    expect(s.gameState.competitors[0].marksPerNumber['18'], isNull); // 18 undone
+  });
+
   // ── 8. dismissGameModal clears pendingGameWinnerId ───────────────────────
 
   test(
