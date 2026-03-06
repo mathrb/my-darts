@@ -50,7 +50,6 @@ class ActiveCricketGameNotifier extends _$ActiveCricketGameNotifier {
       score: Segment.parse(segment).scoreValue,
     );
 
-    state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final newGs =
           await ref.read(processCricketDartUseCaseProvider).execute(gs, dart);
@@ -84,7 +83,6 @@ class ActiveCricketGameNotifier extends _$ActiveCricketGameNotifier {
     final current = state.value;
     if (current == null) return;
 
-    state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final newGs = await ref
           .read(undoCricketLastDartUseCaseProvider)

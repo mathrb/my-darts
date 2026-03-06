@@ -51,7 +51,6 @@ class ActiveGameNotifier extends _$ActiveGameNotifier {
       score: Segment.parse(segment).scoreValue,
     );
 
-    state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final newGs =
           await ref.read(processDartUseCaseProvider).execute(gs, dart);
@@ -91,7 +90,6 @@ class ActiveGameNotifier extends _$ActiveGameNotifier {
     final current = state.value;
     if (current == null) return;
 
-    state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final newGs = await ref
           .read(undoLastDartUseCaseProvider)
