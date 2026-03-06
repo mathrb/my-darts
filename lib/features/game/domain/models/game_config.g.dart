@@ -220,7 +220,7 @@ Map<String, dynamic> _$ChaseTheDragonGameConfigToJson(
 
 Catch40GameConfig _$Catch40GameConfigFromJson(Map<String, dynamic> json) =>
     Catch40GameConfig(
-      startingPlayerId: json['startingPlayerId'] as String,
+      startingPlayerId: json['startingPlayerId'] as String? ?? null,
       totalRounds: (json['totalRounds'] as num?)?.toInt() ?? 8,
       roundTargets:
           (json['roundTargets'] as List<dynamic>?)
@@ -240,7 +240,7 @@ Map<String, dynamic> _$Catch40GameConfigToJson(Catch40GameConfig instance) =>
 
 Bobs27GameConfig _$Bobs27GameConfigFromJson(Map<String, dynamic> json) =>
     Bobs27GameConfig(
-      startingPlayerId: json['startingPlayerId'] as String,
+      startingPlayerId: json['startingPlayerId'] as String? ?? null,
       $type: json['runtimeType'] as String?,
     );
 
@@ -253,7 +253,7 @@ Map<String, dynamic> _$Bobs27GameConfigToJson(Bobs27GameConfig instance) =>
 CheckoutPracticeGameConfig _$CheckoutPracticeGameConfigFromJson(
   Map<String, dynamic> json,
 ) => CheckoutPracticeGameConfig(
-  startingPlayerId: json['startingPlayerId'] as String,
+  startingPlayerId: json['startingPlayerId'] as String? ?? null,
   randomOrder: json['randomOrder'] as bool? ?? false,
   $type: json['runtimeType'] as String?,
 );

@@ -140,6 +140,16 @@ class GameSetupNotifier extends _$GameSetupNotifier {
       ));
     }
 
+    // Abandon any lingering active game (e.g. user navigated away mid-game)
+    final activeGame = await ref.read(gameRepositoryProvider).getActiveGame();
+    if (activeGame != null) {
+      await ref.read(gameRepositoryProvider).completeGame(
+        gameId: activeGame.gameId,
+        winnerCompetitorId: null,
+        endTime: DateTime.now(),
+      );
+    }
+
     try {
       final result =
           await ref.read(createGameUseCaseProvider).execute(game, competitors);

@@ -114,26 +114,36 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
                         orElse: () => null,
                       );
                       setState(() => _isStarting = true);
-                      final gameId = await notifier.startGame();
-                      if (!mounted) return;
-                      setState(() => _isStarting = false);
-                      if (gameId == null) {
+                      try {
+                        final gameId = await notifier.startGame();
+                        if (!mounted) return;
+                        if (gameId == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Could not start game. Please check your selection.',
+                              ),
+                            ),
+                          );
+                        } else {
+                          final routeBase = switch (gameType) {
+                            GameType.x01 => GameRoutes.activeX01,
+                            GameType.cricket ||
+                            GameType.blindCricket =>
+                              GameRoutes.activeCricket,
+                            _ => GameRoutes.activePractice,
+                          };
+                          context.go('$routeBase/$gameId');
+                        }
+                      } catch (_) {
+                        if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text(
-                              'Could not start game. Please check your selection.',
-                            ),
+                            content: Text('Could not start game. Please try again.'),
                           ),
                         );
-                      } else {
-                        final routeBase = switch (gameType) {
-                          GameType.x01 => GameRoutes.activeX01,
-                          GameType.cricket ||
-                          GameType.blindCricket =>
-                            GameRoutes.activeCricket,
-                          _ => GameRoutes.activePractice,
-                        };
-                        context.go('$routeBase/$gameId');
+                      } finally {
+                        if (mounted) setState(() => _isStarting = false);
                       }
                     },
               child: _isStarting
