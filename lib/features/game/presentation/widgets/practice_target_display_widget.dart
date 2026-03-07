@@ -1,0 +1,81 @@
+import 'package:flutter/material.dart';
+import '../../../../core/utils/constants.dart';
+
+class PracticeTargetDisplayWidget extends StatelessWidget {
+  const PracticeTargetDisplayWidget({
+    required this.gameType,
+    required this.currentTarget,
+    required this.practiceRound,
+    required this.totalRounds,
+    required this.score,
+    required this.practiceAttempts,
+    required this.practiceSuccesses,
+    super.key,
+  });
+
+  final GameType gameType;
+  final int? currentTarget;
+  final int practiceRound;
+  final int totalRounds;
+  final int score;
+  final int practiceAttempts;
+  final int practiceSuccesses;
+
+  String get _targetLabel {
+    final n = currentTarget;
+    if (n == null) return '—';
+    return switch (gameType) {
+      GameType.bobs27 => 'D$n',
+      _ => '$n',
+    };
+  }
+
+  String get _secondaryMetric {
+    return switch (gameType) {
+      GameType.aroundTheClock =>
+        'Number $practiceRound of $totalRounds',
+      GameType.bobs27 =>
+        'Score: $score',
+      GameType.shanghai =>
+        'Score: $score | Round $practiceRound/$totalRounds',
+      GameType.catch40 =>
+        'Score: $score | Round $practiceRound/$totalRounds',
+      GameType.checkoutPractice => _checkoutRate(),
+      _ => '',
+    };
+  }
+
+  String _checkoutRate() {
+    if (practiceAttempts == 0) return '$practiceSuccesses/$practiceAttempts — —';
+    final rate = (practiceSuccesses / practiceAttempts * 100).round();
+    return '$practiceSuccesses/$practiceAttempts — $rate%';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          _targetLabel,
+          style: (textTheme.displayLarge ?? textTheme.displayMedium)?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _secondaryMetric,
+          style: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface.withOpacity(0.6),
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
