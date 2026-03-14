@@ -4,6 +4,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'database_helper.dart';
 import 'drift/drift_helper.dart';
 import 'drift/database.dart';
@@ -37,6 +38,10 @@ import '../../features/game/domain/usecases/undo_last_dart_use_case.dart';
 import '../../features/game/domain/usecases/create_game_use_case.dart';
 
 part 'database_provider.g.dart';
+
+@Riverpod(keepAlive: true)
+Future<SharedPreferences> sharedPreferences(Ref ref) =>
+    SharedPreferences.getInstance();
 
 // Database provider - platform specific
 @Riverpod(keepAlive: true)

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/persistence/database_provider.dart';
 import '../core/utils/app_theme.dart';
+import '../features/settings/presentation/providers/settings_provider.dart';
 import 'app_router.dart';
 
 class DartsApp extends ConsumerWidget {
@@ -30,12 +31,14 @@ class DartsApp extends ConsumerWidget {
       ),
       data: (_) {
         final router = ref.watch(routerProvider);
+        final themeMode =
+            ref.watch(settingsProvider).value ?? ThemeMode.system;
         return MaterialApp.router(
           title: 'Darts App',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
-          themeMode: ThemeMode.system,
+          themeMode: themeMode,
           routerConfig: router,
         );
       },
