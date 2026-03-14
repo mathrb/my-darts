@@ -174,6 +174,7 @@ class VariantSelectionPage extends ConsumerWidget {
         ),
         const _VariantEntry(
           label: 'Shanghai',
+          subtitle: '7 Rounds',
           config: GameConfig.shanghai(),
         ),
         const _VariantEntry(

@@ -238,15 +238,20 @@ void main() {
       expect(find.text('170 Checkout'), findsOneWidget);
     });
 
-    testWidgets('practice cards have no subtitles', (tester) async {
+    testWidgets('only Shanghai practice card has a subtitle', (tester) async {
       await tester.pumpWidget(_buildApp('practice'));
       await tester.pumpAndSettle();
 
       final cards =
           tester.widgetList<VariantCardWidget>(find.byType(VariantCardWidget));
       for (final card in cards) {
-        expect(card.subtitle, isNull,
-            reason: 'Practice card "${card.title}" should have no subtitle');
+        if (card.title == 'Shanghai') {
+          expect(card.subtitle, isNotNull,
+              reason: 'Shanghai practice card should have a subtitle (rounds)');
+        } else {
+          expect(card.subtitle, isNull,
+              reason: 'Practice card "${card.title}" should have no subtitle');
+        }
       }
     });
 

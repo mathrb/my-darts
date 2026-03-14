@@ -34,7 +34,7 @@ final class GameHistoryNotifierProvider
 }
 
 String _$gameHistoryNotifierHash() =>
-    r'5c70a8b05ac1ddf305270363594b2f29dda7f144';
+    r'48507411452ec1b7c67869b3be734a6974a5fbf8';
 
 abstract class _$GameHistoryNotifier extends $AsyncNotifier<GameHistoryState> {
   FutureOr<GameHistoryState> build();

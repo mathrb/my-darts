@@ -1,8 +1,15 @@
-// Stateless Catch 40 Game Engine
-// Pure functional implementation of the Catch 40 practice drill.
-// 8 rounds (configurable). Each round: throw 3 darts, sum raw score.
-// If total >= round target, add target value to running score; otherwise no change.
-// Drill ends after all rounds with no winner.
+// Stateless Catch 40 Engine
+// Checkout drill: targets 61–100 (40 fixed targets).
+// Up to 6 darts per target across 2 engine turns of 3 darts each.
+// Checked out = remaining score reaches exactly 0 via a double (D-segment).
+// Bust = dart would take remaining below 0, to exactly 1, or to 0 via non-double.
+// On bust: remaining resets to original target; dart count for this target continues.
+// Scoring on completion:
+//   Checkout in ≤2 darts → +3 pts
+//   Checkout in 3 darts  → +2 pts (target 99 → +3 pts)
+//   Checkout in 4–6 darts → +1 pt
+//   Failed (6 darts, no checkout) → +0 pts
+// competitor.score = cumulative drill points (max 120 over 40 targets).
 
 import '../models/game_state.dart';
 import '../entities/game_event.dart';
@@ -11,6 +18,10 @@ import 'base_game_engine.dart';
 class StatelessCatch40Engine implements GameEngine {
   @override
   EngineResult apply(GameState state, GameEvent event) {
+    if (state.isComplete && event.eventType != 'GameCompleted') {
+      return EngineResult(state: state);
+    }
+
     return switch (event.eventType) {
       'GameCreated' => EngineResult(
           state: state.copyWith(status: GameEngineStatus.inProgress)),
@@ -53,87 +64,92 @@ class StatelessCatch40Engine implements GameEngine {
   }
 
   EngineResult _applyDartThrownWithOutcome(GameState state, GameEvent event) {
-    final (newState, outcome, winnerId) = _applyDartThrown(state, event);
-    return EngineResult(
-      state: newState,
-      outcome: outcome,
-      winnerCompetitorId: winnerId,
-      isBust: false,
-    );
-  }
-
-  (GameState, LegOutcome, String?) _applyDartThrown(
-      GameState state, GameEvent event) {
     final payload = event.payload;
     final segmentNum = payload['segment'] as int;
     final multiplier = payload['multiplier'] as int;
 
-    // Build canonical string and record the dart throw
-    final canonicalString = _toCanonicalString(segmentNum, multiplier);
+    final canonical = _toCanonicalString(segmentNum, multiplier);
+    final isDouble = multiplier == 2; // D1–D20 or DB
+    final segValue = _dartValue(segmentNum, multiplier);
+
+    final remaining = state.catch40TargetRemaining;
+    final currentTarget =
+        60 + state.competitors[state.currentTurnIndex].practiceRound;
+
+    // Bust detection
+    final newRemaining = remaining - segValue;
+    final bust = newRemaining < 0 ||
+        (newRemaining == 0 && !isDouble) ||
+        newRemaining == 1;
+
+    final effectiveRemaining = bust ? currentTarget : newRemaining;
+    final checkout = !bust && newRemaining == 0;
+
+    // Record dart throw
     final updatedCompetitors = List<CompetitorState>.from(state.competitors);
-    final currentCompetitor = updatedCompetitors[state.currentTurnIndex];
-    updatedCompetitors[state.currentTurnIndex] = currentCompetitor.copyWith(
-      dartThrows: [...currentCompetitor.dartThrows, canonicalString],
+    final comp = updatedCompetitors[state.currentTurnIndex];
+    updatedCompetitors[state.currentTurnIndex] = comp.copyWith(
+      dartThrows: [...comp.dartThrows, canonical],
     );
 
-    var newState = state.copyWith(
+    final newDartsOnTarget = state.catch40DartsOnTarget + 1;
+    final newDartsInTurn = state.dartsThrownInTurn + 1;
+    // Turn ends on checkout OR after 3rd dart
+    final turnDone = checkout || newDartsInTurn >= 3;
+
+    final newState = state.copyWith(
       competitors: updatedCompetitors,
-      dartsThrownInTurn: state.dartsThrownInTurn + 1,
+      dartsThrownInTurn: newDartsInTurn,
+      catch40TargetRemaining: effectiveRemaining,
+      catch40DartsOnTarget: newDartsOnTarget,
+      turnActive: !turnDone,
     );
 
-    // Only evaluate scoring on the 3rd dart
-    if (newState.dartsThrownInTurn < 3) {
-      return (newState, LegOutcome.none, null);
-    }
-
-    // 3rd dart: evaluate the round
-    final competitor = newState.competitors[newState.currentTurnIndex];
-    final dartThrows = competitor.dartThrows;
-    final turnThrows = dartThrows.sublist(dartThrows.length - 3);
-    final turnTotal =
-        turnThrows.map(_dartScoreValue).reduce((a, b) => a + b);
-
-    // Check against this round's target (practiceRound is 1-based)
-    final roundIndex = competitor.practiceRound - 1;
-    final roundTarget = state.catch40RoundTargets[roundIndex];
-    final newScore =
-        turnTotal >= roundTarget ? competitor.score + roundTarget : competitor.score;
-    final newRound = competitor.practiceRound + 1;
-
-    final updatedCompetitors2 = List<CompetitorState>.from(newState.competitors);
-    updatedCompetitors2[newState.currentTurnIndex] = competitor.copyWith(
-      score: newScore,
-      practiceRound: newRound,
-      practiceAttempts: competitor.practiceAttempts + 1,
-      practiceSuccesses:
-          competitor.practiceSuccesses + (turnTotal >= roundTarget ? 1 : 0),
-    );
-
-    newState = newState.copyWith(
-      competitors: updatedCompetitors2,
-      turnActive: false,
-    );
-
-    // End condition: all rounds complete
-    if (newRound > state.catch40TotalRounds) {
-      newState = newState.copyWith(
-        isComplete: true,
-        status: GameEngineStatus.completed,
-        winnerCompetitorId: null,
-        turnActive: false,
-      );
-      return (newState, LegOutcome.gameCompleted, null);
-    }
-
-    return (newState, LegOutcome.none, null);
+    return EngineResult(state: newState, isBust: bust);
   }
 
   GameState _applyTurnEnded(GameState state, GameEvent event) {
-    final nextIndex = (state.currentTurnIndex + 1) % state.competitors.length;
+    final shouldAdvanceTarget =
+        state.catch40DartsOnTarget >= 6 || state.catch40TargetRemaining == 0;
+
+    if (!shouldAdvanceTarget) {
+      // Continue same target (between turn 1 and turn 2 of 6-dart allowance)
+      return state.copyWith(
+        dartsThrownInTurn: 0,
+        turnActive: false,
+      );
+    }
+
+    // Advance to next target — score and round update
+    final comp = state.competitors[state.currentTurnIndex];
+    final currentTarget = 60 + comp.practiceRound;
+    final checkedOut = state.catch40TargetRemaining == 0;
+
+    final points = checkedOut
+        ? _computePoints(state.catch40DartsOnTarget, currentTarget)
+        : 0;
+
+    final updatedCompetitors = List<CompetitorState>.from(state.competitors);
+    updatedCompetitors[state.currentTurnIndex] = comp.copyWith(
+      practiceRound: comp.practiceRound + 1,
+      score: comp.score + points,
+      practiceSuccesses: comp.practiceSuccesses + (checkedOut ? 1 : 0),
+      practiceAttempts: comp.practiceAttempts + 1,
+    );
+
+    final newPracticeRound = comp.practiceRound + 1;
+    final gameComplete = newPracticeRound > 40;
+    final nextTarget = gameComplete ? 0 : 60 + newPracticeRound;
+
     return state.copyWith(
+      competitors: updatedCompetitors,
       dartsThrownInTurn: 0,
       turnActive: false,
-      currentTurnIndex: nextIndex,
+      catch40DartsOnTarget: 0,
+      catch40TargetRemaining: nextTarget,
+      isComplete: gameComplete,
+      status: gameComplete ? GameEngineStatus.completed : state.status,
+      winnerCompetitorId: gameComplete ? null : state.winnerCompetitorId,
     );
   }
 
@@ -144,6 +160,12 @@ class StatelessCatch40Engine implements GameEngine {
       winnerCompetitorId: event.payload['winner_id'] as String?,
       turnActive: false,
     );
+  }
+
+  int _computePoints(int dartsOnTarget, int targetValue) {
+    if (dartsOnTarget <= 2) return 3;
+    if (dartsOnTarget == 3) return targetValue == 99 ? 3 : 2;
+    return 1; // 4–6 darts
   }
 
   String _toCanonicalString(int segment, int multiplier) {
@@ -159,12 +181,8 @@ class StatelessCatch40Engine implements GameEngine {
     };
   }
 
-  int _dartScoreValue(String canonical) {
-    if (canonical == 'MISS') return 0;
-    if (canonical == 'DB') return 50;
-    if (canonical == 'SB') return 25;
-    if (canonical.startsWith('D')) return int.parse(canonical.substring(1)) * 2;
-    if (canonical.startsWith('T')) return int.parse(canonical.substring(1)) * 3;
-    return int.parse(canonical);
+  int _dartValue(int segment, int multiplier) {
+    if (segment == 0) return 0;
+    return segment * multiplier;
   }
 }

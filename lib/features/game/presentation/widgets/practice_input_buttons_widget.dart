@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/utils/app_text_styles.dart';
-import '../../../../core/utils/app_theme.dart';
 import '../../../../core/utils/constants.dart';
 import 'dart_input_grid_widget.dart';
 
@@ -23,22 +22,24 @@ class PracticeInputButtonsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (gameType == GameType.catch40) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          child: DartInputGridWidget(
-            onSegmentTapped: onDartThrown,
-            enabled: enabled,
-          ),
-        ),
+      return DartInputGridWidget(
+        onSegmentTapped: onDartThrown,
+        enabled: enabled,
       );
     }
 
-    if (gameType == GameType.aroundTheClock || gameType == GameType.bobs27) {
+    if (gameType == GameType.bobs27) {
+      return _Bobs27InputBar(
+        n: currentTarget,
+        enabled: enabled,
+        onDartThrown: onDartThrown,
+      );
+    }
+
+    if (gameType == GameType.aroundTheClock || gameType == GameType.shanghai) {
       return _AroundTheClockInputBar(
         n: currentTarget,
-        doublesOnly: gameType == GameType.bobs27 || doublesOnly,
+        doublesOnly: doublesOnly,
         enabled: enabled,
         onDartThrown: onDartThrown,
       );
@@ -47,13 +48,12 @@ class PracticeInputButtonsWidget extends StatelessWidget {
     // Generic 3-button row for other practice types
     final colorScheme = Theme.of(context).colorScheme;
     final n = currentTarget;
-    final isBobs27 = gameType == GameType.bobs27;
 
     final buttons = [
       _ButtonSpec(
         label: n != null ? 'S-$n' : 'S',
         segment: n != null ? '$n' : 'S',
-        dimmed: isBobs27,
+        dimmed: false,
       ),
       _ButtonSpec(
         label: n != null ? 'D-$n' : 'D',
@@ -63,7 +63,7 @@ class PracticeInputButtonsWidget extends StatelessWidget {
       _ButtonSpec(
         label: n != null ? 'T-$n' : 'T',
         segment: n != null ? 'T$n' : 'T',
-        dimmed: isBobs27,
+        dimmed: false,
       ),
     ];
 
@@ -158,6 +158,75 @@ class _AroundTheClockInputBar extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Bobs27InputBar extends StatelessWidget {
+  const _Bobs27InputBar({
+    required this.n,
+    required this.enabled,
+    required this.onDartThrown,
+  });
+
+  final int? n;
+  final bool enabled;
+  final void Function(String segment) onDartThrown;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final num = n ?? 1;
+    final label = num == 25 ? 'Double Bull' : 'Double $num';
+    final segment = num == 25 ? 'DB' : 'D$num';
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: colorScheme.outline, width: 1),
+        ),
+      ),
+      child: Material(
+        color: colorScheme.primaryContainer,
+        child: InkWell(
+          onTap: enabled ? () => onDartThrown(segment) : null,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: AppTextStyles.segmentButton.copyWith(
+                      color: colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (int i = 0; i < 2; i++) ...[
+                        if (i > 0) const SizedBox(width: 4),
+                        Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

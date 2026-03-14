@@ -56,7 +56,7 @@ final class ActiveCricketGameNotifierProvider
 }
 
 String _$activeCricketGameNotifierHash() =>
-    r'1b6172cf361a406eab76ecba58862e283c0f349d';
+    r'ed4c530434ccc1f33433ff9281b8efd41257f6b2';
 
 final class ActiveCricketGameNotifierFamily extends $Family
     with

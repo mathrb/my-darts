@@ -1,5 +1,8 @@
 // Shanghai Engine Unit Tests
-// Covers per-dart scoring, Shanghai detection, turn flow, and end conditions.
+// Covers per-dart scoring, Shanghai bonus detection, turn flow, and end conditions.
+// Shanghai (S+D+T of round number) → INSTANT WIN: increments practiceSuccesses
+// and ends the game immediately on the 3rd dart.
+// Game also ends via TurnEnded when all rounds complete (no Shanghai).
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_darts/features/game/domain/engines/stateless_shanghai_engine.dart';
@@ -103,7 +106,9 @@ GameState _makeState({
   return (segment: int.parse(c), multiplier: 1);
 }
 
-/// Apply TurnStarted + 3 darts + TurnEnded (skips TurnEnded if game ends after 3rd dart).
+/// Apply TurnStarted + 3 darts. If the game is not complete after the 3rd dart,
+/// also apply TurnEnded (to advance the round). For Shanghai instant-win, the
+/// game ends mid-dart, so TurnEnded is skipped.
 GameState _applyTurn(
   StatelessShanghaiEngine engine,
   GameState state,
@@ -113,18 +118,13 @@ GameState _applyTurn(
   var s = engine.apply(state, _turnStarted(competitorId)).state;
   for (final d in darts) {
     final p = _parseCanonical(d);
-    final result = engine.apply(
+    s = engine.apply(
       s,
       _dartThrown(competitorId: competitorId, segment: p.segment, multiplier: p.multiplier),
-    );
-    s = result.state;
-    // If game completed mid-turn (Shanghai), stop — no TurnEnded
-    if (s.isComplete) return s;
+    ).state;
+    if (s.isComplete) return s; // Instant win — no TurnEnded needed
   }
-  // Apply TurnEnded only if game not complete
-  if (!s.isComplete) {
-    s = engine.apply(s, _turnEnded(competitorId)).state;
-  }
+  s = engine.apply(s, _turnEnded(competitorId)).state;
   return s;
 }
 
@@ -219,11 +219,13 @@ void main() {
       expect(result.state.competitors[0].score, 9);
     });
 
-    test('Round 7: 7+D7+T7 → cumulative score = 42 and Shanghai triggered', () {
+    test('Round 7: 7+D7+T7 → cumulative score = 42, Shanghai bonus counted', () {
       final state = _makeState(practiceRound: 7);
       final after = _applyTurn(engine, state, ['7', 'D7', 'T7']);
       // 7*1 + 7*2 + 7*3 = 7 + 14 + 21 = 42
       expect(after.competitors[0].score, 42);
+      expect(after.competitors[0].practiceSuccesses, 1);
+      // Round 7 is the final round → TurnEnded completes the game
       expect(after.isComplete, isTrue);
     });
 
@@ -238,38 +240,37 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Shanghai win condition
+  // Shanghai bonus (practiceSuccesses)
   // -------------------------------------------------------------------------
-  group('Shanghai win condition', () {
-    test('single+double+triple of round → isComplete=true, winner set', () {
+  group('Shanghai bonus (practiceSuccesses)', () {
+    test('single+double+triple of round → instant win, practiceSuccesses incremented', () {
       final state = _makeState(practiceRound: 3);
       final after = _applyTurn(engine, state, ['3', 'D3', 'T3']);
       expect(after.isComplete, isTrue);
-      expect(after.winnerCompetitorId, 'c1');
-      expect(after.status, GameEngineStatus.completed);
+      expect(after.competitors[0].practiceSuccesses, 1);
     });
 
-    test('order T+D+single also triggers Shanghai', () {
+    test('order T+D+single also triggers Shanghai instant win', () {
       final state = _makeState(practiceRound: 3);
       final after = _applyTurn(engine, state, ['T3', 'D3', '3']);
       expect(after.isComplete, isTrue);
-      expect(after.winnerCompetitorId, 'c1');
+      expect(after.competitors[0].practiceSuccesses, 1);
     });
 
-    test('order D+T+single also triggers Shanghai', () {
+    test('order D+T+single also triggers Shanghai instant win', () {
       final state = _makeState(practiceRound: 3);
       final after = _applyTurn(engine, state, ['D3', 'T3', '3']);
       expect(after.isComplete, isTrue);
-      expect(after.winnerCompetitorId, 'c1');
+      expect(after.competitors[0].practiceSuccesses, 1);
     });
 
-    test('missing triple — NOT Shanghai, game continues', () {
+    test('missing triple — NOT Shanghai, practiceSuccesses stays 0', () {
       final state = _makeState(practiceRound: 3);
       final after = _applyTurn(engine, state, ['3', 'D3', '3']);
-      expect(after.isComplete, isFalse);
+      expect(after.competitors[0].practiceSuccesses, 0);
     });
 
-    test('Shanghai result has outcome = gameCompleted', () {
+    test('Shanghai result has outcome = gameCompleted (instant win on 3rd dart)', () {
       final state = _makeState(
         practiceRound: 3,
         turnActive: true,
@@ -281,13 +282,15 @@ void main() {
         _dartThrown(competitorId: 'c1', segment: 3, multiplier: 3),
       );
       expect(result.outcome, LegOutcome.gameCompleted);
-      expect(result.winnerCompetitorId, 'c1');
     });
 
-    test('Shanghai sets turnActive=false', () {
-      final state = _makeState(practiceRound: 3);
-      final after = _applyTurn(engine, state, ['3', 'D3', 'T3']);
-      expect(after.turnActive, isFalse);
+    test('Shanghai sets turnActive=false and isComplete=true on 3rd dart', () {
+      var state = _makeState(practiceRound: 3, turnActive: true);
+      state = engine.apply(state, _dartThrown(competitorId: 'c1', segment: 3, multiplier: 1)).state;
+      state = engine.apply(state, _dartThrown(competitorId: 'c1', segment: 3, multiplier: 2)).state;
+      state = engine.apply(state, _dartThrown(competitorId: 'c1', segment: 3, multiplier: 3)).state;
+      expect(state.turnActive, isFalse);
+      expect(state.isComplete, isTrue); // Instant win
     });
   });
 
@@ -298,19 +301,19 @@ void main() {
     test('single+double+MISS → no Shanghai', () {
       final state = _makeState(practiceRound: 3);
       final after = _applyTurn(engine, state, ['3', 'D3', 'MISS']);
-      expect(after.isComplete, isFalse);
+      expect(after.competitors[0].practiceSuccesses, 0);
     });
 
     test('only triple → no Shanghai', () {
       final state = _makeState(practiceRound: 3);
       final after = _applyTurn(engine, state, ['T3', 'MISS', 'MISS']);
-      expect(after.isComplete, isFalse);
+      expect(after.competitors[0].practiceSuccesses, 0);
     });
 
     test('only single → no Shanghai', () {
       final state = _makeState(practiceRound: 3);
       final after = _applyTurn(engine, state, ['3', 'MISS', 'MISS']);
-      expect(after.isComplete, isFalse);
+      expect(after.competitors[0].practiceSuccesses, 0);
     });
 
     test('Shanghai not evaluated before 3rd dart', () {
@@ -344,11 +347,13 @@ void main() {
       expect(after.isComplete, isFalse);
     });
 
-    test('practiceRound NOT incremented when Shanghai occurs (TurnEnded not emitted)', () {
+    test('practiceRound NOT incremented after Shanghai instant win (no TurnEnded)', () {
       final state = _makeState(practiceRound: 3);
       final after = _applyTurn(engine, state, ['3', 'D3', 'T3']);
-      // Shanghai ends the game without TurnEnded, so practiceRound stays at 3
-      expect(after.competitors[0].practiceRound, 3);
+      // Game ends instantly on 3rd dart — TurnEnded is not applied
+      expect(after.competitors[0].practiceRound, 3); // unchanged
+      expect(after.competitors[0].practiceSuccesses, 1);
+      expect(after.isComplete, isTrue);
     });
   });
 
@@ -374,7 +379,7 @@ void main() {
       expect(after.status, GameEngineStatus.completed);
     });
 
-    test('final round result has outcome = gameCompleted', () {
+    test('3rd dart in final round has outcome = none (game completes at TurnEnded)', () {
       final state = _makeState(
         totalRounds: 7,
         practiceRound: 7,
@@ -386,7 +391,7 @@ void main() {
         state,
         _dartThrown(competitorId: 'c1', segment: 0, multiplier: 1),
       );
-      expect(result.outcome, LegOutcome.gameCompleted);
+      expect(result.outcome, LegOutcome.none);
     });
 
     test('custom totalRounds=3: ends after round 3', () {
@@ -406,11 +411,12 @@ void main() {
   // Shanghai on final round
   // -------------------------------------------------------------------------
   group('Shanghai on final round', () {
-    test('Shanghai on round 7 (final) → isComplete=true with winner', () {
+    test('Shanghai on round 7 (final) → instant win, isComplete=true, single-player winner=null', () {
       final state = _makeState(totalRounds: 7, practiceRound: 7);
       final after = _applyTurn(engine, state, ['7', 'D7', 'T7']);
       expect(after.isComplete, isTrue);
-      expect(after.winnerCompetitorId, 'c1');
+      expect(after.winnerCompetitorId, isNull); // single-player: no winner
+      expect(after.competitors[0].practiceSuccesses, 1);
     });
   });
 
@@ -467,7 +473,7 @@ void main() {
       expect(after.winnerCompetitorId, 'c2');
     });
 
-    test('tie score → current competitor (P1) wins', () {
+    test('tie score → P1 (index 0) wins', () {
       // Both at score=50; P1 misses, finishes at 50; P2 at 50
       final comps = [
         CompetitorState(
@@ -595,6 +601,30 @@ void main() {
       final state = _makeState(competitors: comps, currentTurnIndex: 1, turnActive: true);
       final result = engine.apply(state, _turnEnded('c2'));
       expect(result.state.currentTurnIndex, 0);
+    });
+
+    test('TurnEnded on final round completes the game', () {
+      final state = _makeState(
+        totalRounds: 7,
+        practiceRound: 7,
+        turnActive: true,
+        dartsThrownInTurn: 3,
+      );
+      final result = engine.apply(state, _turnEnded('c1'));
+      expect(result.state.isComplete, isTrue);
+      expect(result.state.status, GameEngineStatus.completed);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // isComplete guard
+  // -------------------------------------------------------------------------
+  group('isComplete guard', () {
+    test('events are ignored when game is already complete', () {
+      final state = _makeState(isComplete: true, turnActive: false);
+      final result = engine.apply(state, _turnStarted('c1'));
+      expect(result.state.turnActive, isFalse); // unchanged
+      expect(result.state.isComplete, isTrue);
     });
   });
 

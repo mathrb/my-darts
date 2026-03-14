@@ -115,7 +115,7 @@ The four Home page entry points are:
 - Each variant card displays a **subtitle** (`textBodyMedium`, `colorOnSurfaceVariant`) summarising its default rules:
   - X01 presets: `"Double Out · 1 Leg"` (substituting the actual leg count for multi-leg presets)
   - Cricket presets: describe the variant rule and scoring threshold, e.g. `"Close 15–20 & Bull · 3 pts to win"` for Standard Cricket
-  - Practice variants: **no subtitle** — the game name is self-describing and there are no configurable fields
+  - Practice variants: **Shanghai** shows the round count (e.g., `"7 Rounds"`); others have **no subtitle** as they are self-describing.
   - Disabled Custom entry: **no subtitle**
 - A **hint line** is rendered below the pill list in all categories:
   `"Select a preset — you can adjust the settings on the next screen"`
@@ -193,7 +193,7 @@ The four Home page entry points are:
   |---|---|
   | X01 | `"{score} · {outStrategy} Out · {legsToWin == 1 ? '1 Leg' : 'Best of N'}"` |
   | Cricket | `"{variant} · {N} {N == 1 ? 'pt' : 'pts'} to win"` |
-  | Practice | game name only (no configurable fields to surface) |
+  | Practice | Shanghai: `"{gameName} · {totalRounds} Rounds"`; others: game name only |
 
   Out strategy labels: Straight, Double, Master.
   Cricket variant labels: Standard, No Score, Cut Throat, Tactics.
@@ -237,6 +237,7 @@ Rendered as a modal bottom sheet, not a full page.
 │  In Strategy:   [Any ▾]     │
 │  Out Strategy:  [Double▾]   │
 │  Legs to Win:   [− 3 +]     │
+│  Rounds:        [7 ▾]       │  ← visible for Shanghai
 │                             │
 │  [APPLY SETTINGS]           │
 └─────────────────────────────┘
@@ -258,6 +259,7 @@ Rendered as a modal bottom sheet, not a full page.
 - Opened via the config summary chip on the Player Selection page (Section 3).
 - Sheet height: `isScrollControlled: true` with `maxChildSize: 0.75`.
 - Stepper buttons minimum 48×48dp touch target.
+- "Rounds" is a dropdown (7, 10, 15, 20) visible only for game types that support it (e.g., Shanghai).
 - All changes are held in local state until "APPLY SETTINGS" is tapped — tapping the drag-handle drag area dismisses without saving.
 
 ---
@@ -444,6 +446,9 @@ There are 5 practice game types. All share a common chrome layout described here
 │           "[progress subtitle]" │  ← varies per game type (see subsections)
 │  ←  back → Home           [⋮] │  ← overflow menu
 ├─────────────────────────────────┤
+│  [60]  [T20]  [○]  [○]     │  ← dart indicator row (matches X01/Cricket)
+│  sum    dart1  dart2 dart3  │
+├─────────────────────────────────┤
 │                                 │
 │  DartboardHighlightWidget       │  ← Expanded, fills remaining height
 │  current target highlighted in  │
@@ -465,12 +470,15 @@ There are 5 practice game types. All share a common chrome layout described here
 ### Shared Typography
 - AppBar title line 1: `textHeadingSmall`, `colorOnBackground` — game name
 - AppBar title line 2: `textBodySmall`, `colorOnSurfaceVariant` — progress subtitle
+- Dart indicator chip label: `textBodyMedium`, `colorOnSurface`; round sum: `textHeadingSmall`, `colorPrimary`
 - Target label: `textScoreMedium` (48sp Oswald Bold), `colorPrimary`
 - Secondary metric: `textBodyMedium`, `colorOnSurfaceVariant`
 - Bottom-bar action button: `textLabelLarge`
 - Undo button: `textLabelLarge`; disabled at 38% opacity
 
 ### Shared Color Usage
+- Dart indicator chip (thrown): `colorSurface` background, `colorOutline` border
+- Dart indicator chip (remaining): outline circle, `colorOutline`
 - DartboardHighlightWidget highlighted segment: `colorPrimary`
 - DartboardHighlightWidget non-highlighted segments: `colorOnSurface` at 35% opacity
 - Bottom-bar primary action: `colorPrimary` filled button
@@ -478,6 +486,7 @@ There are 5 practice game types. All share a common chrome layout described here
 - Undo button: icon/text in `colorOnSurface`; disabled at 38% opacity
 
 ### Shared Special Notes
+- **Dart indicator row** sits between AppBar and the dartboard/content area. It functions identically to X01 and Cricket: Round sum on the left (bold, `colorPrimary`), then up to 3 chips — thrown darts show the segment label (e.g. "T20", "SB", "14"), remaining slots show an empty outline circle. Sum increments as darts land.
 - The nav bar is hidden on this screen (full-screen practice mode).
 - `NEXT ROUND` in the bottom bar is enabled only when `dartsThrownInTurn == 3` (i.e. all 3 darts of the current turn have been registered).
 - `MISS` in the bottom bar is always enabled (records a missed dart without leaving the input grid).
@@ -525,37 +534,37 @@ In `doublesOnly` variant, `S-N` and `T-N` are visually dimmed: foreground at 38%
 
 **Dartboard:** Doubles-only mode. Only the double ring of the current target number is highlighted; single and triple rings for that number are shown at 40% opacity; all other wedges at 35% opacity.
 
-**Input bar — 3-cell contiguous row:**
+**Input bar — single contiguous button:**
 
-A single-row flush tile grid of 3 equal-width cells spanning the full screen width (edge-to-edge, no horizontal margin). Parent container: `radiusNone` (flat bar). Minimum cell height: 56dp. Cells separated by 1dp `colorOutline` vertical hairlines.
+A single full-width button spanning the screen width (edge-to-edge). Parent container: `radiusNone` (flat bar). Minimum height: 56dp.
 
 ```
-│ S-N │ D-N │ T-N │
+│ [ Double {N} ] │
 ```
 
-- S-N: `colorSurface` background, `colorOnSurface` text, no dots.
-- D-N: `colorPrimaryContainer` background, `colorOnPrimaryContainer` text, 2 × 4dp dot indicators.
-- T-N: `colorPrimary` background, `colorOnPrimary` text, 3 × 4dp dot indicators.
+- Button: `colorPrimaryContainer` background, `colorOnPrimaryContainer` text, 2 × 4dp dot indicators. Label: "Double {N}" (or "Double Bull" for Round 21).
+- Tapping records a **Hit** (+2 × N points, or +50 for Bull).
+- To record a **Miss**, use the MISS button in the bottom bar.
 
-`S-N` and `T-N` are visually dimmed: foreground at 38% opacity. Background remains full opacity. They are tappable but the engine treats them as failures for that round (scoring penalty applies). The MISS button in the bottom bar records all 3 darts as missed.
+**Bottom bar right action:** `NEXT ROUND` — enabled only when `dartsThrownInTurn == 3`. However, the turn advances automatically after the 3rd input is registered.
 
-**Bottom bar right action:** `NEXT ROUND` — enabled only when `dartsThrownInTurn == 3`.
+**Bottom bar left action:** `MISS` — records a **single** missed dart (0 score). To record multiple misses, tap multiple times.
 
 **Early end:** if score ≤ 0 after any round, the drill ends immediately. A bust modal shows the round reached and the final score, with a "NEW DRILL" button.
 
-**Completion after round 20:** show a winner modal with final score and "NEW DRILL" → Home.
+**Completion after Round 21 (Bull):** show a winner modal with final score and "NEW DRILL" → Home.
 
 ---
 
 ### 7c. Catch-40
 
-**AppBar subtitle:** "Round N / {total}" (default total = 8)
+**AppBar subtitle:** "Target: {target} · {dartsUsed}/6 darts"
 
 **Target display:**
-- Large: "≥40 pts" (the round score threshold)
-- Secondary: "Round N/{total} · scored: {roundScore}" — `roundScore` is the sum of the current turn's darts (derived in UI; not persisted separately)
+- Large: "{target}" (61–100)
+- Secondary: "Score: {totalScore} | Max: 120"
 
-**Dartboard:** No specific number is highlighted. Full board shown at normal opacity (all segments score their face value).
+**Dartboard:** No specific number is highlighted. Full board shown at normal opacity. Player calculates their own checkout route.
 
 **Input grid — full segment grid (matching X01 board):**
 
@@ -569,21 +578,28 @@ A single-row flush tile grid of 3 equal-width cells spanning the full screen wid
 [ 10 ][  9 ][  8 ][  7 ][  6 ][  5 ][  4 ][  3 ][  2 ][  1 ]  ← row 6 (triples, ···)
 ```
 
-All segments score their face value: T20 = 60, D20 = 40, 20 = 20, SB = 25, DB = 50.
-
 The full 7-row segment grid in this game type follows the identical contiguous-tile spec as the X01 Board (Section 5). All geometry, hairline dividers, color tokens, dot indicators, and semantic labels are the same. Refer to Section 5.
 
 > **Note:** this full-grid layout is the intended design using the contiguous tile spec (Section 5). The current 4-button `PracticeInputButtonsWidget` is a placeholder and must be replaced.
 
-**Bottom bar right action:** `NEXT ROUND` — enabled only when `dartsThrownInTurn == 3`.
+**Bottom bar right action:** `NEXT TARGET` — enabled only when:
+-   Current target is checked out (score reduces to 0 via double).
+-   OR 6 darts have been thrown for this target (failed attempt).
 
-**Completion:** after all rounds, show a summary modal with total score across all rounds and "NEW DRILL" → Home.
+**Scoring Rules:**
+-   Target sequence: 61 → 100 (40 targets).
+-   Checkout in 2 darts: **3 points**.
+-   Checkout in 3 darts: **2 points**. (Exception: Target 99 in 3 darts = **3 points**).
+-   Checkout in 4–6 darts: **1 point**.
+-   Failed checkout (after 6 darts or bust): **0 points**.
+
+**Completion:** after target 100, show a summary modal with total score (max 120) and "NEW DRILL" → Home.
 
 ---
 
 ### 7d. Shanghai
 
-**AppBar subtitle:** "Round N / {total}" (default total = 7)
+**AppBar subtitle:** "Round N / {total}" (where total is 7, 10, 15, or 20)
 
 **Target display:**
 - Large: current round number (e.g. "3")
@@ -607,50 +623,9 @@ Only the current round number is shown (N = current round). MISS is in the botto
 
 **Bottom bar right action:** `NEXT ROUND` — enabled only when `dartsThrownInTurn == 3`.
 
-**Shanghai bonus:** if S-N, D-N, and T-N are all hit in the same turn (in any order), a "SHANGHAI!" banner flashes briefly (300ms scale-in, 1s visible) before the round advances. Color: `colorPrimary` text on `colorPrimaryContainer` background.
+**Shanghai (Instant Win):** if S-N, D-N, and T-N are all hit in the same turn (in any order), the game is an **INSTANT WIN**. A "SHANGHAI!" banner flashes briefly (300ms scale-in, 1s visible) before showing the Game Summary modal (Winner state). Banner color: `colorPrimary` text on `colorPrimaryContainer` background.
 
-**Completion:** after all rounds, show a summary modal with total score and "NEW DRILL" → Home.
-
----
-
-### 7e. Checkout Practice
-
-**AppBar subtitle:** "{successes}/{attempts} checkouts"
-
-**Target display:**
-- Large: current checkout finish value (e.g. "170")
-- Secondary: route hint shown step-by-step as darts land.
-  - Before any dart: "○ · ○ · ○"
-  - After first correct dart (e.g. T20): "T20 · ○ · ○"
-  - After second correct dart (e.g. T20 again): "T20 · T20 · ○"
-  - After completion (e.g. DB): "T20 · T20 · DB"
-  - Correct hits render in `colorPrimary`; wrong hits render in `colorError`; unfilled slots are "○" in `colorOutline`
-
-**Dartboard:** Full board at normal opacity. No specific segment is pre-highlighted; the player must navigate to their own segment.
-
-**Input grid — full segment grid (matching X01 board):**
-
-```
-[ MISS ]  [ SB ]  [ DB ]           ← row 0
-[ 20 ][ 19 ][ 18 ][ 17 ][ 16 ][ 15 ][ 14 ][ 13 ][ 12 ][ 11 ]  ← row 1 (singles 20→11)
-[ 10 ][  9 ][  8 ][  7 ][  6 ][  5 ][  4 ][  3 ][  2 ][  1 ]  ← row 2 (singles 10→1)
-[ 20 ][ 19 ][ 18 ][ 17 ][ 16 ][ 15 ][ 14 ][ 13 ][ 12 ][ 11 ]  ← row 3 (doubles, ·· )
-[ 10 ][  9 ][  8 ][  7 ][  6 ][  5 ][  4 ][  3 ][  2 ][  1 ]  ← row 4 (doubles, ·· )
-[ 20 ][ 19 ][ 18 ][ 17 ][ 16 ][ 15 ][ 14 ][ 13 ][ 12 ][ 11 ]  ← row 5 (triples, ···)
-[ 10 ][  9 ][  8 ][  7 ][  6 ][  5 ][  4 ][  3 ][  2 ][  1 ]  ← row 6 (triples, ···)
-```
-
-The full 7-row segment grid in this game type follows the identical contiguous-tile spec as the X01 Board (Section 5). All geometry, hairline dividers, color tokens, dot indicators, and semantic labels are the same. Refer to Section 5.
-
-A wrong dart (segment that does not match the expected route step) resets `routeProgress` to 0 and marks the turn as failed; the remaining darts of the turn are still thrown but cannot succeed.
-
-> **Note:** this full-grid layout is the intended design using the contiguous tile spec (Section 5). The current 4-button `PracticeInputButtonsWidget` is a placeholder and must be replaced.
-
-**Bottom bar:** No MISS button in bottom bar (MISS is entered via the input grid row 0). The bottom bar right action is `END DRILL` (filled, `colorPrimary`) — always enabled once `dartsThrownInTurn == 3`. There is no `NEXT ROUND` button; the turn advances automatically after 3 darts have been registered.
-
-**Route progress:** `routeProgress` in `CompetitorState` tracks how many segments of the current route have been hit correctly (0, 1, or 2). A correct hit increments it. A wrong hit resets it to 0 and marks the attempt as failed.
-
-**Completion:** no automatic end — the player ends the drill explicitly via `END DRILL`. A summary modal shows Attempts, Successes, and success rate (e.g. "5/8 = 62.5%"), with "NEW DRILL" → Home.
+**Completion:** Game ends when (a) the final round is completed, OR (b) a Shanghai is hit. Show a summary modal with total score and "Game Won" status if applicable.
 
 ---
 

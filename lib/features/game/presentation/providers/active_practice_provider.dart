@@ -61,8 +61,11 @@ class ActivePracticeNotifier extends _$ActivePracticeNotifier {
       score: Segment.parse(segment).scoreValue,
     );
 
+    final isShanghai = gs.gameType == GameType.shanghai;
+    final prevSuccesses = gs.competitors[gs.currentTurnIndex].practiceSuccesses;
+
     state = await AsyncValue.guard(() async {
-      final newGs = await switch (gs.gameType) {
+      var newGs = await switch (gs.gameType) {
         GameType.aroundTheClock =>
           ref.read(processAroundTheClockDartUseCaseProvider).execute(gs, dart),
         GameType.bobs27 =>
@@ -77,12 +80,27 @@ class ActivePracticeNotifier extends _$ActivePracticeNotifier {
             'Unsupported practice game type: ${gs.gameType}'),
       };
 
+      // Catch-40: auto-advance to next turn on same target after 3 darts
+      // (no checkout yet, < 6 darts on target). This keeps the button hidden.
+      if (gs.gameType == GameType.catch40 &&
+          !newGs.turnActive &&
+          !newGs.isComplete &&
+          newGs.catch40TargetRemaining != 0 &&
+          newGs.catch40DartsOnTarget < 6) {
+        newGs = await _advanceTurn(newGs);
+      }
+
       final pendingGameWinnerId =
           newGs.isComplete ? newGs.winnerCompetitorId : null;
+
+      final shanghaiBonus = isShanghai &&
+          newGs.competitors[gs.currentTurnIndex].practiceSuccesses >
+              prevSuccesses;
 
       return ActivePracticeState(
         gameState: newGs,
         pendingGameWinnerId: pendingGameWinnerId,
+        showShanghaiBonus: shanghaiBonus,
       );
     });
   }
@@ -121,6 +139,58 @@ class ActivePracticeNotifier extends _$ActivePracticeNotifier {
     });
   }
 
+  /// Apply TurnEnded + TurnStarted events and persist them. Used for
+  /// same-target auto-advance in Catch-40 and for the NEXT ROUND/TARGET button.
+  Future<GameState> _advanceTurn(GameState gs) async {
+    final engine = _engineFor(gs.gameType);
+    int nextSeq =
+        await ref.read(gameEventRepositoryProvider).getLatestSequence(gs.gameId) + 1;
+
+    final currentCompetitor = gs.competitors[gs.currentTurnIndex];
+    final actorId = currentCompetitor.playerIds.isNotEmpty
+        ? currentCompetitor.playerIds.first
+        : 'system';
+
+    final turnEndedEvent = GameEvent(
+      eventId: const Uuid().v4(),
+      gameId: gs.gameId,
+      eventType: 'TurnEnded',
+      localSequence: nextSeq++,
+      occurredAt: DateTime.now(),
+      payload: {'competitor_id': currentCompetitor.competitorId},
+      synced: false,
+      actorId: actorId,
+      source: EventSource.client,
+    );
+
+    var newGs = engine.apply(gs, turnEndedEvent).state;
+
+    final nextCompetitor = newGs.competitors[newGs.currentTurnIndex];
+    final nextActorId = nextCompetitor.playerIds.isNotEmpty
+        ? nextCompetitor.playerIds.first
+        : 'system';
+
+    final turnStartedEvent = GameEvent(
+      eventId: const Uuid().v4(),
+      gameId: gs.gameId,
+      eventType: 'TurnStarted',
+      localSequence: nextSeq++,
+      occurredAt: DateTime.now(),
+      payload: {'competitor_id': nextCompetitor.competitorId},
+      synced: false,
+      actorId: nextActorId,
+      source: EventSource.client,
+    );
+
+    newGs = engine.apply(newGs, turnStartedEvent).state;
+
+    await ref
+        .read(gameEventRepositoryProvider)
+        .appendEvents([turnEndedEvent, turnStartedEvent]);
+
+    return newGs;
+  }
+
   GameEngine _engineFor(GameType type) => switch (type) {
     GameType.aroundTheClock => ref.read(aroundTheClockEngineProvider),
     GameType.bobs27 => ref.read(bobs27EngineProvider),
@@ -137,53 +207,13 @@ class ActivePracticeNotifier extends _$ActivePracticeNotifier {
     if (gs.isComplete) return;
 
     state = await AsyncValue.guard(() async {
-      final engine = _engineFor(gs.gameType);
-      int nextSeq =
-          await ref.read(gameEventRepositoryProvider).getLatestSequence(gs.gameId) + 1;
-
-      final currentCompetitor = gs.competitors[gs.currentTurnIndex];
-      final actorId = currentCompetitor.playerIds.isNotEmpty
-          ? currentCompetitor.playerIds.first
-          : 'system';
-
-      final turnEndedEvent = GameEvent(
-        eventId: const Uuid().v4(),
-        gameId: gs.gameId,
-        eventType: 'TurnEnded',
-        localSequence: nextSeq++,
-        occurredAt: DateTime.now(),
-        payload: {'competitor_id': currentCompetitor.competitorId},
-        synced: false,
-        actorId: actorId,
-        source: EventSource.client,
+      final newGs = await _advanceTurn(gs);
+      return ActivePracticeState(
+        gameState: newGs,
+        pendingGameWinnerId:
+            newGs.isComplete ? newGs.winnerCompetitorId : null,
+        showShanghaiBonus: false,
       );
-
-      var newGs = engine.apply(gs, turnEndedEvent).state;
-
-      final nextCompetitor = newGs.competitors[newGs.currentTurnIndex];
-      final nextActorId = nextCompetitor.playerIds.isNotEmpty
-          ? nextCompetitor.playerIds.first
-          : 'system';
-
-      final turnStartedEvent = GameEvent(
-        eventId: const Uuid().v4(),
-        gameId: gs.gameId,
-        eventType: 'TurnStarted',
-        localSequence: nextSeq++,
-        occurredAt: DateTime.now(),
-        payload: {'competitor_id': nextCompetitor.competitorId},
-        synced: false,
-        actorId: nextActorId,
-        source: EventSource.client,
-      );
-
-      newGs = engine.apply(newGs, turnStartedEvent).state;
-
-      await ref
-          .read(gameEventRepositoryProvider)
-          .appendEvents([turnEndedEvent, turnStartedEvent]);
-
-      return ActivePracticeState(gameState: newGs);
     });
   }
 

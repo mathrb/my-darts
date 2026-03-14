@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$GameState {
 
- String get gameId; GameType get gameType; List<CompetitorState> get competitors; int get currentTurnIndex; int get dartsThrownInTurn; bool get isComplete; String? get winnerCompetitorId; GameEngineStatus get status; bool get turnActive; int get legsToWin; int get currentLegIndex; String get inStrategy; String get outStrategy; int get startingScore; String get cricketVariant; String get aroundTheClockVariant; int get shanghaiTotalRounds; int get catch40TotalRounds; List<int> get catch40RoundTargets; List<int> get checkoutPracticeOrder;
+ String get gameId; GameType get gameType; List<CompetitorState> get competitors; int get currentTurnIndex; int get dartsThrownInTurn; bool get isComplete; String? get winnerCompetitorId; GameEngineStatus get status; bool get turnActive; int get legsToWin; int get currentLegIndex; String get inStrategy; String get outStrategy; int get startingScore; String get cricketVariant; String get aroundTheClockVariant; int get shanghaiTotalRounds; int get catch40TargetRemaining; int get catch40DartsOnTarget; List<int> get checkoutPracticeOrder;
 /// Create a copy of GameState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $GameStateCopyWith<GameState> get copyWith => _$GameStateCopyWithImpl<GameState>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GameState&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&const DeepCollectionEquality().equals(other.competitors, competitors)&&(identical(other.currentTurnIndex, currentTurnIndex) || other.currentTurnIndex == currentTurnIndex)&&(identical(other.dartsThrownInTurn, dartsThrownInTurn) || other.dartsThrownInTurn == dartsThrownInTurn)&&(identical(other.isComplete, isComplete) || other.isComplete == isComplete)&&(identical(other.winnerCompetitorId, winnerCompetitorId) || other.winnerCompetitorId == winnerCompetitorId)&&(identical(other.status, status) || other.status == status)&&(identical(other.turnActive, turnActive) || other.turnActive == turnActive)&&(identical(other.legsToWin, legsToWin) || other.legsToWin == legsToWin)&&(identical(other.currentLegIndex, currentLegIndex) || other.currentLegIndex == currentLegIndex)&&(identical(other.inStrategy, inStrategy) || other.inStrategy == inStrategy)&&(identical(other.outStrategy, outStrategy) || other.outStrategy == outStrategy)&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.cricketVariant, cricketVariant) || other.cricketVariant == cricketVariant)&&(identical(other.aroundTheClockVariant, aroundTheClockVariant) || other.aroundTheClockVariant == aroundTheClockVariant)&&(identical(other.shanghaiTotalRounds, shanghaiTotalRounds) || other.shanghaiTotalRounds == shanghaiTotalRounds)&&(identical(other.catch40TotalRounds, catch40TotalRounds) || other.catch40TotalRounds == catch40TotalRounds)&&const DeepCollectionEquality().equals(other.catch40RoundTargets, catch40RoundTargets)&&const DeepCollectionEquality().equals(other.checkoutPracticeOrder, checkoutPracticeOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GameState&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&const DeepCollectionEquality().equals(other.competitors, competitors)&&(identical(other.currentTurnIndex, currentTurnIndex) || other.currentTurnIndex == currentTurnIndex)&&(identical(other.dartsThrownInTurn, dartsThrownInTurn) || other.dartsThrownInTurn == dartsThrownInTurn)&&(identical(other.isComplete, isComplete) || other.isComplete == isComplete)&&(identical(other.winnerCompetitorId, winnerCompetitorId) || other.winnerCompetitorId == winnerCompetitorId)&&(identical(other.status, status) || other.status == status)&&(identical(other.turnActive, turnActive) || other.turnActive == turnActive)&&(identical(other.legsToWin, legsToWin) || other.legsToWin == legsToWin)&&(identical(other.currentLegIndex, currentLegIndex) || other.currentLegIndex == currentLegIndex)&&(identical(other.inStrategy, inStrategy) || other.inStrategy == inStrategy)&&(identical(other.outStrategy, outStrategy) || other.outStrategy == outStrategy)&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.cricketVariant, cricketVariant) || other.cricketVariant == cricketVariant)&&(identical(other.aroundTheClockVariant, aroundTheClockVariant) || other.aroundTheClockVariant == aroundTheClockVariant)&&(identical(other.shanghaiTotalRounds, shanghaiTotalRounds) || other.shanghaiTotalRounds == shanghaiTotalRounds)&&(identical(other.catch40TargetRemaining, catch40TargetRemaining) || other.catch40TargetRemaining == catch40TargetRemaining)&&(identical(other.catch40DartsOnTarget, catch40DartsOnTarget) || other.catch40DartsOnTarget == catch40DartsOnTarget)&&const DeepCollectionEquality().equals(other.checkoutPracticeOrder, checkoutPracticeOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,gameId,gameType,const DeepCollectionEquality().hash(competitors),currentTurnIndex,dartsThrownInTurn,isComplete,winnerCompetitorId,status,turnActive,legsToWin,currentLegIndex,inStrategy,outStrategy,startingScore,cricketVariant,aroundTheClockVariant,shanghaiTotalRounds,catch40TotalRounds,const DeepCollectionEquality().hash(catch40RoundTargets),const DeepCollectionEquality().hash(checkoutPracticeOrder)]);
+int get hashCode => Object.hashAll([runtimeType,gameId,gameType,const DeepCollectionEquality().hash(competitors),currentTurnIndex,dartsThrownInTurn,isComplete,winnerCompetitorId,status,turnActive,legsToWin,currentLegIndex,inStrategy,outStrategy,startingScore,cricketVariant,aroundTheClockVariant,shanghaiTotalRounds,catch40TargetRemaining,catch40DartsOnTarget,const DeepCollectionEquality().hash(checkoutPracticeOrder)]);
 
 @override
 String toString() {
-  return 'GameState(gameId: $gameId, gameType: $gameType, competitors: $competitors, currentTurnIndex: $currentTurnIndex, dartsThrownInTurn: $dartsThrownInTurn, isComplete: $isComplete, winnerCompetitorId: $winnerCompetitorId, status: $status, turnActive: $turnActive, legsToWin: $legsToWin, currentLegIndex: $currentLegIndex, inStrategy: $inStrategy, outStrategy: $outStrategy, startingScore: $startingScore, cricketVariant: $cricketVariant, aroundTheClockVariant: $aroundTheClockVariant, shanghaiTotalRounds: $shanghaiTotalRounds, catch40TotalRounds: $catch40TotalRounds, catch40RoundTargets: $catch40RoundTargets, checkoutPracticeOrder: $checkoutPracticeOrder)';
+  return 'GameState(gameId: $gameId, gameType: $gameType, competitors: $competitors, currentTurnIndex: $currentTurnIndex, dartsThrownInTurn: $dartsThrownInTurn, isComplete: $isComplete, winnerCompetitorId: $winnerCompetitorId, status: $status, turnActive: $turnActive, legsToWin: $legsToWin, currentLegIndex: $currentLegIndex, inStrategy: $inStrategy, outStrategy: $outStrategy, startingScore: $startingScore, cricketVariant: $cricketVariant, aroundTheClockVariant: $aroundTheClockVariant, shanghaiTotalRounds: $shanghaiTotalRounds, catch40TargetRemaining: $catch40TargetRemaining, catch40DartsOnTarget: $catch40DartsOnTarget, checkoutPracticeOrder: $checkoutPracticeOrder)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $GameStateCopyWith<$Res>  {
   factory $GameStateCopyWith(GameState value, $Res Function(GameState) _then) = _$GameStateCopyWithImpl;
 @useResult
 $Res call({
- String gameId, GameType gameType, List<CompetitorState> competitors, int currentTurnIndex, int dartsThrownInTurn, bool isComplete, String? winnerCompetitorId, GameEngineStatus status, bool turnActive, int legsToWin, int currentLegIndex, String inStrategy, String outStrategy, int startingScore, String cricketVariant, String aroundTheClockVariant, int shanghaiTotalRounds, int catch40TotalRounds, List<int> catch40RoundTargets, List<int> checkoutPracticeOrder
+ String gameId, GameType gameType, List<CompetitorState> competitors, int currentTurnIndex, int dartsThrownInTurn, bool isComplete, String? winnerCompetitorId, GameEngineStatus status, bool turnActive, int legsToWin, int currentLegIndex, String inStrategy, String outStrategy, int startingScore, String cricketVariant, String aroundTheClockVariant, int shanghaiTotalRounds, int catch40TargetRemaining, int catch40DartsOnTarget, List<int> checkoutPracticeOrder
 });
 
 
@@ -65,7 +65,7 @@ class _$GameStateCopyWithImpl<$Res>
 
 /// Create a copy of GameState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? gameId = null,Object? gameType = null,Object? competitors = null,Object? currentTurnIndex = null,Object? dartsThrownInTurn = null,Object? isComplete = null,Object? winnerCompetitorId = freezed,Object? status = null,Object? turnActive = null,Object? legsToWin = null,Object? currentLegIndex = null,Object? inStrategy = null,Object? outStrategy = null,Object? startingScore = null,Object? cricketVariant = null,Object? aroundTheClockVariant = null,Object? shanghaiTotalRounds = null,Object? catch40TotalRounds = null,Object? catch40RoundTargets = null,Object? checkoutPracticeOrder = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? gameId = null,Object? gameType = null,Object? competitors = null,Object? currentTurnIndex = null,Object? dartsThrownInTurn = null,Object? isComplete = null,Object? winnerCompetitorId = freezed,Object? status = null,Object? turnActive = null,Object? legsToWin = null,Object? currentLegIndex = null,Object? inStrategy = null,Object? outStrategy = null,Object? startingScore = null,Object? cricketVariant = null,Object? aroundTheClockVariant = null,Object? shanghaiTotalRounds = null,Object? catch40TargetRemaining = null,Object? catch40DartsOnTarget = null,Object? checkoutPracticeOrder = null,}) {
   return _then(_self.copyWith(
 gameId: null == gameId ? _self.gameId : gameId // ignore: cast_nullable_to_non_nullable
 as String,gameType: null == gameType ? _self.gameType : gameType // ignore: cast_nullable_to_non_nullable
@@ -84,9 +84,9 @@ as String,startingScore: null == startingScore ? _self.startingScore : startingS
 as int,cricketVariant: null == cricketVariant ? _self.cricketVariant : cricketVariant // ignore: cast_nullable_to_non_nullable
 as String,aroundTheClockVariant: null == aroundTheClockVariant ? _self.aroundTheClockVariant : aroundTheClockVariant // ignore: cast_nullable_to_non_nullable
 as String,shanghaiTotalRounds: null == shanghaiTotalRounds ? _self.shanghaiTotalRounds : shanghaiTotalRounds // ignore: cast_nullable_to_non_nullable
-as int,catch40TotalRounds: null == catch40TotalRounds ? _self.catch40TotalRounds : catch40TotalRounds // ignore: cast_nullable_to_non_nullable
-as int,catch40RoundTargets: null == catch40RoundTargets ? _self.catch40RoundTargets : catch40RoundTargets // ignore: cast_nullable_to_non_nullable
-as List<int>,checkoutPracticeOrder: null == checkoutPracticeOrder ? _self.checkoutPracticeOrder : checkoutPracticeOrder // ignore: cast_nullable_to_non_nullable
+as int,catch40TargetRemaining: null == catch40TargetRemaining ? _self.catch40TargetRemaining : catch40TargetRemaining // ignore: cast_nullable_to_non_nullable
+as int,catch40DartsOnTarget: null == catch40DartsOnTarget ? _self.catch40DartsOnTarget : catch40DartsOnTarget // ignore: cast_nullable_to_non_nullable
+as int,checkoutPracticeOrder: null == checkoutPracticeOrder ? _self.checkoutPracticeOrder : checkoutPracticeOrder // ignore: cast_nullable_to_non_nullable
 as List<int>,
   ));
 }
@@ -172,10 +172,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String gameId,  GameType gameType,  List<CompetitorState> competitors,  int currentTurnIndex,  int dartsThrownInTurn,  bool isComplete,  String? winnerCompetitorId,  GameEngineStatus status,  bool turnActive,  int legsToWin,  int currentLegIndex,  String inStrategy,  String outStrategy,  int startingScore,  String cricketVariant,  String aroundTheClockVariant,  int shanghaiTotalRounds,  int catch40TotalRounds,  List<int> catch40RoundTargets,  List<int> checkoutPracticeOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String gameId,  GameType gameType,  List<CompetitorState> competitors,  int currentTurnIndex,  int dartsThrownInTurn,  bool isComplete,  String? winnerCompetitorId,  GameEngineStatus status,  bool turnActive,  int legsToWin,  int currentLegIndex,  String inStrategy,  String outStrategy,  int startingScore,  String cricketVariant,  String aroundTheClockVariant,  int shanghaiTotalRounds,  int catch40TargetRemaining,  int catch40DartsOnTarget,  List<int> checkoutPracticeOrder)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _GameState() when $default != null:
-return $default(_that.gameId,_that.gameType,_that.competitors,_that.currentTurnIndex,_that.dartsThrownInTurn,_that.isComplete,_that.winnerCompetitorId,_that.status,_that.turnActive,_that.legsToWin,_that.currentLegIndex,_that.inStrategy,_that.outStrategy,_that.startingScore,_that.cricketVariant,_that.aroundTheClockVariant,_that.shanghaiTotalRounds,_that.catch40TotalRounds,_that.catch40RoundTargets,_that.checkoutPracticeOrder);case _:
+return $default(_that.gameId,_that.gameType,_that.competitors,_that.currentTurnIndex,_that.dartsThrownInTurn,_that.isComplete,_that.winnerCompetitorId,_that.status,_that.turnActive,_that.legsToWin,_that.currentLegIndex,_that.inStrategy,_that.outStrategy,_that.startingScore,_that.cricketVariant,_that.aroundTheClockVariant,_that.shanghaiTotalRounds,_that.catch40TargetRemaining,_that.catch40DartsOnTarget,_that.checkoutPracticeOrder);case _:
   return orElse();
 
 }
@@ -193,10 +193,10 @@ return $default(_that.gameId,_that.gameType,_that.competitors,_that.currentTurnI
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String gameId,  GameType gameType,  List<CompetitorState> competitors,  int currentTurnIndex,  int dartsThrownInTurn,  bool isComplete,  String? winnerCompetitorId,  GameEngineStatus status,  bool turnActive,  int legsToWin,  int currentLegIndex,  String inStrategy,  String outStrategy,  int startingScore,  String cricketVariant,  String aroundTheClockVariant,  int shanghaiTotalRounds,  int catch40TotalRounds,  List<int> catch40RoundTargets,  List<int> checkoutPracticeOrder)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String gameId,  GameType gameType,  List<CompetitorState> competitors,  int currentTurnIndex,  int dartsThrownInTurn,  bool isComplete,  String? winnerCompetitorId,  GameEngineStatus status,  bool turnActive,  int legsToWin,  int currentLegIndex,  String inStrategy,  String outStrategy,  int startingScore,  String cricketVariant,  String aroundTheClockVariant,  int shanghaiTotalRounds,  int catch40TargetRemaining,  int catch40DartsOnTarget,  List<int> checkoutPracticeOrder)  $default,) {final _that = this;
 switch (_that) {
 case _GameState():
-return $default(_that.gameId,_that.gameType,_that.competitors,_that.currentTurnIndex,_that.dartsThrownInTurn,_that.isComplete,_that.winnerCompetitorId,_that.status,_that.turnActive,_that.legsToWin,_that.currentLegIndex,_that.inStrategy,_that.outStrategy,_that.startingScore,_that.cricketVariant,_that.aroundTheClockVariant,_that.shanghaiTotalRounds,_that.catch40TotalRounds,_that.catch40RoundTargets,_that.checkoutPracticeOrder);case _:
+return $default(_that.gameId,_that.gameType,_that.competitors,_that.currentTurnIndex,_that.dartsThrownInTurn,_that.isComplete,_that.winnerCompetitorId,_that.status,_that.turnActive,_that.legsToWin,_that.currentLegIndex,_that.inStrategy,_that.outStrategy,_that.startingScore,_that.cricketVariant,_that.aroundTheClockVariant,_that.shanghaiTotalRounds,_that.catch40TargetRemaining,_that.catch40DartsOnTarget,_that.checkoutPracticeOrder);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -213,10 +213,10 @@ return $default(_that.gameId,_that.gameType,_that.competitors,_that.currentTurnI
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String gameId,  GameType gameType,  List<CompetitorState> competitors,  int currentTurnIndex,  int dartsThrownInTurn,  bool isComplete,  String? winnerCompetitorId,  GameEngineStatus status,  bool turnActive,  int legsToWin,  int currentLegIndex,  String inStrategy,  String outStrategy,  int startingScore,  String cricketVariant,  String aroundTheClockVariant,  int shanghaiTotalRounds,  int catch40TotalRounds,  List<int> catch40RoundTargets,  List<int> checkoutPracticeOrder)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String gameId,  GameType gameType,  List<CompetitorState> competitors,  int currentTurnIndex,  int dartsThrownInTurn,  bool isComplete,  String? winnerCompetitorId,  GameEngineStatus status,  bool turnActive,  int legsToWin,  int currentLegIndex,  String inStrategy,  String outStrategy,  int startingScore,  String cricketVariant,  String aroundTheClockVariant,  int shanghaiTotalRounds,  int catch40TargetRemaining,  int catch40DartsOnTarget,  List<int> checkoutPracticeOrder)?  $default,) {final _that = this;
 switch (_that) {
 case _GameState() when $default != null:
-return $default(_that.gameId,_that.gameType,_that.competitors,_that.currentTurnIndex,_that.dartsThrownInTurn,_that.isComplete,_that.winnerCompetitorId,_that.status,_that.turnActive,_that.legsToWin,_that.currentLegIndex,_that.inStrategy,_that.outStrategy,_that.startingScore,_that.cricketVariant,_that.aroundTheClockVariant,_that.shanghaiTotalRounds,_that.catch40TotalRounds,_that.catch40RoundTargets,_that.checkoutPracticeOrder);case _:
+return $default(_that.gameId,_that.gameType,_that.competitors,_that.currentTurnIndex,_that.dartsThrownInTurn,_that.isComplete,_that.winnerCompetitorId,_that.status,_that.turnActive,_that.legsToWin,_that.currentLegIndex,_that.inStrategy,_that.outStrategy,_that.startingScore,_that.cricketVariant,_that.aroundTheClockVariant,_that.shanghaiTotalRounds,_that.catch40TargetRemaining,_that.catch40DartsOnTarget,_that.checkoutPracticeOrder);case _:
   return null;
 
 }
@@ -228,7 +228,7 @@ return $default(_that.gameId,_that.gameType,_that.competitors,_that.currentTurnI
 @JsonSerializable()
 
 class _GameState implements GameState {
-  const _GameState({required this.gameId, required this.gameType, required final  List<CompetitorState> competitors, required this.currentTurnIndex, required this.dartsThrownInTurn, required this.isComplete, this.winnerCompetitorId, this.status = GameEngineStatus.initialized, this.turnActive = false, this.legsToWin = 1, this.currentLegIndex = 0, this.inStrategy = 'straight', this.outStrategy = 'double', this.startingScore = 501, this.cricketVariant = 'standard', this.aroundTheClockVariant = 'standard', this.shanghaiTotalRounds = 7, this.catch40TotalRounds = 8, final  List<int> catch40RoundTargets = const [10, 15, 20, 25, 30, 35, 40, 45], final  List<int> checkoutPracticeOrder = const []}): _competitors = competitors,_catch40RoundTargets = catch40RoundTargets,_checkoutPracticeOrder = checkoutPracticeOrder;
+  const _GameState({required this.gameId, required this.gameType, required final  List<CompetitorState> competitors, required this.currentTurnIndex, required this.dartsThrownInTurn, required this.isComplete, this.winnerCompetitorId, this.status = GameEngineStatus.initialized, this.turnActive = false, this.legsToWin = 1, this.currentLegIndex = 0, this.inStrategy = 'straight', this.outStrategy = 'double', this.startingScore = 501, this.cricketVariant = 'standard', this.aroundTheClockVariant = 'standard', this.shanghaiTotalRounds = 7, this.catch40TargetRemaining = 0, this.catch40DartsOnTarget = 0, final  List<int> checkoutPracticeOrder = const []}): _competitors = competitors,_checkoutPracticeOrder = checkoutPracticeOrder;
   factory _GameState.fromJson(Map<String, dynamic> json) => _$GameStateFromJson(json);
 
 @override final  String gameId;
@@ -254,14 +254,8 @@ class _GameState implements GameState {
 @override@JsonKey() final  String cricketVariant;
 @override@JsonKey() final  String aroundTheClockVariant;
 @override@JsonKey() final  int shanghaiTotalRounds;
-@override@JsonKey() final  int catch40TotalRounds;
- final  List<int> _catch40RoundTargets;
-@override@JsonKey() List<int> get catch40RoundTargets {
-  if (_catch40RoundTargets is EqualUnmodifiableListView) return _catch40RoundTargets;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_catch40RoundTargets);
-}
-
+@override@JsonKey() final  int catch40TargetRemaining;
+@override@JsonKey() final  int catch40DartsOnTarget;
  final  List<int> _checkoutPracticeOrder;
 @override@JsonKey() List<int> get checkoutPracticeOrder {
   if (_checkoutPracticeOrder is EqualUnmodifiableListView) return _checkoutPracticeOrder;
@@ -283,16 +277,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GameState&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&const DeepCollectionEquality().equals(other._competitors, _competitors)&&(identical(other.currentTurnIndex, currentTurnIndex) || other.currentTurnIndex == currentTurnIndex)&&(identical(other.dartsThrownInTurn, dartsThrownInTurn) || other.dartsThrownInTurn == dartsThrownInTurn)&&(identical(other.isComplete, isComplete) || other.isComplete == isComplete)&&(identical(other.winnerCompetitorId, winnerCompetitorId) || other.winnerCompetitorId == winnerCompetitorId)&&(identical(other.status, status) || other.status == status)&&(identical(other.turnActive, turnActive) || other.turnActive == turnActive)&&(identical(other.legsToWin, legsToWin) || other.legsToWin == legsToWin)&&(identical(other.currentLegIndex, currentLegIndex) || other.currentLegIndex == currentLegIndex)&&(identical(other.inStrategy, inStrategy) || other.inStrategy == inStrategy)&&(identical(other.outStrategy, outStrategy) || other.outStrategy == outStrategy)&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.cricketVariant, cricketVariant) || other.cricketVariant == cricketVariant)&&(identical(other.aroundTheClockVariant, aroundTheClockVariant) || other.aroundTheClockVariant == aroundTheClockVariant)&&(identical(other.shanghaiTotalRounds, shanghaiTotalRounds) || other.shanghaiTotalRounds == shanghaiTotalRounds)&&(identical(other.catch40TotalRounds, catch40TotalRounds) || other.catch40TotalRounds == catch40TotalRounds)&&const DeepCollectionEquality().equals(other._catch40RoundTargets, _catch40RoundTargets)&&const DeepCollectionEquality().equals(other._checkoutPracticeOrder, _checkoutPracticeOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GameState&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&const DeepCollectionEquality().equals(other._competitors, _competitors)&&(identical(other.currentTurnIndex, currentTurnIndex) || other.currentTurnIndex == currentTurnIndex)&&(identical(other.dartsThrownInTurn, dartsThrownInTurn) || other.dartsThrownInTurn == dartsThrownInTurn)&&(identical(other.isComplete, isComplete) || other.isComplete == isComplete)&&(identical(other.winnerCompetitorId, winnerCompetitorId) || other.winnerCompetitorId == winnerCompetitorId)&&(identical(other.status, status) || other.status == status)&&(identical(other.turnActive, turnActive) || other.turnActive == turnActive)&&(identical(other.legsToWin, legsToWin) || other.legsToWin == legsToWin)&&(identical(other.currentLegIndex, currentLegIndex) || other.currentLegIndex == currentLegIndex)&&(identical(other.inStrategy, inStrategy) || other.inStrategy == inStrategy)&&(identical(other.outStrategy, outStrategy) || other.outStrategy == outStrategy)&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.cricketVariant, cricketVariant) || other.cricketVariant == cricketVariant)&&(identical(other.aroundTheClockVariant, aroundTheClockVariant) || other.aroundTheClockVariant == aroundTheClockVariant)&&(identical(other.shanghaiTotalRounds, shanghaiTotalRounds) || other.shanghaiTotalRounds == shanghaiTotalRounds)&&(identical(other.catch40TargetRemaining, catch40TargetRemaining) || other.catch40TargetRemaining == catch40TargetRemaining)&&(identical(other.catch40DartsOnTarget, catch40DartsOnTarget) || other.catch40DartsOnTarget == catch40DartsOnTarget)&&const DeepCollectionEquality().equals(other._checkoutPracticeOrder, _checkoutPracticeOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,gameId,gameType,const DeepCollectionEquality().hash(_competitors),currentTurnIndex,dartsThrownInTurn,isComplete,winnerCompetitorId,status,turnActive,legsToWin,currentLegIndex,inStrategy,outStrategy,startingScore,cricketVariant,aroundTheClockVariant,shanghaiTotalRounds,catch40TotalRounds,const DeepCollectionEquality().hash(_catch40RoundTargets),const DeepCollectionEquality().hash(_checkoutPracticeOrder)]);
+int get hashCode => Object.hashAll([runtimeType,gameId,gameType,const DeepCollectionEquality().hash(_competitors),currentTurnIndex,dartsThrownInTurn,isComplete,winnerCompetitorId,status,turnActive,legsToWin,currentLegIndex,inStrategy,outStrategy,startingScore,cricketVariant,aroundTheClockVariant,shanghaiTotalRounds,catch40TargetRemaining,catch40DartsOnTarget,const DeepCollectionEquality().hash(_checkoutPracticeOrder)]);
 
 @override
 String toString() {
-  return 'GameState(gameId: $gameId, gameType: $gameType, competitors: $competitors, currentTurnIndex: $currentTurnIndex, dartsThrownInTurn: $dartsThrownInTurn, isComplete: $isComplete, winnerCompetitorId: $winnerCompetitorId, status: $status, turnActive: $turnActive, legsToWin: $legsToWin, currentLegIndex: $currentLegIndex, inStrategy: $inStrategy, outStrategy: $outStrategy, startingScore: $startingScore, cricketVariant: $cricketVariant, aroundTheClockVariant: $aroundTheClockVariant, shanghaiTotalRounds: $shanghaiTotalRounds, catch40TotalRounds: $catch40TotalRounds, catch40RoundTargets: $catch40RoundTargets, checkoutPracticeOrder: $checkoutPracticeOrder)';
+  return 'GameState(gameId: $gameId, gameType: $gameType, competitors: $competitors, currentTurnIndex: $currentTurnIndex, dartsThrownInTurn: $dartsThrownInTurn, isComplete: $isComplete, winnerCompetitorId: $winnerCompetitorId, status: $status, turnActive: $turnActive, legsToWin: $legsToWin, currentLegIndex: $currentLegIndex, inStrategy: $inStrategy, outStrategy: $outStrategy, startingScore: $startingScore, cricketVariant: $cricketVariant, aroundTheClockVariant: $aroundTheClockVariant, shanghaiTotalRounds: $shanghaiTotalRounds, catch40TargetRemaining: $catch40TargetRemaining, catch40DartsOnTarget: $catch40DartsOnTarget, checkoutPracticeOrder: $checkoutPracticeOrder)';
 }
 
 
@@ -303,7 +297,7 @@ abstract mixin class _$GameStateCopyWith<$Res> implements $GameStateCopyWith<$Re
   factory _$GameStateCopyWith(_GameState value, $Res Function(_GameState) _then) = __$GameStateCopyWithImpl;
 @override @useResult
 $Res call({
- String gameId, GameType gameType, List<CompetitorState> competitors, int currentTurnIndex, int dartsThrownInTurn, bool isComplete, String? winnerCompetitorId, GameEngineStatus status, bool turnActive, int legsToWin, int currentLegIndex, String inStrategy, String outStrategy, int startingScore, String cricketVariant, String aroundTheClockVariant, int shanghaiTotalRounds, int catch40TotalRounds, List<int> catch40RoundTargets, List<int> checkoutPracticeOrder
+ String gameId, GameType gameType, List<CompetitorState> competitors, int currentTurnIndex, int dartsThrownInTurn, bool isComplete, String? winnerCompetitorId, GameEngineStatus status, bool turnActive, int legsToWin, int currentLegIndex, String inStrategy, String outStrategy, int startingScore, String cricketVariant, String aroundTheClockVariant, int shanghaiTotalRounds, int catch40TargetRemaining, int catch40DartsOnTarget, List<int> checkoutPracticeOrder
 });
 
 
@@ -320,7 +314,7 @@ class __$GameStateCopyWithImpl<$Res>
 
 /// Create a copy of GameState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? gameId = null,Object? gameType = null,Object? competitors = null,Object? currentTurnIndex = null,Object? dartsThrownInTurn = null,Object? isComplete = null,Object? winnerCompetitorId = freezed,Object? status = null,Object? turnActive = null,Object? legsToWin = null,Object? currentLegIndex = null,Object? inStrategy = null,Object? outStrategy = null,Object? startingScore = null,Object? cricketVariant = null,Object? aroundTheClockVariant = null,Object? shanghaiTotalRounds = null,Object? catch40TotalRounds = null,Object? catch40RoundTargets = null,Object? checkoutPracticeOrder = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? gameId = null,Object? gameType = null,Object? competitors = null,Object? currentTurnIndex = null,Object? dartsThrownInTurn = null,Object? isComplete = null,Object? winnerCompetitorId = freezed,Object? status = null,Object? turnActive = null,Object? legsToWin = null,Object? currentLegIndex = null,Object? inStrategy = null,Object? outStrategy = null,Object? startingScore = null,Object? cricketVariant = null,Object? aroundTheClockVariant = null,Object? shanghaiTotalRounds = null,Object? catch40TargetRemaining = null,Object? catch40DartsOnTarget = null,Object? checkoutPracticeOrder = null,}) {
   return _then(_GameState(
 gameId: null == gameId ? _self.gameId : gameId // ignore: cast_nullable_to_non_nullable
 as String,gameType: null == gameType ? _self.gameType : gameType // ignore: cast_nullable_to_non_nullable
@@ -339,9 +333,9 @@ as String,startingScore: null == startingScore ? _self.startingScore : startingS
 as int,cricketVariant: null == cricketVariant ? _self.cricketVariant : cricketVariant // ignore: cast_nullable_to_non_nullable
 as String,aroundTheClockVariant: null == aroundTheClockVariant ? _self.aroundTheClockVariant : aroundTheClockVariant // ignore: cast_nullable_to_non_nullable
 as String,shanghaiTotalRounds: null == shanghaiTotalRounds ? _self.shanghaiTotalRounds : shanghaiTotalRounds // ignore: cast_nullable_to_non_nullable
-as int,catch40TotalRounds: null == catch40TotalRounds ? _self.catch40TotalRounds : catch40TotalRounds // ignore: cast_nullable_to_non_nullable
-as int,catch40RoundTargets: null == catch40RoundTargets ? _self._catch40RoundTargets : catch40RoundTargets // ignore: cast_nullable_to_non_nullable
-as List<int>,checkoutPracticeOrder: null == checkoutPracticeOrder ? _self._checkoutPracticeOrder : checkoutPracticeOrder // ignore: cast_nullable_to_non_nullable
+as int,catch40TargetRemaining: null == catch40TargetRemaining ? _self.catch40TargetRemaining : catch40TargetRemaining // ignore: cast_nullable_to_non_nullable
+as int,catch40DartsOnTarget: null == catch40DartsOnTarget ? _self.catch40DartsOnTarget : catch40DartsOnTarget // ignore: cast_nullable_to_non_nullable
+as int,checkoutPracticeOrder: null == checkoutPracticeOrder ? _self._checkoutPracticeOrder : checkoutPracticeOrder // ignore: cast_nullable_to_non_nullable
 as List<int>,
   ));
 }

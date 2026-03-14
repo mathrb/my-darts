@@ -245,6 +245,7 @@ Full-screen, no AppBar nav chrome. Five sub-types share a common chrome:
 
 ```
 AppBar: "[Game Name]" / "[progress subtitle]"        [⋮]
+Dart indicator: [60] [T20] [○] [○]
 ────────────────────────────────────────────────────
   DartboardHighlightWidget (Expanded)
   current target highlighted colorPrimary; others 35% opacity

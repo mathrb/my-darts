@@ -8,5 +8,6 @@ abstract class ActivePracticeState with _$ActivePracticeState {
   const factory ActivePracticeState({
     required GameState gameState,
     String? pendingGameWinnerId,
+    @Default(false) bool showShanghaiBonus,
   }) = _ActivePracticeState;
 }

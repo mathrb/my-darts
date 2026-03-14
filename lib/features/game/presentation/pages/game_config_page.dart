@@ -100,7 +100,7 @@ class _GameConfigPanelState extends State<GameConfigPanel> {
       killer: (_) => [],
       baseball: (_) => [],
       golf: (_) => [],
-      shanghai: (_) => [],
+      shanghai: _buildShanghaiFields,
       scram: (_) => [],
       halveIt: (_) => [],
       highScore: (_) => [],
@@ -113,6 +113,23 @@ class _GameConfigPanelState extends State<GameConfigPanel> {
       bobs27: (_) => [],
       checkoutPractice: (_) => [],
     );
+  }
+
+  List<Widget> _buildShanghaiFields(ShanghaiGameConfig c) {
+    return [
+      _FieldColumn(
+        label: 'Rounds',
+        child: _StyledDropdown<int>(
+          value: c.totalRounds,
+          items: const [7, 10, 15, 20],
+          labelBuilder: (v) => '$v',
+          onChanged: (v) {
+            if (v == null) return;
+            setState(() => _draftConfig = c.copyWith(totalRounds: v));
+          },
+        ),
+      ),
+    ];
   }
 
   List<Widget> _buildX01Fields(X01GameConfig c) {

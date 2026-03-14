@@ -2,8 +2,9 @@
 // Pure functional implementation of the Shanghai darts practice drill.
 // Runs shanghaiTotalRounds rounds (default 7). Each round targets that round's number.
 // Per-dart scoring: roundNum * multiplier if segment matches round number.
-// Shanghai (single + double + triple in one turn) → instant win.
-// After all rounds: single-player ends with no winner; multi-player: highest score wins.
+// Shanghai (single + double + triple in one turn) → bonus: increment practiceSuccesses.
+// Game completes when all competitors finish the final round (via TurnEnded).
+// Single-player ends with no winner; multi-player: highest score wins.
 
 import '../models/game_state.dart';
 import '../entities/game_event.dart';
@@ -12,6 +13,8 @@ import 'base_game_engine.dart';
 class StatelessShanghaiEngine implements GameEngine {
   @override
   EngineResult apply(GameState state, GameEvent event) {
+    if (state.isComplete) return EngineResult(state: state);
+
     return switch (event.eventType) {
       'GameCreated' => EngineResult(
           state: state.copyWith(status: GameEngineStatus.inProgress)),
@@ -103,60 +106,65 @@ class StatelessShanghaiEngine implements GameEngine {
         .containsAll({'$roundNum', 'D$roundNum', 'T$roundNum'});
 
     if (isShanghai) {
-      final completedState = newState.copyWith(
-        isComplete: true,
-        status: GameEngineStatus.completed,
-        winnerCompetitorId: competitor.competitorId,
-        turnActive: false,
+      // Shanghai = instant win. Increment successes and end the game immediately.
+      final updatedWithBonus = List<CompetitorState>.from(newState.competitors);
+      updatedWithBonus[newState.currentTurnIndex] = competitor.copyWith(
+        practiceSuccesses: competitor.practiceSuccesses + 1,
       );
+      final winnerId = newState.competitors.length > 1
+          ? competitor.competitorId
+          : null;
       return (
-        completedState,
+        newState.copyWith(
+          competitors: updatedWithBonus,
+          turnActive: false,
+          isComplete: true,
+          status: GameEngineStatus.completed,
+          winnerCompetitorId: winnerId,
+        ),
         LegOutcome.gameCompleted,
-        competitor.competitorId
+        winnerId,
       );
-    }
-
-    // End condition: last competitor to complete the final round
-    final isLastInFinalRound = roundNum >= state.shanghaiTotalRounds &&
-        state.competitors
-            .where((c) => c.competitorId != competitor.competitorId)
-            .every((c) => c.practiceRound > state.shanghaiTotalRounds);
-
-    if (isLastInFinalRound) {
-      String? winnerId;
-      if (newState.competitors.length == 1) {
-        winnerId = null;
-      } else {
-        // Highest score wins; current competitor wins on a tie
-        int maxScore = competitor.score;
-        winnerId = competitor.competitorId;
-        for (final c in newState.competitors) {
-          if (c.competitorId != competitor.competitorId && c.score > maxScore) {
-            maxScore = c.score;
-            winnerId = c.competitorId;
-          }
-        }
-      }
-
-      final completedState = newState.copyWith(
-        isComplete: true,
-        status: GameEngineStatus.completed,
-        winnerCompetitorId: winnerId,
-        turnActive: false,
-      );
-      return (completedState, LegOutcome.gameCompleted, winnerId);
     }
 
     // Normal end of turn — caller sends TurnEnded
     return (newState.copyWith(turnActive: false), LegOutcome.none, null);
   }
 
-  // TurnEnded: increment practiceRound for current competitor, then rotate index
+  // TurnEnded: increment practiceRound for current competitor, then rotate index.
+  // If all competitors have exceeded shanghaiTotalRounds, the game is complete.
   GameState _applyTurnEnded(GameState state, GameEvent event) {
     final updatedCompetitors = List<CompetitorState>.from(state.competitors);
     final cur = updatedCompetitors[state.currentTurnIndex];
     updatedCompetitors[state.currentTurnIndex] =
         cur.copyWith(practiceRound: cur.practiceRound + 1);
+
+    final allDone = updatedCompetitors
+        .every((c) => c.practiceRound > state.shanghaiTotalRounds);
+
+    if (allDone) {
+      String? winnerId;
+      if (updatedCompetitors.length > 1) {
+        // Highest score wins; first highest wins on a tie
+        int maxScore = updatedCompetitors[0].score;
+        winnerId = updatedCompetitors[0].competitorId;
+        for (final c in updatedCompetitors.skip(1)) {
+          if (c.score > maxScore) {
+            maxScore = c.score;
+            winnerId = c.competitorId;
+          }
+        }
+      }
+      return state.copyWith(
+        competitors: updatedCompetitors,
+        dartsThrownInTurn: 0,
+        turnActive: false,
+        isComplete: true,
+        status: GameEngineStatus.completed,
+        winnerCompetitorId: winnerId,
+      );
+    }
+
     final nextIndex = (state.currentTurnIndex + 1) % state.competitors.length;
     return state.copyWith(
       competitors: updatedCompetitors,

@@ -29,8 +29,8 @@ abstract class GameState with _$GameState {
     @Default('standard') String cricketVariant,
     @Default('standard') String aroundTheClockVariant,
     @Default(7) int shanghaiTotalRounds,
-    @Default(8) int catch40TotalRounds,
-    @Default([10, 15, 20, 25, 30, 35, 40, 45]) List<int> catch40RoundTargets,
+    @Default(0) int catch40TargetRemaining,
+    @Default(0) int catch40DartsOnTarget,
     @Default([]) List<int> checkoutPracticeOrder,
   }) = _GameState;
 
@@ -48,8 +48,7 @@ abstract class GameState with _$GameState {
     String cricketVariant = 'standard';
     String aroundTheClockVariant = 'standard';
     int shanghaiTotalRounds = 7;
-    int catch40TotalRounds = 8;
-    List<int> catch40RoundTargets = [10, 15, 20, 25, 30, 35, 40, 45];
+    int catch40TargetRemaining = 0;
     List<int> checkoutPracticeOrder = [];
 
     if (game.config is X01GameConfig) {
@@ -68,8 +67,7 @@ abstract class GameState with _$GameState {
       shanghaiTotalRounds = (game.config as ShanghaiGameConfig).totalRounds;
     } else if (game.config is Catch40GameConfig) {
       startingScore = 0;
-      catch40TotalRounds = (game.config as Catch40GameConfig).totalRounds;
-      catch40RoundTargets = (game.config as Catch40GameConfig).roundTargets;
+      catch40TargetRemaining = 61; // First target is 61
     } else if (game.config is Bobs27GameConfig) {
       startingScore = 27;
     } else if (game.config is CheckoutPracticeGameConfig) {
@@ -124,8 +122,8 @@ abstract class GameState with _$GameState {
       cricketVariant: cricketVariant,
       aroundTheClockVariant: aroundTheClockVariant,
       shanghaiTotalRounds: shanghaiTotalRounds,
-      catch40TotalRounds: catch40TotalRounds,
-      catch40RoundTargets: catch40RoundTargets,
+      catch40TargetRemaining: catch40TargetRemaining,
+      catch40DartsOnTarget: 0,
       checkoutPracticeOrder: checkoutPracticeOrder,
     );
   }
