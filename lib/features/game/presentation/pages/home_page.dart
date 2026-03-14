@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:my_darts/app/app_router.dart';
 import 'package:my_darts/core/utils/app_colors.dart';
+import 'package:my_darts/core/utils/app_theme.dart';
 import 'package:my_darts/features/game/presentation/providers/game_setup_provider.dart';
 
 class HomePage extends ConsumerWidget {
@@ -19,7 +21,7 @@ class HomePage extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.settings),
             tooltip: 'Settings',
-            onPressed: () => context.go('/settings'),
+            onPressed: () => context.go(GameRoutes.settings),
           ),
         ],
       ),
@@ -30,56 +32,41 @@ class HomePage extends ConsumerWidget {
             const SizedBox(height: 8),
             const _SectionLabel(label: 'PLAY'),
             const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border.all(color: AppColors.outline),
-                borderRadius: const BorderRadius.all(Radius.circular(16)),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.all(Radius.circular(16)),
-                child: Column(
-                  children: [
-                    _PlayRow(
-                      label: 'X01',
-                      accentColor: AppColors.primary,
-                      onTap: () => context.go('/game/variant-selection/x01'),
-                    ),
-                    Divider(height: 1, thickness: 1, color: AppColors.outline),
-                    _PlayRow(
-                      label: 'Cricket',
-                      accentColor: AppColors.secondary,
-                      onTap: () =>
-                          context.go('/game/variant-selection/cricket'),
-                    ),
-                    Divider(height: 1, thickness: 1, color: AppColors.outline),
-                    _PlayRow(
-                      label: 'Practice',
-                      accentColor: AppColors.onPrimaryContainer,
-                      onTap: () {
-                        ref.read(gameSetupProvider.notifier).reset();
-                        context.go('/game/variant-selection/practice');
-                      },
-                    ),
-                    Divider(height: 1, thickness: 1, color: AppColors.outline),
-                    _PlayRow(
-                      label: 'Statistics',
-                      accentColor: AppColors.secondary,
-                      onTap: () => context.go('/stats'),
-                    ),
-                  ],
-                ),
-              ),
+            _PlayCard(
+              label: 'X01',
+              accentColor: AppColors.primary,
+              onTap: () => context.go('${GameRoutes.variantSelection}/x01'),
+            ),
+            const SizedBox(height: 8),
+            _PlayCard(
+              label: 'Cricket',
+              accentColor: AppColors.secondary,
+              onTap: () => context.go('${GameRoutes.variantSelection}/cricket'),
+            ),
+            const SizedBox(height: 8),
+            _PlayCard(
+              label: 'Practice',
+              accentColor: AppColors.onPrimaryContainer,
+              onTap: () {
+                ref.read(gameSetupProvider.notifier).reset();
+                context.go('${GameRoutes.variantSelection}/practice');
+              },
+            ),
+            const SizedBox(height: 8),
+            _PlayCard(
+              label: 'Statistics',
+              accentColor: AppColors.secondary,
+              onTap: () => context.go(GameRoutes.stats),
             ),
             const SizedBox(height: 16),
             _NavCard(
               label: 'History',
-              onTap: () => context.go('/history'),
+              onTap: () => context.go(GameRoutes.history),
             ),
             const SizedBox(height: 12),
             _NavCard(
               label: 'Local Players',
-              onTap: () => context.go('/players'),
+              onTap: () => context.go(GameRoutes.players),
             ),
             const SizedBox(height: 24),
             const _SectionLabel(label: 'COMING SOON'),
@@ -121,8 +108,8 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _PlayRow extends StatelessWidget {
-  const _PlayRow({
+class _PlayCard extends StatelessWidget {
+  const _PlayCard({
     required this.label,
     required this.accentColor,
     required this.onTap,
@@ -134,31 +121,43 @@ class _PlayRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 64),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(width: 4, color: accentColor),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    label,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyLarge
-                        ?.copyWith(color: AppColors.onBackground),
+    const radius = BorderRadius.all(Radius.circular(AppTheme.radiusLarge));
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.outline),
+        borderRadius: radius,
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 64),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(width: 4, color: accentColor),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        label,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyLarge
+                            ?.copyWith(color: AppColors.onBackground),
+                      ),
+                    ),
                   ),
-                ),
+                  Icon(Icons.chevron_right, color: accentColor),
+                  const SizedBox(width: 12),
+                ],
               ),
-              Icon(Icons.chevron_right, color: accentColor),
-              const SizedBox(width: 12),
-            ],
+            ),
           ),
         ),
       ),
@@ -177,12 +176,13 @@ class _NavCard extends StatelessWidget {
     return Card(
       color: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(16)),
+        borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusLarge)),
         side: BorderSide(color: AppColors.outline),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: const BorderRadius.all(Radius.circular(16)),
+        borderRadius:
+            const BorderRadius.all(Radius.circular(AppTheme.radiusLarge)),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 64),
           child: Padding(
@@ -198,7 +198,8 @@ class _NavCard extends StatelessWidget {
                         ?.copyWith(color: AppColors.onBackground),
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppColors.onSurfaceVariant),
+                const Icon(Icons.chevron_right,
+                    color: AppColors.onSurfaceVariant),
               ],
             ),
           ),
@@ -222,7 +223,8 @@ class _ComingSoonCard extends StatelessWidget {
         child: Card(
           color: AppColors.surfaceVariant,
           shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
+            borderRadius:
+                BorderRadius.all(Radius.circular(AppTheme.radiusLarge)),
           ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 64),

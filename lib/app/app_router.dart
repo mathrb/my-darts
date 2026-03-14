@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:my_darts/core/widgets/scaffold_with_nav_bar.dart';
 import 'package:my_darts/features/game/presentation/pages/home_page.dart';
 import 'package:my_darts/features/game/presentation/pages/player_selection_page.dart';
 import 'package:my_darts/features/game/presentation/pages/variant_selection_page.dart';
@@ -30,6 +29,10 @@ part 'app_router.g.dart';
 
 abstract final class GameRoutes {
   static const home             = '/';
+  static const history          = '/history';
+  static const stats            = '/stats';
+  static const settings         = '/settings';
+  static const players          = '/players';
   static const variantSelection = '/game/variant-selection';
   static const playerSelection  = '/game/player-selection';
   static const activeX01        = '/game/active/x01';
@@ -38,13 +41,6 @@ abstract final class GameRoutes {
 
   static String gameDetail(String id) => '/game/history/$id';
 }
-
-// ── Branch navigator keys ─────────────────────────────────────────────────────
-
-final _homeKey     = GlobalKey<NavigatorState>(debugLabel: 'home');
-final _historyKey  = GlobalKey<NavigatorState>(debugLabel: 'history');
-final _statsKey    = GlobalKey<NavigatorState>(debugLabel: 'stats');
-final _settingsKey = GlobalKey<NavigatorState>(debugLabel: 'settings');
 
 // ── RouterNotifier ────────────────────────────────────────────────────────────
 
@@ -115,33 +111,17 @@ Widget _errorPage(BuildContext _, GoRouterState s) => Scaffold(
     appBar: AppBar(title: const Text('Error')),
     body: Center(child: Text('Page not found: ${s.uri}')));
 
-Widget _shellBuilder(
-        BuildContext _, GoRouterState __, StatefulNavigationShell shell) =>
-    ScaffoldWithNavBar(navigationShell: shell);
-
 // ── Route tree ────────────────────────────────────────────────────────────────
 
 List<RouteBase> _buildRoutes() => [
-      StatefulShellRoute.indexedStack(
-        builder: _shellBuilder,
-        branches: [
-          StatefulShellBranch(
-              navigatorKey: _homeKey,
-              routes: [GoRoute(path: GameRoutes.home, builder: _homePage)]),
-          StatefulShellBranch(
-              navigatorKey: _historyKey,
-              routes: [GoRoute(path: '/history', builder: _historyPage)]),
-          StatefulShellBranch(
-              navigatorKey: _statsKey,
-              routes: [GoRoute(path: '/stats', builder: _statsPage)]),
-          StatefulShellBranch(
-              navigatorKey: _settingsKey,
-              routes: [GoRoute(path: '/settings', builder: _settingsPage)]),
-        ],
-      ),
-      // EPIC-002 player routes — outside shell
+      // Top-level flat routes — no persistent shell / bottom nav
+      GoRoute(path: GameRoutes.home,     builder: _homePage),
+      GoRoute(path: GameRoutes.history,  builder: _historyPage),
+      GoRoute(path: GameRoutes.stats,    builder: _statsPage),
+      GoRoute(path: GameRoutes.settings, builder: _settingsPage),
+      // EPIC-002 player routes
       GoRoute(
-        path: '/players',
+        path: GameRoutes.players,
         builder: _playerListPage,
         routes: [
           GoRoute(path: 'add', builder: _createPlayerPage),
@@ -152,12 +132,12 @@ List<RouteBase> _buildRoutes() => [
           ),
         ],
       ),
-      // EPIC-004 game setup routes — outside shell
+      // EPIC-004 game setup routes
       GoRoute(
           path: '${GameRoutes.variantSelection}/:category',
           builder: _variantSelectionPage),
       GoRoute(path: GameRoutes.playerSelection, builder: _playerSelectionPage),
-      // Active game board stubs — outside shell
+      // Active game board routes
       GoRoute(
           path: '${GameRoutes.activeX01}/:gameId', builder: _x01BoardPage),
       GoRoute(

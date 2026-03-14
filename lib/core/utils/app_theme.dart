@@ -6,6 +6,7 @@ import 'app_text_styles.dart';
 /// Build exact-token ColorSchemes — never use ColorScheme.fromSeed.
 abstract final class AppTheme {
   static const double radiusMedium = 12.0;
+  static const double radiusLarge  = 16.0;
 
   static ThemeData light() => _build(Brightness.light);
   static ThemeData dark()  => _build(Brightness.dark);
