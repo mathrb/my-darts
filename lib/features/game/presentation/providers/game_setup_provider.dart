@@ -67,7 +67,7 @@ class GameSetupNotifier extends _$GameSetupNotifier {
         );
       },
       selectingPlayers: (s) {
-        state = s.copyWith(config: config);
+        state = s.copyWith(config: config, gameType: _gameTypeFor(config));
       },
       formingTeams: (_) {},
       ready: (_) {},
@@ -89,11 +89,10 @@ class GameSetupNotifier extends _$GameSetupNotifier {
     );
   }
 
-  /// Adds or removes playerId. No-ops if not in selectingPlayers or if locked.
+  /// Adds or removes playerId. No-ops if not in selectingPlayers.
   void togglePlayer(String playerId) {
     state.maybeMap(
       selectingPlayers: (s) {
-        if (playerId == _lockedPlayerId) return; // silently ignore locked player
         final ids = s.selectedPlayerIds;
         final updated = ids.contains(playerId)
             ? ids.where((id) => id != playerId).toList()
