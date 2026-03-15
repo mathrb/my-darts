@@ -4,6 +4,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../domain/models/game_config.dart';
 
+const double _kSlotHeight = 48;
+
 class DartIndicatorWidget extends StatelessWidget {
   const DartIndicatorWidget({
     required this.currentTurnDarts,
@@ -61,17 +63,21 @@ class _DartChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border.all(color: cs.outline, width: 1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        segment,
-        style: AppTextStyles.bodyMedium.copyWith(fontSize: 21, color: cs.onSurface),
+    return SizedBox(
+      height: _kSlotHeight,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          border: Border.all(color: cs.outline, width: 1),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          segment,
+          style: AppTextStyles.bodyMedium.copyWith(fontSize: 21, color: cs.onSurface),
+        ),
       ),
     );
   }
@@ -83,13 +89,16 @@ class _EmptySlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: SvgPicture.asset(
-        'assets/icons/dart_placeholder.svg',
-        width: 36,
-        height: 36,
-        colorFilter: ColorFilter.mode(cs.outline, BlendMode.srcIn),
+    return SizedBox(
+      height: _kSlotHeight,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: SvgPicture.asset(
+          'assets/icons/dart_placeholder.svg',
+          width: 36,
+          height: 36,
+          colorFilter: ColorFilter.mode(cs.outline, BlendMode.srcIn),
+        ),
       ),
     );
   }
