@@ -170,51 +170,44 @@ void main() {
   });
 
   group('3rd dart — turn ends normally', () {
-    test('DartThrown → TurnEnded → TurnStarted appended', () async {
+    test('only DartThrown appended; turnActive=false, dartsThrownInTurn=3', () async {
       final state = _makeState(score1: 501, dartsThrownInTurn: 2);
       final dart = _makeDart(segment: '20', score: 20);
 
       final newState = await useCase.execute(state, dart);
 
-      // Score updated, turn passed to c2
+      // Score updated; turn is NOT yet advanced (user must tap NEXT ROUND)
       expect(newState.competitors[0].score, 481);
-      expect(newState.currentTurnIndex, 1);
-      expect(newState.turnActive, true);
+      expect(newState.currentTurnIndex, 0);
+      expect(newState.dartsThrownInTurn, 3);
+      expect(newState.turnActive, false);
 
+      // Only DartThrown persisted — TurnEnded+TurnStarted come from startNextTurn()
       final events = _captureEvents();
-      expect(events.length, 3);
+      expect(events.length, 1);
       expect(events[0].eventType, 'DartThrown');
-      expect(events[1].eventType, 'TurnEnded');
-      expect(events[2].eventType, 'TurnStarted');
-
-      // TurnEnded reason is normal
-      expect(events[1].payload['reason'], 'normal');
-      // TurnStarted goes to c2
-      expect(events[2].payload['competitor_id'], 'c2');
     });
   });
 
   group('Bust dart', () {
-    test('DartThrown(bust=true) → TurnEnded(reason=bust) → TurnStarted', () async {
+    test('only DartThrown(bust=true) appended; turnActive=false, dartsThrownInTurn=3', () async {
       // score=2, throw single 1 → score becomes 1 → bust
       final state = _makeState(score1: 2, dartsThrownInTurn: 0);
       final dart = _makeDart(segment: '1', score: 1);
 
       final newState = await useCase.execute(state, dart);
 
-      // Score restored (bust recovery), turn passed to c2
+      // Score restored (bust recovery); turn NOT yet advanced
       expect(newState.competitors[0].score, 2);
-      expect(newState.currentTurnIndex, 1);
-      expect(newState.turnActive, true);
+      expect(newState.currentTurnIndex, 0);
+      expect(newState.dartsThrownInTurn, 3);
+      expect(newState.turnActive, false);
 
+      // Only DartThrown persisted — TurnEnded+TurnStarted come from startNextTurn()
       final events = _captureEvents();
-      expect(events.length, 3);
+      expect(events.length, 1);
       expect(events[0].eventType, 'DartThrown');
       expect(events[0].payload['bust'], true);
-      expect(events[1].eventType, 'TurnEnded');
-      expect(events[1].payload['reason'], 'bust');
-      expect(events[2].eventType, 'TurnStarted');
-      expect(events[2].payload['competitor_id'], 'c2');
     });
   });
 
@@ -308,17 +301,24 @@ void main() {
       // getLatestSequence returns 5, so first event should be 6
       when(mockEventRepo.getLatestSequence(any)).thenAnswer((_) async => 5);
 
-      // Use a 3-event scenario (3rd dart turn end)
-      final state = _makeState(score1: 501, dartsThrownInTurn: 2);
-      final dart = _makeDart(segment: '20', score: 20);
+      // Use a leg-completing scenario (4 events: DartThrown, TurnEnded, LegCompleted, TurnStarted)
+      final state = _makeState(
+        score1: 32,
+        legsToWin: 2,
+        legsWon1: 0,
+        outStrategy: 'double',
+        startingScore: 501,
+      );
+      final dart = _makeDart(segment: 'D16', score: 32);
 
       await useCase.execute(state, dart);
 
       final events = _captureEvents();
-      expect(events.length, 3);
+      expect(events.length, 4);
       expect(events[0].localSequence, 6);
       expect(events[1].localSequence, 7);
       expect(events[2].localSequence, 8);
+      expect(events[3].localSequence, 9);
     });
   });
 

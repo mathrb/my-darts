@@ -81,25 +81,24 @@ class ProcessDartUseCase {
     bool needsCompleteGame = false;
 
     if (!finalState.turnActive) {
-      // Turn ended — append TurnEnded
-      final turnEndedEvent = GameEvent(
-        eventId: const Uuid().v4(),
-        gameId: currentState.gameId,
-        eventType: 'TurnEnded',
-        localSequence: nextSeq++,
-        occurredAt: DateTime.now(),
-        payload: {
-          'competitor_id': dartThrow.competitorId,
-          'reason': result.isBust ? 'bust' : 'normal',
-        },
-        synced: false,
-        actorId: 'system',
-        source: EventSource.client,
-      );
-      eventsToStore.add(turnEndedEvent);
-
       if (result.outcome == LegOutcome.gameCompleted) {
-        // Append LegCompleted + GameCompleted; call completeGame()
+        // Append TurnEnded + LegCompleted + GameCompleted; call completeGame()
+        final turnEndedEvent = GameEvent(
+          eventId: const Uuid().v4(),
+          gameId: currentState.gameId,
+          eventType: 'TurnEnded',
+          localSequence: nextSeq++,
+          occurredAt: DateTime.now(),
+          payload: {
+            'competitor_id': dartThrow.competitorId,
+            'reason': 'normal',
+          },
+          synced: false,
+          actorId: 'system',
+          source: EventSource.client,
+        );
+        eventsToStore.add(turnEndedEvent);
+
         final legCompletedEvent = GameEvent(
           eventId: const Uuid().v4(),
           gameId: currentState.gameId,
@@ -129,7 +128,23 @@ class ProcessDartUseCase {
         // finalState stays as result.state (game is over, no TurnStarted)
 
       } else if (result.outcome == LegOutcome.legCompleted) {
-        // Append LegCompleted + TurnStarted for first player of new leg
+        // Append TurnEnded + LegCompleted + TurnStarted for first player of new leg
+        final turnEndedEvent = GameEvent(
+          eventId: const Uuid().v4(),
+          gameId: currentState.gameId,
+          eventType: 'TurnEnded',
+          localSequence: nextSeq++,
+          occurredAt: DateTime.now(),
+          payload: {
+            'competitor_id': dartThrow.competitorId,
+            'reason': 'normal',
+          },
+          synced: false,
+          actorId: 'system',
+          source: EventSource.client,
+        );
+        eventsToStore.add(turnEndedEvent);
+
         final legCompletedEvent = GameEvent(
           eventId: const Uuid().v4(),
           gameId: currentState.gameId,
@@ -163,28 +178,11 @@ class ProcessDartUseCase {
         eventsToStore.add(turnStartedEvent);
         finalState = _engine.apply(finalState, turnStartedEvent).state;
 
-      } else {
-        // Normal or bust turn end — TurnStarted for next player
-        final nextIndex = (finalState.currentTurnIndex + 1) % finalState.competitors.length;
-        final nextCompetitorId = finalState.competitors[nextIndex].competitorId;
-        final turnStartedEvent = GameEvent(
-          eventId: const Uuid().v4(),
-          gameId: currentState.gameId,
-          eventType: 'TurnStarted',
-          localSequence: nextSeq++,
-          occurredAt: DateTime.now(),
-          payload: {
-            'competitor_id': nextCompetitorId,
-            'turn_index': nextIndex,
-            'leg_index': finalState.currentLegIndex,
-          },
-          synced: false,
-          actorId: 'system',
-          source: EventSource.client,
-        );
-        eventsToStore.add(turnStartedEvent);
-        finalState = _engine.apply(finalState, turnStartedEvent).state;
       }
+      // Normal or bust turn end: only DartThrown is persisted here.
+      // TurnEnded + TurnStarted are appended when the player taps NEXT ROUND
+      // (via ActiveGameNotifier.startNextTurn). finalState remains result.state
+      // with turnActive=false, dartsThrownInTurn=3.
     }
 
     // 9. Persist: dart first, then events

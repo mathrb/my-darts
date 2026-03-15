@@ -1,7 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/dart_throw.dart';
+import '../../domain/entities/game_event.dart';
 import '../../domain/models/game_config.dart';
+import '../../../../core/utils/constants.dart';
 import '../../domain/models/game_state.dart';
 import '../state/active_game_state.dart';
 import '../../../../core/persistence/database_provider.dart';
@@ -36,6 +38,7 @@ class ActiveGameNotifier extends _$ActiveGameNotifier {
     final gs = current.gameState;
     final oldTurnIndex = gs.currentTurnIndex;
     final oldLegIndex = gs.currentLegIndex;
+    final oldDartsThrownInTurn = gs.dartsThrownInTurn;
     final competitor = gs.competitors[oldTurnIndex];
 
     final dart = DartThrow(
@@ -55,10 +58,18 @@ class ActiveGameNotifier extends _$ActiveGameNotifier {
       final newGs =
           await ref.read(processDartUseCaseProvider).execute(gs, dart);
 
-      final turnAdvanced = newGs.currentTurnIndex != oldTurnIndex;
-      final scoreUnchanged = newGs.competitors[oldTurnIndex].score ==
-          gs.competitors[oldTurnIndex].score;
-      final showBust = turnAdvanced && scoreUnchanged;
+      // Bust: turn ended before player had a chance to throw 3 full darts
+      // (engine forces dartsThrownInTurn=3 on bust), OR the 3rd dart restored
+      // the score to a higher value (turnStartScore recovery).
+      final showBust = !newGs.turnActive &&
+          !newGs.isComplete &&
+          (
+            // Bust on 1st or 2nd dart: count jumped to 3 immediately
+            (oldDartsThrownInTurn < 2 && newGs.dartsThrownInTurn == 3) ||
+            // Bust on 3rd dart: score was restored (higher than pre-dart score)
+            newGs.competitors[oldTurnIndex].score >
+                gs.competitors[oldTurnIndex].score
+          );
 
       final legCompleted =
           newGs.currentLegIndex > oldLegIndex && !newGs.isComplete;
@@ -74,6 +85,73 @@ class ActiveGameNotifier extends _$ActiveGameNotifier {
         pendingLegWinnerId: pendingLegWinnerId,
         pendingGameWinnerId: pendingGameWinnerId,
       );
+    });
+  }
+
+  /// Advances to the next player's turn. Called when the user taps NEXT ROUND
+  /// after all 3 darts have been thrown (or after a bust). Appends TurnEnded
+  /// and TurnStarted events to the event log.
+  Future<void> startNextTurn() async {
+    final current = state.value;
+    if (current == null) return;
+    final gs = current.gameState;
+    if (gs.isComplete || gs.turnActive) return;
+
+    state = await AsyncValue.guard(() async {
+      int nextSeq =
+          await ref.read(gameEventRepositoryProvider).getLatestSequence(gs.gameId) + 1;
+
+      final currentCompetitor = gs.competitors[gs.currentTurnIndex];
+      final actorId = currentCompetitor.playerIds.isNotEmpty
+          ? currentCompetitor.playerIds.first
+          : 'system';
+
+      final turnEndedEvent = GameEvent(
+        eventId: const Uuid().v4(),
+        gameId: gs.gameId,
+        eventType: 'TurnEnded',
+        localSequence: nextSeq++,
+        occurredAt: DateTime.now(),
+        payload: {
+          'competitor_id': currentCompetitor.competitorId,
+          'reason': current.showBust ? 'bust' : 'normal',
+        },
+        synced: false,
+        actorId: actorId,
+        source: EventSource.client,
+      );
+
+      final engine = ref.read(x01EngineProvider);
+      var newGs = engine.apply(gs, turnEndedEvent).state;
+
+      final nextCompetitor = newGs.competitors[newGs.currentTurnIndex];
+      final nextActorId = nextCompetitor.playerIds.isNotEmpty
+          ? nextCompetitor.playerIds.first
+          : 'system';
+
+      final turnStartedEvent = GameEvent(
+        eventId: const Uuid().v4(),
+        gameId: gs.gameId,
+        eventType: 'TurnStarted',
+        localSequence: nextSeq++,
+        occurredAt: DateTime.now(),
+        payload: {
+          'competitor_id': nextCompetitor.competitorId,
+          'turn_index': newGs.currentTurnIndex,
+          'leg_index': newGs.currentLegIndex,
+        },
+        synced: false,
+        actorId: nextActorId,
+        source: EventSource.client,
+      );
+
+      newGs = engine.apply(newGs, turnStartedEvent).state;
+
+      await ref
+          .read(gameEventRepositoryProvider)
+          .appendEvents([turnEndedEvent, turnStartedEvent]);
+
+      return ActiveGameState(gameState: newGs);
     });
   }
 

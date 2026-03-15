@@ -82,6 +82,7 @@ GameState _gameState({
   int legsToWin = 1,
   int currentLegIndex = 0,
   bool isComplete = false,
+  bool turnActive = true,
   List<CompetitorState>? competitors,
 }) =>
     GameState(
@@ -91,6 +92,7 @@ GameState _gameState({
       currentTurnIndex: currentTurnIndex,
       dartsThrownInTurn: dartsThrownInTurn,
       isComplete: isComplete,
+      turnActive: turnActive,
       startingScore: startingScore,
       legsToWin: legsToWin,
       currentLegIndex: currentLegIndex,
@@ -513,10 +515,10 @@ void main() {
 
   // ── 19. NEXT ROUND disabled when < 3 darts ───────────────────────────────────
 
-  testWidgets('19. NEXT ROUND disabled when dartsThrownInTurn < 3',
+  testWidgets('19. NEXT ROUND disabled when turnActive (mid-turn)',
       (tester) async {
     _setPhoneViewport(tester);
-    final gs = _gameState(dartsThrownInTurn: 2);
+    final gs = _gameState(dartsThrownInTurn: 2, turnActive: true);
     final notifier = _FakeActiveGameNotifier(_activeState(gameState: gs));
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
@@ -529,10 +531,10 @@ void main() {
 
   // ── 20. NEXT ROUND enabled when 3 darts thrown ───────────────────────────────
 
-  testWidgets('20. NEXT ROUND enabled when dartsThrownInTurn == 3',
+  testWidgets('20. NEXT ROUND enabled when turn ended (turnActive=false)',
       (tester) async {
     _setPhoneViewport(tester);
-    final gs = _gameState(dartsThrownInTurn: 3);
+    final gs = _gameState(dartsThrownInTurn: 3, turnActive: false);
     final notifier = _FakeActiveGameNotifier(_activeState(gameState: gs));
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();

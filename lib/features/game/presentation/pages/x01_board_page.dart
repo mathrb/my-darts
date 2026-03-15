@@ -150,7 +150,7 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
         final dartsThrownInTurn = gameState.dartsThrownInTurn;
         final canUndo = dartsThrownInTurn > 0 ||
             gameState.competitors.any((c) => c.dartThrows.isNotEmpty);
-        final canNext = dartsThrownInTurn == 3;
+        final canNext = !gameState.turnActive && !gameState.isComplete;
         final currentScore = activeCompetitor.score;
 
         // Current turn darts: last dartsThrownInTurn items from active
@@ -218,7 +218,7 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
                       onSegmentTapped: (segment) => ref
                           .read(activeGameProvider(widget.gameId).notifier)
                           .processDart(segment),
-                      enabled: !gameState.isComplete,
+                      enabled: !gameState.isComplete && gameState.turnActive,
                     ),
                   ),
                   _BottomActionBar(
@@ -232,6 +232,7 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
                           .read(activeGameProvider(widget.gameId).notifier);
                       notifier.dismissBust();
                       notifier.dismissLegModal();
+                      notifier.startNextTurn();
                     },
                   ),
                 ],
@@ -301,7 +302,7 @@ class _CheckoutBanner extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 checkoutSuggestion(score) ?? '',
-                style: AppTextStyles.bodyMedium.copyWith(color: cs.onSurface),
+                style: AppTextStyles.bodyMedium.copyWith(color: cs.onBackground),
               ),
             ],
           ),
