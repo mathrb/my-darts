@@ -433,17 +433,18 @@ void main() {
           );
     });
 
-    test('togglePlayer(lockedPlayerId) is a no-op', () async {
+    test('togglePlayer(lockedPlayerId) removes the locked player (can deselect)',
+        () async {
       lockedContainer.read(gameSetupProvider);
       await Future.microtask(() {});
 
       final n = lockedContainer.read(gameSetupProvider.notifier);
       n.selectVariant(x01Config); // → selectingPlayers with ['locked-id']
-      n.togglePlayer('locked-id'); // should be no-op
+      n.togglePlayer('locked-id'); // should deselect
 
       lockedContainer.read(gameSetupProvider).maybeMap(
             selectingPlayers: (s) =>
-                expect(s.selectedPlayerIds, contains('locked-id')),
+                expect(s.selectedPlayerIds, isNot(contains('locked-id'))),
             orElse: () => fail('Expected selectingPlayers'),
           );
     });
