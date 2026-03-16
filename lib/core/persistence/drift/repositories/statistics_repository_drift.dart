@@ -137,6 +137,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
     DateTime? from,
     DateTime? to,
     int? startingScore,
+    String? variant,
     int? legLimit,
   }) async {
     try {
@@ -219,10 +220,35 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       final highestTurnScore =
           await _calculateHighestTurnScore(playerId, gameType);
 
-      // Legs won and darts per leg
+      // Legs played, legs won and darts per leg
+      final legsPlayed = await _getLegsPlayedByPlayer(playerId, gameType);
       final legsWon = await _getLegsWonByPlayer(playerId, gameType);
       final double dartsPerLeg =
-          legsWon > 0 ? dartCount / legsWon : 0.0;
+          legsPlayed > 0 ? dartCount / legsPlayed : 0.0;
+
+      // Cricket-specific stats (early return — X01 fields not applicable)
+      if (gameType == GameType.cricket) {
+        final cricketStats =
+            await _calculateCricketStats(playerId, variant: variant);
+        return PlayerStats(
+          playerId: playerId,
+          gameType: GameType.cricket,
+          totalGames: totalGames,
+          gamesWon: gamesWon,
+          winRate: winRate,
+          threeDartAverage: 0.0,
+          bustRate: 0.0,
+          highestTurnScore: 0,
+          dartsPerLeg: dartsPerLeg,
+          totalDartsThrown: dartCount,
+          legsPlayed: legsPlayed,
+          legsWon: legsWon,
+          marksPerTurn: cricketStats['marksPerTurn'] as double?,
+          hitRate: cricketStats['hitRate'] as double?,
+          sixMarkTurns: cricketStats['sixMarkTurns'] as int? ?? 0,
+          nineMarkTurns: cricketStats['nineMarkTurns'] as int? ?? 0,
+        );
+      }
 
       // Bust rate
       final bustRate = await _calculateBustRate(playerId, gameType);
@@ -251,6 +277,8 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         totalDartsThrown: dartCount,
         dartsPerLeg: dartsPerLeg,
         bustRate: bustRate,
+        legsPlayed: legsPlayed,
+        legsWon: legsWon,
       );
     } on RepositoryException {
       rethrow;
@@ -312,8 +340,10 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
           await _calculateHighestCheckoutForGame(playerId, gameId);
       final bustRate =
           await _calculateBustRate(playerId, gameType, gameId: gameId);
+      final legsPlayedInGame = await _getLegsPlayedInGame(gameId);
       final legsWon = await _getLegsWonForPlayerInGame(playerId, gameId);
-      final double dartsPerLeg = legsWon > 0 ? dartCount / legsWon : 0.0;
+      final double dartsPerLeg =
+          legsPlayedInGame > 0 ? dartCount / legsPlayedInGame : 0.0;
 
       return PlayerStats(
         playerId: playerId,
@@ -328,6 +358,8 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         totalDartsThrown: dartCount,
         dartsPerLeg: dartsPerLeg,
         bustRate: bustRate,
+        legsPlayed: legsPlayedInGame,
+        legsWon: legsWon,
       );
     } on RepositoryException {
       rethrow;
@@ -572,6 +604,173 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
     }
   }
 
+  /// Cricket-specific stats: MPT, hit rate, and mark buckets.
+  /// Computed from [dart_throws] using the canonical segment format.
+  Future<Map<String, dynamic>> _calculateCricketStats(
+    String playerId, {
+    String? variant,
+  }) async {
+    try {
+      String variantFilter = '';
+      List<Variable<Object>> vars = [Variable.withString(playerId)];
+
+      if (variant != null) {
+        variantFilter =
+            "AND JSON_EXTRACT(g.config_json, '\$.variant') = ?";
+        vars.add(Variable.withString(variant));
+      }
+
+      // Segment-to-marks expression shared across queries.
+      // Handles: DB=2, SB=1, T{n}=3, D{n}=2, {n}=1 for n in cricket targets.
+      const marksExpr = '''
+        CASE
+          WHEN dt.segment = 'DB' THEN 2
+          WHEN dt.segment = 'SB' THEN 1
+          WHEN dt.segment LIKE 'T%'
+            AND CAST(SUBSTR(dt.segment, 2) AS INTEGER) IN (15,16,17,18,19,20,25) THEN 3
+          WHEN dt.segment LIKE 'D%'
+            AND CAST(SUBSTR(dt.segment, 2) AS INTEGER) IN (15,16,17,18,19,20,25) THEN 2
+          WHEN CAST(dt.segment AS INTEGER) IN (15,16,17,18,19,20,25) THEN 1
+          ELSE 0
+        END
+      ''';
+
+      final mptSql = '''
+        SELECT
+          SUM($marksExpr) AS total_marks,
+          COUNT(DISTINCT dt.game_id || '|' || CAST(dt.turn_number AS TEXT)) AS total_turns
+        FROM dart_throws dt
+        JOIN games g ON dt.game_id = g.game_id
+        WHERE dt.player_id = ?
+        AND g.game_type = 'cricket'
+        AND g.is_complete = 1
+        $variantFilter
+      ''';
+
+      final hitRateSql = '''
+        SELECT
+          COUNT(*) AS total_darts,
+          SUM(CASE
+            WHEN dt.segment IN ('DB', 'SB') THEN 1
+            WHEN dt.segment LIKE 'T%'
+              AND CAST(SUBSTR(dt.segment, 2) AS INTEGER) IN (15,16,17,18,19,20,25) THEN 1
+            WHEN dt.segment LIKE 'D%'
+              AND CAST(SUBSTR(dt.segment, 2) AS INTEGER) IN (15,16,17,18,19,20,25) THEN 1
+            WHEN CAST(dt.segment AS INTEGER) IN (15,16,17,18,19,20,25) THEN 1
+            ELSE 0
+          END) AS cricket_darts
+        FROM dart_throws dt
+        JOIN games g ON dt.game_id = g.game_id
+        WHERE dt.player_id = ?
+        AND g.game_type = 'cricket'
+        AND g.is_complete = 1
+        $variantFilter
+      ''';
+
+      final markBucketsSql = '''
+        SELECT
+          SUM(CASE WHEN turn_marks >= 9 THEN 1 ELSE 0 END) AS nine_mark_turns,
+          SUM(CASE WHEN turn_marks >= 6 THEN 1 ELSE 0 END) AS six_mark_turns
+        FROM (
+          SELECT SUM($marksExpr) AS turn_marks
+          FROM dart_throws dt
+          JOIN games g ON dt.game_id = g.game_id
+          WHERE dt.player_id = ?
+          AND g.game_type = 'cricket'
+          AND g.is_complete = 1
+          $variantFilter
+          GROUP BY dt.game_id, dt.turn_number
+        )
+      ''';
+
+      final mptRows =
+          await _db.customSelect(mptSql, variables: vars).get();
+      final hitRateRows =
+          await _db.customSelect(hitRateSql, variables: vars).get();
+      final bucketsRows =
+          await _db.customSelect(markBucketsSql, variables: vars).get();
+
+      final totalMarks =
+          (mptRows.first.data['total_marks'] as num? ?? 0).toInt();
+      final totalTurns =
+          (mptRows.first.data['total_turns'] as num? ?? 0).toInt();
+      final double? marksPerTurn =
+          totalTurns > 0 ? totalMarks / totalTurns : null;
+
+      final totalDarts =
+          (hitRateRows.first.data['total_darts'] as num? ?? 0).toInt();
+      final cricketDarts =
+          (hitRateRows.first.data['cricket_darts'] as num? ?? 0).toInt();
+      final double? hitRate =
+          totalDarts > 0 ? cricketDarts / totalDarts : null;
+
+      final nineMarkTurns =
+          (bucketsRows.first.data['nine_mark_turns'] as num? ?? 0).toInt();
+      final sixMarkTurns =
+          (bucketsRows.first.data['six_mark_turns'] as num? ?? 0).toInt();
+
+      return {
+        'marksPerTurn': marksPerTurn,
+        'hitRate': hitRate,
+        'sixMarkTurns': sixMarkTurns,
+        'nineMarkTurns': nineMarkTurns,
+      };
+    } catch (e) {
+      return {
+        'marksPerTurn': null,
+        'hitRate': null,
+        'sixMarkTurns': 0,
+        'nineMarkTurns': 0,
+      };
+    }
+  }
+
+  /// Number of legs played by [playerId] across completed games of [gameType].
+  Future<int> _getLegsPlayedByPlayer(
+      String playerId, GameType? gameType) async {
+    try {
+      String gameTypeFilter = '';
+      List<Variable<Object>> vars = [Variable.withString(playerId)];
+
+      if (gameType != null) {
+        gameTypeFilter = 'AND g.game_type = ?';
+        vars.add(Variable.withString(gameType.name));
+      }
+
+      final sql = '''
+        SELECT COUNT(*) AS legs_played
+        FROM game_events ge
+        JOIN games g ON ge.game_id = g.game_id
+        WHERE ge.event_type = 'LegCompleted'
+        AND g.is_complete = 1
+        AND g.game_id IN (
+          SELECT DISTINCT game_id FROM dart_throws WHERE player_id = ?
+        )
+        $gameTypeFilter
+      ''';
+
+      final rows = await _db.customSelect(sql, variables: vars).get();
+      final raw = rows.first.data['legs_played'];
+      if (raw == null) return 0;
+      return (raw as num).toInt();
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  /// Total legs played in a single game (all LegCompleted events).
+  Future<int> _getLegsPlayedInGame(String gameId) async {
+    try {
+      final events = await (_db.select(_db.gameEvents)
+            ..where((e) =>
+                e.gameId.equals(gameId) & e.eventType.equals('LegCompleted')))
+          .get();
+      return events.length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
   /// Bust rate for [playerId] across the given scope.
   Future<double> _calculateBustRate(
     String playerId,
@@ -761,6 +960,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
     String playerId, {
     GameType? gameType,
     int? startingScore,
+    String? variant,
     int? limit,
   }) async {
     // Minimal implementation — returns empty list (web debug target only)
@@ -771,6 +971,30 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
   Future<List<int>> getPlayerX01StartingScores(String playerId) async {
     // Minimal implementation — returns empty list (web debug target only)
     return [];
+  }
+
+  @override
+  Future<List<String>> getPlayerCricketVariants(String playerId) async {
+    try {
+      final sql = '''
+        SELECT DISTINCT JSON_EXTRACT(g.config_json, '\$.variant') AS variant
+        FROM games g
+        JOIN dart_throws dt ON dt.game_id = g.game_id
+        WHERE g.game_type = 'cricket'
+        AND g.is_complete = 1
+        AND dt.player_id = ?
+        AND JSON_EXTRACT(g.config_json, '\$.variant') IS NOT NULL
+      ''';
+
+      final rows = await _db
+          .customSelect(sql, variables: [Variable.withString(playerId)]).get();
+      return rows
+          .map((r) => r.data['variant'] as String?)
+          .whereType<String>()
+          .toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   /// Aggregate X01 checkout stats for [playerId] across all relevant games.

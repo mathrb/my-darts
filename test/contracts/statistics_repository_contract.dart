@@ -7,10 +7,12 @@ import 'package:my_darts/features/statistics/domain/repositories/statistics_repo
 import 'package:my_darts/features/players/domain/repositories/player_repository.dart';
 import 'package:my_darts/features/game/domain/repositories/game_repository.dart';
 import 'package:my_darts/features/game/domain/repositories/dart_throw_repository.dart';
+import 'package:my_darts/features/game/domain/repositories/game_event_repository.dart';
 import 'package:my_darts/features/players/domain/entities/player.dart';
 import 'package:my_darts/features/game/domain/entities/game.dart';
 import 'package:my_darts/features/game/domain/entities/competitor.dart';
 import 'package:my_darts/features/game/domain/entities/dart_throw.dart';
+import 'package:my_darts/features/game/domain/entities/game_event.dart';
 import 'package:my_darts/features/game/domain/models/game_config.dart';
 import 'package:my_darts/core/error/repository_exception.dart';
 import 'package:my_darts/core/utils/constants.dart';
@@ -21,12 +23,14 @@ void runStatisticsRepositoryContractTests(DatabaseTestBase base) {
   late PlayerRepository playerRepo;
   late GameRepository gameRepo;
   late DartThrowRepository dartThrowRepo;
+  late GameEventRepository gameEventRepo;
 
   setUp(() async {
     statsRepo = await base.createStatisticsRepository();
     playerRepo = await base.createPlayerRepository();
     gameRepo = await base.createGameRepository();
     dartThrowRepo = await base.createDartThrowRepository();
+    gameEventRepo = await base.createGameEventRepository();
   });
 
   // ── getGameStats ──────────────────────────────────────────────────────────
@@ -146,6 +150,90 @@ void runStatisticsRepositoryContractTests(DatabaseTestBase base) {
       expect(stream, isA<Stream>());
     });
   });
+
+  // ── Cricket statistics ────────────────────────────────────────────────────
+
+  group('getPlayerStats - cricket', () {
+    test('legsPlayed and legsWon are computed from LegCompleted events',
+        () async {
+      await _setupCompletedCricketGame(
+          playerRepo, gameRepo, dartThrowRepo, gameEventRepo,
+          playerId: 'p1', gameId: 'g1', competitorId: 'c1');
+
+      final stats =
+          await statsRepo.getPlayerStats('p1', gameType: GameType.cricket);
+      expect(stats.legsPlayed, 1);
+      expect(stats.legsWon, 1);
+    });
+
+    test('marksPerTurn is the ratio of total marks to total turns', () async {
+      await _setupCompletedCricketGame(
+          playerRepo, gameRepo, dartThrowRepo, gameEventRepo,
+          playerId: 'p1', gameId: 'g1', competitorId: 'c1');
+
+      final stats =
+          await statsRepo.getPlayerStats('p1', gameType: GameType.cricket);
+      // Turn 0: '20'=1, 'T19'=3, 'D15'=2 → 6 marks
+      // Turn 1: 'T20'=3, 'T20'=3, 'T20'=3 → 9 marks
+      // MPT = 15 / 2 = 7.5
+      expect(stats.marksPerTurn, isNotNull);
+      expect(stats.marksPerTurn!, closeTo(7.5, 0.01));
+    });
+
+    test('hitRate reflects fraction of darts landing on cricket targets',
+        () async {
+      await _setupCompletedCricketGame(
+          playerRepo, gameRepo, dartThrowRepo, gameEventRepo,
+          playerId: 'p1', gameId: 'g1', competitorId: 'c1');
+
+      final stats =
+          await statsRepo.getPlayerStats('p1', gameType: GameType.cricket);
+      // All 6 darts hit cricket targets (20, 19, 15 family)
+      expect(stats.hitRate, isNotNull);
+      expect(stats.hitRate!, closeTo(1.0, 0.01));
+    });
+
+    test('sixMarkTurns counts turns with 6 or more marks', () async {
+      await _setupCompletedCricketGame(
+          playerRepo, gameRepo, dartThrowRepo, gameEventRepo,
+          playerId: 'p1', gameId: 'g1', competitorId: 'c1');
+
+      final stats =
+          await statsRepo.getPlayerStats('p1', gameType: GameType.cricket);
+      expect(stats.sixMarkTurns, 2); // turn 0 (6 marks) and turn 1 (9 marks)
+    });
+
+    test('nineMarkTurns counts turns with exactly 9 marks', () async {
+      await _setupCompletedCricketGame(
+          playerRepo, gameRepo, dartThrowRepo, gameEventRepo,
+          playerId: 'p1', gameId: 'g1', competitorId: 'c1');
+
+      final stats =
+          await statsRepo.getPlayerStats('p1', gameType: GameType.cricket);
+      expect(stats.nineMarkTurns, 1); // only turn 1 (T20+T20+T20)
+    });
+  });
+
+  // ── getPlayerCricketVariants ───────────────────────────────────────────────
+
+  group('getPlayerCricketVariants', () {
+    test('returns empty list for player with no completed cricket games',
+        () async {
+      await _createPlayer(playerRepo, 'p1');
+
+      final variants = await statsRepo.getPlayerCricketVariants('p1');
+      expect(variants, isEmpty);
+    });
+
+    test('returns variant strings for completed cricket games', () async {
+      await _setupCompletedCricketGame(
+          playerRepo, gameRepo, dartThrowRepo, gameEventRepo,
+          playerId: 'p1', gameId: 'g1', competitorId: 'c1');
+
+      final variants = await statsRepo.getPlayerCricketVariants('p1');
+      expect(variants, contains('standard'));
+    });
+  });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -209,4 +297,101 @@ Future<void> _createDartThrow(
     segment: 'T20',
     score: score,
   ));
+}
+
+/// Creates a player + completed cricket game with two turns of darts and
+/// matching game events so the test data is valid for both the Drift
+/// (SQL over dart_throws) and SQLite (projection engine over game_events)
+/// implementations.
+///
+/// Turn 0: '20' (1 mark), 'T19' (3 marks), 'D15' (2 marks) → 6 marks
+/// Turn 1: 'T20' (3 marks), 'T20' (3 marks), 'T20' (3 marks) → 9 marks
+/// Total: 15 marks, 6 darts, 2 turns → MPT 7.5, hitRate 1.0,
+///        sixMarkTurns 2, nineMarkTurns 1, legsPlayed 1, legsWon 1.
+Future<void> _setupCompletedCricketGame(
+  PlayerRepository playerRepo,
+  GameRepository gameRepo,
+  DartThrowRepository dartThrowRepo,
+  GameEventRepository gameEventRepo, {
+  required String playerId,
+  required String gameId,
+  required String competitorId,
+}) async {
+  await _createPlayer(playerRepo, playerId);
+
+  await gameRepo.createGame(
+    Game(
+      gameId: gameId,
+      gameType: GameType.cricket,
+      config: const GameConfig.cricket(
+        variant: 'standard',
+        numbers: ['15', '16', '17', '18', '19', '20', 'bull'],
+        pointsToWin: 0,
+      ),
+      startTime: DateTime.now(),
+      isComplete: false,
+    ),
+    [
+      Competitor(
+        competitorId: competitorId,
+        gameId: gameId,
+        type: CompetitorType.solo,
+        name: 'Player $playerId',
+        players: [CompetitorPlayer(playerId: playerId, rotationPosition: 0)],
+      ),
+    ],
+  );
+
+  // dart_throws — queried directly by the Drift implementation.
+  final darts = [
+    DartThrow(dartId: '$gameId-d1', gameId: gameId, competitorId: competitorId, playerId: playerId, turnNumber: 0, dartNumber: 1, segment: '20',  score: 20),
+    DartThrow(dartId: '$gameId-d2', gameId: gameId, competitorId: competitorId, playerId: playerId, turnNumber: 0, dartNumber: 2, segment: 'T19', score: 57),
+    DartThrow(dartId: '$gameId-d3', gameId: gameId, competitorId: competitorId, playerId: playerId, turnNumber: 0, dartNumber: 3, segment: 'D15', score: 30),
+    DartThrow(dartId: '$gameId-d4', gameId: gameId, competitorId: competitorId, playerId: playerId, turnNumber: 1, dartNumber: 1, segment: 'T20', score: 60),
+    DartThrow(dartId: '$gameId-d5', gameId: gameId, competitorId: competitorId, playerId: playerId, turnNumber: 1, dartNumber: 2, segment: 'T20', score: 60),
+    DartThrow(dartId: '$gameId-d6', gameId: gameId, competitorId: competitorId, playerId: playerId, turnNumber: 1, dartNumber: 3, segment: 'T20', score: 60),
+  ];
+  for (final d in darts) {
+    await dartThrowRepo.insertDart(d);
+  }
+
+  // game_events — replayed by the SQLite projection engine.
+  int seq = 1;
+  Future<void> appendEvent(
+      String type, Map<String, dynamic> payload) async {
+    await gameEventRepo.appendEvent(GameEvent(
+      eventId: '$gameId-e${seq}',
+      gameId: gameId,
+      eventType: type,
+      localSequence: seq++,
+      occurredAt: DateTime.now(),
+      payload: payload,
+      synced: false,
+      actorId: playerId,
+      source: EventSource.client,
+    ));
+  }
+
+  await appendEvent('DartThrown', {'player_id': playerId, 'segment': '20'});
+  await appendEvent('DartThrown', {'player_id': playerId, 'segment': 'T19'});
+  await appendEvent('DartThrown', {'player_id': playerId, 'segment': 'D15'});
+  await appendEvent('TurnEnded',  {'player_id': playerId});
+  await appendEvent('DartThrown', {'player_id': playerId, 'segment': 'T20'});
+  await appendEvent('DartThrown', {'player_id': playerId, 'segment': 'T20'});
+  await appendEvent('DartThrown', {'player_id': playerId, 'segment': 'T20'});
+  await appendEvent('TurnEnded',  {'player_id': playerId});
+  await appendEvent('LegCompleted', {
+    'winner_player_id': playerId,
+    'winner_competitor_id': competitorId,
+  });
+  await appendEvent('GameCompleted', {
+    'winner_player_id': playerId,
+    'winner_competitor_id': competitorId,
+  });
+
+  await gameRepo.completeGame(
+    gameId: gameId,
+    winnerCompetitorId: competitorId,
+    endTime: DateTime.now(),
+  );
 }
