@@ -1431,3 +1431,50 @@ final class EndCheckoutPracticeUseCaseProvider
 
 String _$endCheckoutPracticeUseCaseHash() =>
     r'4c654335729ff4c6b6438c4e8458319a4cc3af21';
+
+@ProviderFor(clearAllData)
+final clearAllDataProvider = ClearAllDataProvider._();
+
+final class ClearAllDataProvider
+    extends
+        $FunctionalProvider<
+          Future<void> Function(),
+          Future<void> Function(),
+          Future<void> Function()
+        >
+    with $Provider<Future<void> Function()> {
+  ClearAllDataProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'clearAllDataProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$clearAllDataHash();
+
+  @$internal
+  @override
+  $ProviderElement<Future<void> Function()> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Future<void> Function() create(Ref ref) {
+    return clearAllData(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Future<void> Function() value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Future<void> Function()>(value),
+    );
+  }
+}
+
+String _$clearAllDataHash() => r'c6ca75376ad078bfc57c98914a92cbd949264c25';

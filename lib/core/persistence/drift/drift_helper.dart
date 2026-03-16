@@ -28,4 +28,9 @@ class DriftHelper {
     await db.close();
     _database = null;
   }
+
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.clearAllData();
+  }
 }

@@ -281,3 +281,14 @@ EndCheckoutPracticeUseCase endCheckoutPracticeUseCase(Ref ref) =>
       ref.watch(gameRepositoryProvider),
       ref.watch(gameEventRepositoryProvider),
     );
+
+@riverpod
+Future<void> Function() clearAllData(Ref ref) {
+  return () async {
+    if (kIsWeb) {
+      await DriftHelper.instance.clearAllData();
+    } else {
+      await DatabaseHelper.instance.clearAllData();
+    }
+  };
+}

@@ -170,4 +170,22 @@ class AppDatabase extends _$AppDatabase {
       },
     );
   }
+
+  Future<void> clearAllData() async {
+    await transaction(() async {
+      for (final stmt in const [
+        'DELETE FROM sync_queue;',
+        'DELETE FROM game_sessions;',
+        'DELETE FROM dart_throws;',
+        'DELETE FROM game_events;',
+        'DELETE FROM competitor_players;',
+        'DELETE FROM competitors;',
+        'DELETE FROM games;',
+        'DELETE FROM players;',
+        'DELETE FROM accounts;',
+      ]) {
+        await customStatement(stmt);
+      }
+    });
+  }
 }

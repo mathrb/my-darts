@@ -43,6 +43,25 @@ class DatabaseHelper {
     await db.close();
     _database = null;
   }
+
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      for (final table in const [
+        'sync_queue',
+        'game_sessions',
+        'dart_throws',
+        'game_events',
+        'competitor_players',
+        'competitors',
+        'games',
+        'players',
+        'accounts',
+      ]) {
+        await txn.execute('DELETE FROM $table;');
+      }
+    });
+  }
 }
 
 

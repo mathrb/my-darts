@@ -2,13 +2,60 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:my_darts/app/app_router.dart';
+import 'package:my_darts/core/persistence/database_provider.dart';
+import 'package:my_darts/features/players/presentation/providers/players_provider.dart';
 import '../providers/settings_provider.dart';
 
-class SettingsPage extends ConsumerWidget {
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends ConsumerState<SettingsPage> {
+  bool _erasing = false;
+
+  Future<void> _confirmAndErase(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Erase All Data?'),
+        content: const Text(
+          'This will permanently delete all players, games, and statistics. '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Erase All Data'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _erasing = true);
+    try {
+      await ref.read(clearAllDataProvider)();
+      ref.invalidate(allPlayersProvider);
+      if (mounted) context.go(GameRoutes.home);
+    } finally {
+      if (mounted) setState(() => _erasing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final themeMode =
         ref.watch(settingsProvider).value ?? ThemeMode.system;
     final notifier = ref.read(settingsProvider.notifier);
@@ -50,6 +97,27 @@ class SettingsPage extends ConsumerWidget {
               context: context,
               applicationName: 'Darts',
             ),
+          ),
+          const Divider(height: 1),
+          _SectionHeader(label: 'Danger Zone', cs: cs, tt: tt),
+          ListTile(
+            leading: _erasing
+                ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: cs.error,
+                    ),
+                  )
+                : Icon(Icons.delete_forever_outlined, color: cs.error),
+            title: Text(
+              'Erase All Data',
+              style: TextStyle(color: cs.error),
+            ),
+            subtitle: const Text('Permanently delete all players and games'),
+            enabled: !_erasing,
+            onTap: () => _confirmAndErase(context),
           ),
         ],
       ),
