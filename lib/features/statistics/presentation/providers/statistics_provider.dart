@@ -62,6 +62,8 @@ class PlayerStatsPage extends _$PlayerStatsPage {
   void setTab(StatsTabIndex tab) => state = state.copyWith(activeTab: tab);
   void setStartingScore(int? score) =>
       state = state.copyWith(selectedStartingScore: score);
+  void setCricketVariant(String? variant) =>
+      state = state.copyWith(selectedCricketVariant: variant);
   void setTimeRange(StatsTimeRange range) =>
       state = state.copyWith(timeRange: range);
   void toggleCheckoutOverlay() =>
@@ -71,6 +73,10 @@ class PlayerStatsPage extends _$PlayerStatsPage {
 @riverpod
 Future<List<int>> playerX01StartingScores(Ref ref, String playerId) =>
     ref.watch(statisticsRepositoryProvider).getPlayerX01StartingScores(playerId);
+
+@riverpod
+Future<List<String>> playerCricketVariants(Ref ref, String playerId) =>
+    ref.watch(statisticsRepositoryProvider).getPlayerCricketVariants(playerId);
 
 @riverpod
 Future<PlayerStats> filteredPlayerStats(Ref ref, String playerId) {
@@ -100,6 +106,38 @@ Future<List<PlayerLegSnapshot>> playerLegHistory(Ref ref, String playerId) {
     playerId,
     gameType: GameType.x01,
     startingScore: s.selectedStartingScore,
+    limit: limit,
+  );
+}
+
+@riverpod
+Future<PlayerStats> filteredCricketStats(Ref ref, String playerId) {
+  final s = ref.watch(playerStatsPageProvider(playerId));
+  final limit = switch (s.timeRange) {
+    StatsTimeRange.last10 => 10,
+    StatsTimeRange.last100 => 100,
+    StatsTimeRange.all => null,
+  };
+  return ref.watch(statisticsRepositoryProvider).getPlayerStats(
+    playerId,
+    gameType: GameType.cricket,
+    variant: s.selectedCricketVariant,
+    legLimit: limit,
+  );
+}
+
+@riverpod
+Future<List<PlayerLegSnapshot>> cricketLegHistory(Ref ref, String playerId) {
+  final s = ref.watch(playerStatsPageProvider(playerId));
+  final limit = switch (s.timeRange) {
+    StatsTimeRange.last10 => 10,
+    StatsTimeRange.last100 => 100,
+    StatsTimeRange.all => null,
+  };
+  return ref.watch(statisticsRepositoryProvider).getPlayerLegHistory(
+    playerId,
+    gameType: GameType.cricket,
+    variant: s.selectedCricketVariant,
     limit: limit,
   );
 }

@@ -11,6 +11,7 @@ abstract class PlayerStatsPageState with _$PlayerStatsPageState {
   const factory PlayerStatsPageState({
     @Default(StatsTabIndex.x01) StatsTabIndex activeTab,
     @Default(null) int? selectedStartingScore,
+    @Default(null) String? selectedCricketVariant,
     @Default(StatsTimeRange.all) StatsTimeRange timeRange,
     @Default(false) bool showCheckoutOverlay,
   }) = _PlayerStatsPageState;
