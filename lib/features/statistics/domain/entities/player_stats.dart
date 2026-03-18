@@ -29,6 +29,11 @@ abstract class PlayerStats with _$PlayerStats {
     @Default(0) int oneHundredPlusTurns,
     @Default(0) int oneFortyPlusTurns,
     @Default(0) int oneEightyTurns,
+    // X01 best-of metrics (null when no data)
+    double? bestLegPpr,
+    double? bestFirstNinePpr,
+    double? avgCheckoutScore,
+    double? bestGameCheckoutPercentage,
     // Cricket-specific fields (null for non-cricket games)
     double? marksPerTurn,
     double? hitRate,

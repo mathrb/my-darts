@@ -267,6 +267,10 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       // Score buckets (60+, 100+, 140+, 180) and First 9 PPR — computed from game_events
       Map<String, int> scoreBuckets = {};
       double? firstNinePpr;
+      double? bestLegPpr;
+      double? bestFirstNinePpr;
+      double? avgCheckoutScore;
+      double? bestGameCheckoutPercentage;
       if (effectiveGameType == GameType.x01) {
         // Collect game IDs for this player
         final gameIdsQuery = _db.selectOnly(_db.dartThrows)
@@ -286,6 +290,10 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         final x01Stats = await _calculateX01EventStats(playerId, gameIds);
         scoreBuckets = x01Stats.scoreBuckets;
         firstNinePpr = x01Stats.firstNinePpr;
+        bestLegPpr = x01Stats.bestLegPpr;
+        bestFirstNinePpr = x01Stats.bestFirstNinePpr;
+        avgCheckoutScore = x01Stats.avgCheckoutScore;
+        bestGameCheckoutPercentage = x01Stats.bestGameCheckoutPercentage;
       }
 
       return PlayerStats(
@@ -308,6 +316,10 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         oneFortyPlusTurns: scoreBuckets['oneFortyPlus'] ?? 0,
         oneEightyTurns: scoreBuckets['oneEighty'] ?? 0,
         firstNinePpr: firstNinePpr,
+        bestLegPpr: bestLegPpr,
+        bestFirstNinePpr: bestFirstNinePpr,
+        avgCheckoutScore: avgCheckoutScore,
+        bestGameCheckoutPercentage: bestGameCheckoutPercentage,
       );
     } on RepositoryException {
       rethrow;
@@ -1067,10 +1079,16 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
     }
   }
 
-  /// Computes X01 score buckets (60+, 100+, 140+, 180) and First-9 PPR
+  /// Computes X01 score buckets, First-9 PPR, and best-of metrics
   /// in a single pass over game events for [gameIds].
-  Future<({Map<String, int> scoreBuckets, double? firstNinePpr})>
-      _calculateX01EventStats(String playerId, List<String> gameIds) async {
+  Future<({
+    Map<String, int> scoreBuckets,
+    double? firstNinePpr,
+    double? bestLegPpr,
+    double? bestFirstNinePpr,
+    double? avgCheckoutScore,
+    double? bestGameCheckoutPercentage,
+  })> _calculateX01EventStats(String playerId, List<String> gameIds) async {
     const emptyBuckets = {
       'sixtyPlus': 0,
       'oneHundredPlus': 0,
@@ -1078,21 +1096,49 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       'oneEighty': 0,
     };
     if (gameIds.isEmpty) {
-      return (scoreBuckets: emptyBuckets, firstNinePpr: null);
+      return (
+        scoreBuckets: emptyBuckets,
+        firstNinePpr: null,
+        bestLegPpr: null,
+        bestFirstNinePpr: null,
+        avgCheckoutScore: null,
+        bestGameCheckoutPercentage: null,
+      );
     }
 
-    // Bucket accumulators
+    // Score bucket accumulators
     int sixtyPlus = 0;
     int oneHundredPlus = 0;
     int oneFortyPlus = 0;
     int oneEighty = 0;
 
-    // First-nine accumulators
+    // First-nine (avg) accumulators
     int totalFirstNinePoints = 0;
     int totalFirstNineLegs = 0;
 
-    // Shared per-turn / per-leg state (ordered by gameId then localSequence
-    // ensures per-game state doesn't bleed across game boundaries).
+    // Best leg PPR accumulators (per-leg; null legStartingScore = not yet captured)
+    int? legStartingScore;
+    int legDartsCount = 0;
+    int legFirstNineScore = 0;
+    double? bestLegPpr;
+    double? bestFirstNinePpr;
+
+    // Avg checkout score
+    int checkoutScoreSum = 0;
+    int checkoutCount = 0;
+    int lastPlayerTurnStartingScore = 0;
+
+    // Best game CO%
+    int gameAttempts = 0;
+    int gameSuccesses = 0;
+    double? bestGameCo;
+
+    // Shared per-turn state
+    int currentTurnScore = 0;
+    int turnIndexInLeg = 0;
+    bool inFirstNine = false;
+
+    // Ordered by gameId then localSequence so per-game state doesn't bleed.
     final allEvents = await (_db.select(_db.gameEvents)
           ..where((e) => e.gameId.isIn(gameIds))
           ..orderBy([
@@ -1102,9 +1148,6 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         .get();
 
     String? currentGameId;
-    int currentTurnScore = 0;
-    int turnIndexInLeg = 0;
-    bool inFirstNine = false;
 
     for (final event in allEvents) {
       if (event.gameId != currentGameId) {
@@ -1112,6 +1155,11 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         currentTurnScore = 0;
         turnIndexInLeg = 0;
         inFirstNine = false;
+        legStartingScore = null;
+        legDartsCount = 0;
+        legFirstNineScore = 0;
+        // Note: gameAttempts/gameSuccesses reset on GameCompleted, not on new game,
+        // but since we order by gameId this is fine — GameCompleted fires before next game.
       }
 
       final payload = jsonDecode(event.payloadJson) as Map<String, dynamic>;
@@ -1123,6 +1171,11 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         if (pid == playerId) {
           turnIndexInLeg++;
           inFirstNine = turnIndexInLeg <= 3;
+
+          final startingScore = (payload['starting_score'] as num?)?.toInt();
+          legStartingScore ??= startingScore ?? 0;
+          lastPlayerTurnStartingScore = startingScore ?? 0;
+          if ((startingScore ?? 9999) <= 170) gameAttempts++;
         }
       } else if (event.eventType == 'DartThrown') {
         final pid = payload['player_id'] as String?;
@@ -1133,6 +1186,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
             ? seg * mult
             : (payload['score'] as num?)?.toInt() ?? 0;
         currentTurnScore += score;
+        legDartsCount++;
       } else if (event.eventType == 'TurnEnded') {
         final pid = payload['player_id'] as String?;
         if (pid != playerId) {
@@ -1147,13 +1201,51 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
           if (s >= 100) oneHundredPlus++;
           if (s >= 60) sixtyPlus++;
           if (inFirstNine) totalFirstNinePoints += s;
+          if (inFirstNine) legFirstNineScore += s;
         }
         currentTurnScore = 0;
       } else if (event.eventType == 'LegCompleted') {
+        final winnerId = payload['winner_player_id'] as String?;
+
+        if (winnerId == playerId) {
+          // Best game CO%
+          gameSuccesses++;
+
+          // Avg checkout score
+          checkoutScoreSum += lastPlayerTurnStartingScore;
+          checkoutCount++;
+
+          // Best leg PPR
+          if (legStartingScore != null && legDartsCount > 0) {
+            final legPpr = legStartingScore! / legDartsCount * 3;
+            bestLegPpr =
+                bestLegPpr == null ? legPpr : (legPpr > bestLegPpr! ? legPpr : bestLegPpr!);
+            if (turnIndexInLeg >= 3) {
+              final f9ppr = legFirstNineScore / 9 * 3;
+              bestFirstNinePpr = bestFirstNinePpr == null
+                  ? f9ppr
+                  : (f9ppr > bestFirstNinePpr! ? f9ppr : bestFirstNinePpr!);
+            }
+          }
+        }
+
+        // Reset per-leg state (all legs, not just won ones)
         if (turnIndexInLeg >= 1) totalFirstNineLegs++;
         turnIndexInLeg = 0;
         inFirstNine = false;
         currentTurnScore = 0;
+        legStartingScore = null;
+        legDartsCount = 0;
+        legFirstNineScore = 0;
+      } else if (event.eventType == 'GameCompleted') {
+        if (gameAttempts > 0) {
+          final gameCo = gameSuccesses / gameAttempts * 100;
+          if (bestGameCo == null || gameCo > bestGameCo!) {
+            bestGameCo = gameCo;
+          }
+        }
+        gameAttempts = 0;
+        gameSuccesses = 0;
       }
     }
 
@@ -1169,6 +1261,11 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         'oneEighty': oneEighty,
       },
       firstNinePpr: firstNinePpr,
+      bestLegPpr: bestLegPpr,
+      bestFirstNinePpr: bestFirstNinePpr,
+      avgCheckoutScore:
+          checkoutCount > 0 ? checkoutScoreSum / checkoutCount : null,
+      bestGameCheckoutPercentage: bestGameCo,
     );
   }
 }

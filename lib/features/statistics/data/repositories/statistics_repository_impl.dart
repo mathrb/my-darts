@@ -26,6 +26,9 @@ import 'package:my_darts/features/statistics/domain/engines/x01/x01_legs_project
 import 'package:my_darts/features/statistics/domain/engines/x01/x01_win_rate_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/x01/x01_high_score_buckets_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/x01/x01_first_nine_ppr_projection.dart';
+import 'package:my_darts/features/statistics/domain/engines/x01/x01_best_leg_ppr_projection.dart';
+import 'package:my_darts/features/statistics/domain/engines/x01/x01_avg_checkout_score_projection.dart';
+import 'package:my_darts/features/statistics/domain/engines/x01/x01_best_game_checkout_percentage_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_marks_per_turn_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_hit_rate_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_mark_buckets_projection.dart';
@@ -529,6 +532,9 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
             X01WinRateProjection(),
             X01HighScoreBucketsProjection(),
             X01FirstNinePprProjection(),
+            X01BestLegPprProjection(),
+            X01AvgCheckoutScoreProjection(),
+            X01BestGameCheckoutPercentageProjection(),
           ]);
 
     runner.init(context);
@@ -581,6 +587,9 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
     final legsSnap = snap['x01.legs'] ?? {};
     final bucketsSnap = snap['x01.highScoreBuckets'] ?? {};
     final firstNineSnap = snap['x01.firstNinePpr'] ?? {};
+    final bestLegPprSnap = snap['x01.bestLegPpr'] ?? {};
+    final avgCheckoutSnap = snap['x01.avgCheckoutScore'] ?? {};
+    final bestGameCoSnap = snap['x01.bestGameCheckoutPercentage'] ?? {};
 
     return PlayerStats(
       playerId: playerId,
@@ -602,6 +611,11 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
       oneFortyPlusTurns: bucketsSnap['oneFortyPlusTurns'] as int? ?? 0,
       oneEightyTurns: bucketsSnap['oneEightyTurns'] as int? ?? 0,
       firstNinePpr: (firstNineSnap['firstNinePpr'] as num?)?.toDouble(),
+      bestLegPpr: (bestLegPprSnap['bestLegPpr'] as num?)?.toDouble(),
+      bestFirstNinePpr: (bestLegPprSnap['bestFirstNinePpr'] as num?)?.toDouble(),
+      avgCheckoutScore: (avgCheckoutSnap['avgCheckoutScore'] as num?)?.toDouble(),
+      bestGameCheckoutPercentage:
+          (bestGameCoSnap['bestGameCheckoutPercentage'] as num?)?.toDouble(),
     );
   }
 
