@@ -34,6 +34,8 @@ import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_hit_
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_mark_buckets_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_legs_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_win_rate_projection.dart';
+import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_best_leg_mpt_projection.dart';
+import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_best_game_hit_rate_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_segment_utils.dart';
 import 'package:my_darts/features/statistics/domain/entities/player_leg_snapshot.dart';
 
@@ -518,6 +520,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
             CricketMarkBucketsProjection(),
             CricketLegsProjection(),
             CricketWinRateProjection(),
+            CricketBestLegMptProjection(),
+            CricketBestGameHitRateProjection(),
           ])
         : ProjectionRunner([
             X01AverageProjection(),
@@ -556,6 +560,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
       final bucketsSnap = snap['cricket.markBuckets'] ?? {};
       final legsSnap = snap['cricket.legs'] ?? {};
       final winSnap = snap['cricket.winRate'] ?? {};
+      final bestLegMptSnap = snap['cricket.bestLegMpt'] ?? {};
+      final bestGameHitRateSnap = snap['cricket.bestGameHitRate'] ?? {};
 
       return PlayerStats(
         playerId: playerId,
@@ -574,6 +580,9 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         hitRate: (hitRateSnap['hitRate'] as num?)?.toDouble(),
         sixMarkTurns: bucketsSnap['sixMarkTurns'] as int? ?? 0,
         nineMarkTurns: bucketsSnap['nineMarkTurns'] as int? ?? 0,
+        bestLegMpt: (bestLegMptSnap['bestLegMpt'] as num?)?.toDouble(),
+        bestGameHitRate:
+            (bestGameHitRateSnap['bestGameHitRate'] as num?)?.toDouble(),
       );
     }
 

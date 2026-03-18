@@ -814,7 +814,7 @@ Per-player statistics page with in-page navigation across game types. Reached fr
 - Tab indicator: `colorPrimary` underline, 2dp
 - Active tab label: `colorPrimary`, `textLabelLarge`
 - Inactive tab label: `colorOnSurfaceVariant`, `textLabelLarge`
-- Cricket, Practice, and Others tabs show a "coming soon" placeholder (same desaturated treatment as Home coming-soon cards) at this stage
+- Practice and Others tabs show a "coming soon" placeholder (same desaturated treatment as Home coming-soon cards) at this stage
 
 ### Summary Cards Row
 - 3 cards in a single horizontal row, equal width, `colorSurface`, `radiusMedium`, elevation 1
@@ -868,6 +868,53 @@ Per-player statistics page with in-page navigation across game types. Reached fr
 - "total / per leg" cells render as `"42 / 1.2"` inline
 - Table scrolls as part of the overall page — it is not independently scrollable
 
+### Cricket Tab
+
+#### Summary Cards Row
+- Same 3-card layout as X01: **Legs Played | Legs Won | Solo Games**
+- Card value: `textScoreSmall` (36sp Oswald Bold), `colorPrimary`
+- Card label: `textLabelMedium`, `colorOnSurfaceVariant`
+
+#### Variant Selector (Cricket tab)
+- Horizontal scrollable chip row below the summary cards
+- Chips: **All Cricket** (default), **Standard**, **No Score**, **Cut Throat**, **Tactics**
+- Selected chip: `colorPrimaryContainer` background, `colorOnPrimaryContainer` text
+- Unselected chip: `colorSurfaceVariant` background, `colorOnSurfaceVariant` text
+- Filters both the trend chart and the detail table
+
+#### Trend Chart
+- Same visual spec as X01 PPR chart, but Y-axis plots **MPT** (Marks Per Turn)
+- Line color: `colorPrimary`; fill: `colorPrimaryContainer` at 30% opacity
+- Tooltip: MPT value + game date
+- Empty state: "Not enough data yet" (fewer than 2 data points)
+- No overlay toggle (no second metric for cricket)
+
+#### Detail Table (3-column layout — AVERAGE | BEST)
+
+Column layout (same as X01):
+- Label column: `Expanded`, `textBodyMedium`, `colorOnSurface`
+- Col 1 (average/total): fixed 80px, `textBodyMedium`, `colorPrimary`, right-aligned
+- Col 2 (best/per-leg): fixed 80px, `textBodyMedium`, `colorSecondary`, right-aligned
+- Header row: `textLabelSmall`, `colorOnSurfaceVariant`, `letterSpacing: 0.8`
+- Alternating row tint: even rows `colorSurface`, odd rows `scaffoldBackground`
+
+Rows:
+
+| Label | AVERAGE col | BEST col |
+|-------|-------------|----------|
+| **AVERAGE** header | — | **BEST** |
+| MPT | Career avg MPT | Best single-leg MPT (`bestLegMpt`) |
+| Hit rate | Career avg hit rate (%) | Best single-game hit rate (%) (`bestGameHitRate`) |
+| Win % | Career win % | `—` |
+| **TOTAL** header | — | **PER LEG** |
+| 6+ mark turns | Total count | count ÷ legsPlayed (1 decimal) |
+| 9 mark turns | Total count | count ÷ legsPlayed (1 decimal) |
+
+Metric field sources in `PlayerStats`:
+- `bestLegMpt` — best MPT in any single completed leg (null when no data)
+- `bestGameHitRate` — best hit rate (0.0–1.0) in any single completed game (null when no data)
+- Win % BEST column always renders `"—"` (no meaningful single-game best)
+
 ### Typography
 - AppBar title: `textHeadingMedium`
 - Summary card value: `textScoreSmall` (36sp Oswald Bold), `colorPrimary`
@@ -887,8 +934,10 @@ Per-player statistics page with in-page navigation across game types. Reached fr
 - Coming-soon tab placeholder: `colorSurfaceVariant` background, `colorOnSurfaceVariant` text + icon, `opacity: 0.6`
 
 ### Special Notes
-- **Cricket, Practice, Others tabs are stubbed:** show a centred "Stats for [game type] coming soon" placeholder. No summary cards, no chart, no table.
-- **Variant selector** appears only on the X01 tab (and future tabs where variants apply). Hidden otherwise.
+- **Cricket tab is implemented** — see Cricket Tab section below. Practice and Others tabs remain stubbed.
+- **Practice, Others tabs are stubbed:** show a centred "Stats for [game type] coming soon" placeholder. No summary cards, no chart, no table.
+- **Cricket tab is implemented** — see Cricket Tab section below.
+- **Variant selector** appears on the X01 tab and the Cricket tab. Hidden on Practice and Others tabs.
 - **Time range** applies across the entire tab (chart + table). Switching range recomputes all displayed metrics.
 - **No leaderboard** on this page. Strictly per-player, per-game-type stats.
 - **Projection data dependency:** The trend chart requires time-series PPR data per leg/game. The current `PlayerStats` entity is a flat aggregate and does not carry time-series data. A new data structure (list of per-game snapshots) will be needed in `StatisticsRepository` and `PlayerStats`. This is flagged for the implementation ticket.
