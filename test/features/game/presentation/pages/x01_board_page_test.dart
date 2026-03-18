@@ -523,10 +523,13 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final btn = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'NEXT ROUND'),
+    final gd = tester.widget<GestureDetector>(
+      find.ancestor(
+        of: find.text('NEXT ROUND'),
+        matching: find.byType(GestureDetector),
+      ).first,
     );
-    expect(btn.onPressed, isNull);
+    expect(gd.onTap, isNull);
   });
 
   // ── 20. NEXT ROUND enabled when 3 darts thrown ───────────────────────────────
@@ -539,10 +542,13 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final btn = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'NEXT ROUND'),
+    final gd = tester.widget<GestureDetector>(
+      find.ancestor(
+        of: find.text('NEXT ROUND'),
+        matching: find.byType(GestureDetector),
+      ).first,
     );
-    expect(btn.onPressed, isNotNull);
+    expect(gd.onTap, isNotNull);
   });
 
   // ── 21. Undo disabled when 0 darts thrown ────────────────────────────────────
@@ -555,13 +561,13 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final undoBtn = tester.widget<TextButton>(
+    final undoBtn = tester.widget<GestureDetector>(
       find.ancestor(
-        of: find.text('Undo'),
-        matching: find.byType(TextButton),
-      ),
+        of: find.text('UNDO'),
+        matching: find.byType(GestureDetector),
+      ).first,
     );
-    expect(undoBtn.onPressed, isNull);
+    expect(undoBtn.onTap, isNull);
   });
 
   // ── 22. Undo enabled when > 0 darts thrown ───────────────────────────────────
@@ -574,13 +580,13 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final undoBtn = tester.widget<TextButton>(
+    final undoBtn = tester.widget<GestureDetector>(
       find.ancestor(
-        of: find.text('Undo'),
-        matching: find.byType(TextButton),
-      ),
+        of: find.text('UNDO'),
+        matching: find.byType(GestureDetector),
+      ).first,
     );
-    expect(undoBtn.onPressed, isNotNull);
+    expect(undoBtn.onTap, isNotNull);
   });
 
   // ── 23. Tapping Undo calls undoDart ──────────────────────────────────────────
@@ -597,7 +603,7 @@ void main() {
     await tester.pumpWidget(_buildAppWithContainer(container));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Undo'));
+    await tester.tap(find.text('UNDO'));
     await tester.pump();
 
     final notifier = container.read(activeGameProvider('game-1').notifier)
