@@ -294,6 +294,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         bestFirstNinePpr = x01Stats.bestFirstNinePpr;
         avgCheckoutScore = x01Stats.avgCheckoutScore;
         bestGameCheckoutPercentage = x01Stats.bestGameCheckoutPercentage;
+        highestCheckout = x01Stats.highestCheckout;
       }
 
       return PlayerStats(
@@ -1088,6 +1089,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
     double? bestFirstNinePpr,
     double? avgCheckoutScore,
     double? bestGameCheckoutPercentage,
+    int? highestCheckout,
   })> _calculateX01EventStats(String playerId, List<String> gameIds) async {
     const emptyBuckets = {
       'sixtyPlus': 0,
@@ -1103,6 +1105,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         bestFirstNinePpr: null,
         avgCheckoutScore: null,
         bestGameCheckoutPercentage: null,
+        highestCheckout: null,
       );
     }
 
@@ -1123,10 +1126,11 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
     double? bestLegPpr;
     double? bestFirstNinePpr;
 
-    // Avg checkout score
+    // Avg checkout score and highest checkout
     int checkoutScoreSum = 0;
     int checkoutCount = 0;
     int lastPlayerTurnStartingScore = 0;
+    int? highestCheckout;
 
     // Best game CO%
     int gameAttempts = 0;
@@ -1215,6 +1219,13 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
           checkoutScoreSum += lastPlayerTurnStartingScore;
           checkoutCount++;
 
+          // Highest checkout
+          if (lastPlayerTurnStartingScore > 0 &&
+              (highestCheckout == null ||
+                  lastPlayerTurnStartingScore > highestCheckout!)) {
+            highestCheckout = lastPlayerTurnStartingScore;
+          }
+
           // Best leg PPR
           if (legStartingScore != null && legDartsCount > 0) {
             final legPpr = legStartingScore! / legDartsCount * 3;
@@ -1266,6 +1277,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       avgCheckoutScore:
           checkoutCount > 0 ? checkoutScoreSum / checkoutCount : null,
       bestGameCheckoutPercentage: bestGameCo,
+      highestCheckout: highestCheckout,
     );
   }
 }

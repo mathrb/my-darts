@@ -911,7 +911,6 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
   // Helper method to calculate highest checkout for a specific game
   Future<int?> _calculateHighestCheckoutForGame(String playerId, String gameId) async {
     try {
-      // Get all events for this game
       final events = await _db.query(
         'game_events',
         where: 'game_id = ?',
@@ -920,18 +919,24 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
       );
 
       int? highestCheckout;
+      int lastPlayerTurnStartingScore = 0;
 
       for (final event in events) {
         final payload = jsonDecode(event['payload_json'] as String) as Map<String, dynamic>;
         final eventType = event['event_type'] as String;
 
-        if (eventType == 'LegCompleted') {
+        if (eventType == 'TurnStarted') {
+          final pid = payload['player_id'] as String?;
+          if (pid == playerId) {
+            lastPlayerTurnStartingScore =
+                (payload['starting_score'] as num?)?.toInt() ?? 0;
+          }
+        } else if (eventType == 'LegCompleted') {
           final winnerPlayerId = payload['winner_player_id'] as String?;
-          final checkoutScore = payload['checkout_score'] as int?;
-          
-          if (winnerPlayerId == playerId && checkoutScore != null) {
-            if (highestCheckout == null || checkoutScore > highestCheckout) {
-              highestCheckout = checkoutScore;
+          if (winnerPlayerId == playerId && lastPlayerTurnStartingScore > 0) {
+            if (highestCheckout == null ||
+                lastPlayerTurnStartingScore > highestCheckout) {
+              highestCheckout = lastPlayerTurnStartingScore;
             }
           }
         }
