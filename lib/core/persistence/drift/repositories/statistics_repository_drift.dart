@@ -264,8 +264,9 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
 
       final GameType effectiveGameType = gameType ?? GameType.x01;
 
-      // Score buckets (60+, 100+, 140+, 180) — computed from game_events
+      // Score buckets (60+, 100+, 140+, 180) and First 9 PPR — computed from game_events
       Map<String, int> scoreBuckets = {};
+      double? firstNinePpr;
       if (effectiveGameType == GameType.x01) {
         // Collect game IDs for this player
         final gameIdsQuery = _db.selectOnly(_db.dartThrows)
@@ -282,7 +283,9 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
             .map((r) => r.read(_db.dartThrows.gameId))
             .whereType<String>()
             .toList();
-        scoreBuckets = await _calculateX01ScoreBuckets(playerId, gameIds);
+        final x01Stats = await _calculateX01EventStats(playerId, gameIds);
+        scoreBuckets = x01Stats.scoreBuckets;
+        firstNinePpr = x01Stats.firstNinePpr;
       }
 
       return PlayerStats(
@@ -304,6 +307,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         oneHundredPlusTurns: scoreBuckets['oneHundredPlus'] ?? 0,
         oneFortyPlusTurns: scoreBuckets['oneFortyPlus'] ?? 0,
         oneEightyTurns: scoreBuckets['oneEighty'] ?? 0,
+        firstNinePpr: firstNinePpr,
       );
     } on RepositoryException {
       rethrow;
@@ -1063,26 +1067,32 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
     }
   }
 
-  /// X01 score bucket counts (60+, 100+, 140+, 180) by replaying DartThrown /
-  /// TurnEnded events from the given game IDs in Dart code.
-  Future<Map<String, int>> _calculateX01ScoreBuckets(
-      String playerId, List<String> gameIds) async {
+  /// Computes X01 score buckets (60+, 100+, 140+, 180) and First-9 PPR
+  /// in a single pass over game events for [gameIds].
+  Future<({Map<String, int> scoreBuckets, double? firstNinePpr})>
+      _calculateX01EventStats(String playerId, List<String> gameIds) async {
+    const emptyBuckets = {
+      'sixtyPlus': 0,
+      'oneHundredPlus': 0,
+      'oneFortyPlus': 0,
+      'oneEighty': 0,
+    };
     if (gameIds.isEmpty) {
-      return {
-        'sixtyPlus': 0,
-        'oneHundredPlus': 0,
-        'oneFortyPlus': 0,
-        'oneEighty': 0,
-      };
+      return (scoreBuckets: emptyBuckets, firstNinePpr: null);
     }
 
+    // Bucket accumulators
     int sixtyPlus = 0;
     int oneHundredPlus = 0;
     int oneFortyPlus = 0;
     int oneEighty = 0;
 
-    // Fetch all events for all games in a single query, ordered by game then sequence
-    // to ensure per-turn state doesn't bleed across game boundaries.
+    // First-nine accumulators
+    int totalFirstNinePoints = 0;
+    int totalFirstNineLegs = 0;
+
+    // Shared per-turn / per-leg state (ordered by gameId then localSequence
+    // ensures per-game state doesn't bleed across game boundaries).
     final allEvents = await (_db.select(_db.gameEvents)
           ..where((e) => e.gameId.isIn(gameIds))
           ..orderBy([
@@ -1093,17 +1103,28 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
 
     String? currentGameId;
     int currentTurnScore = 0;
+    int turnIndexInLeg = 0;
+    bool inFirstNine = false;
 
     for (final event in allEvents) {
-      // Reset turn score at game boundary
       if (event.gameId != currentGameId) {
         currentGameId = event.gameId;
         currentTurnScore = 0;
+        turnIndexInLeg = 0;
+        inFirstNine = false;
       }
 
       final payload = jsonDecode(event.payloadJson) as Map<String, dynamic>;
 
-      if (event.eventType == 'DartThrown') {
+      if (event.eventType == 'TurnStarted') {
+        final pid = payload['player_id'] as String?;
+        currentTurnScore = 0;
+        inFirstNine = false;
+        if (pid == playerId) {
+          turnIndexInLeg++;
+          inFirstNine = turnIndexInLeg <= 3;
+        }
+      } else if (event.eventType == 'DartThrown') {
         final pid = payload['player_id'] as String?;
         if (pid != playerId) continue;
         final seg = (payload['segment'] as num?)?.toInt();
@@ -1125,18 +1146,29 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
           if (s >= 140) oneFortyPlus++;
           if (s >= 100) oneHundredPlus++;
           if (s >= 60) sixtyPlus++;
+          if (inFirstNine) totalFirstNinePoints += s;
         }
         currentTurnScore = 0;
-      } else if (event.eventType == 'TurnStarted') {
+      } else if (event.eventType == 'LegCompleted') {
+        if (turnIndexInLeg >= 1) totalFirstNineLegs++;
+        turnIndexInLeg = 0;
+        inFirstNine = false;
         currentTurnScore = 0;
       }
     }
 
-    return {
-      'sixtyPlus': sixtyPlus,
-      'oneHundredPlus': oneHundredPlus,
-      'oneFortyPlus': oneFortyPlus,
-      'oneEighty': oneEighty,
-    };
+    final firstNinePpr = totalFirstNineLegs > 0
+        ? (totalFirstNinePoints / (totalFirstNineLegs * 9)) * 3
+        : null;
+
+    return (
+      scoreBuckets: {
+        'sixtyPlus': sixtyPlus,
+        'oneHundredPlus': oneHundredPlus,
+        'oneFortyPlus': oneFortyPlus,
+        'oneEighty': oneEighty,
+      },
+      firstNinePpr: firstNinePpr,
+    );
   }
 }
