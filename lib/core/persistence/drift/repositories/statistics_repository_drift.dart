@@ -453,11 +453,9 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         }
       }
 
-      final leaderboard = <PlayerStats>[];
-      for (final pId in playerGameCounts.keys) {
-        final stats = await getPlayerStats(pId, gameType: gameType);
-        leaderboard.add(stats);
-      }
+      final leaderboard = await Future.wait(
+        playerGameCounts.keys.map((pId) => getPlayerStats(pId, gameType: gameType)),
+      );
 
       leaderboard
           .sort((a, b) => b.threeDartAverage.compareTo(a.threeDartAverage));
@@ -818,35 +816,23 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         args = [playerId];
       }
 
-      final bustSql = '''
-        SELECT COUNT(*) AS bust_count
-        FROM game_events
-        WHERE event_type = 'TurnEnded'
-        AND JSON_EXTRACT(payload_json, '\$.player_id') = ?
-        AND JSON_EXTRACT(payload_json, '\$.reason') = 'bust'
-        $scopeFilter
-      ''';
-
-      final turnSql = '''
-        SELECT COUNT(*) AS turn_count
+      final sql = '''
+        SELECT
+          COUNT(*) AS turn_count,
+          SUM(CASE WHEN JSON_EXTRACT(payload_json, '\$.reason') = 'bust' THEN 1 ELSE 0 END) AS bust_count
         FROM game_events
         WHERE event_type = 'TurnEnded'
         AND JSON_EXTRACT(payload_json, '\$.player_id') = ?
         $scopeFilter
       ''';
 
-      final bustVars = [for (final a in args) Variable.withString(a)];
-      final turnVars = [for (final a in args) Variable.withString(a)];
+      final rows = await _db.customSelect(
+        sql,
+        variables: [for (final a in args) Variable.withString(a)],
+      ).get();
 
-      final bustRows =
-          await _db.customSelect(bustSql, variables: bustVars).get();
-      final turnRows =
-          await _db.customSelect(turnSql, variables: turnVars).get();
-
-      final bustCount =
-          (bustRows.first.data['bust_count'] as num? ?? 0).toInt();
-      final turnCount =
-          (turnRows.first.data['turn_count'] as num? ?? 0).toInt();
+      final bustCount = (rows.first.data['bust_count'] as num? ?? 0).toInt();
+      final turnCount = (rows.first.data['turn_count'] as num? ?? 0).toInt();
 
       return turnCount > 0 ? bustCount / turnCount : 0.0;
     } catch (e) {
@@ -1095,45 +1081,54 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
     int oneFortyPlus = 0;
     int oneEighty = 0;
 
-    for (final gId in gameIds) {
-      final events = await (_db.select(_db.gameEvents)
-            ..where((e) => e.gameId.equals(gId))
-            ..orderBy([(e) => OrderingTerm.asc(e.localSequence)]))
-          .get();
+    // Fetch all events for all games in a single query, ordered by game then sequence
+    // to ensure per-turn state doesn't bleed across game boundaries.
+    final allEvents = await (_db.select(_db.gameEvents)
+          ..where((e) => e.gameId.isIn(gameIds))
+          ..orderBy([
+            (e) => OrderingTerm.asc(e.gameId),
+            (e) => OrderingTerm.asc(e.localSequence),
+          ]))
+        .get();
 
-      int currentTurnScore = 0;
+    String? currentGameId;
+    int currentTurnScore = 0;
 
-      for (final event in events) {
-        final payload =
-            jsonDecode(event.payloadJson) as Map<String, dynamic>;
+    for (final event in allEvents) {
+      // Reset turn score at game boundary
+      if (event.gameId != currentGameId) {
+        currentGameId = event.gameId;
+        currentTurnScore = 0;
+      }
 
-        if (event.eventType == 'DartThrown') {
-          final pid = payload['player_id'] as String?;
-          if (pid != playerId) continue;
-          final seg = (payload['segment'] as num?)?.toInt();
-          final mult = (payload['multiplier'] as num?)?.toInt();
-          final score = (seg != null && mult != null)
-              ? seg * mult
-              : (payload['score'] as num?)?.toInt() ?? 0;
-          currentTurnScore += score;
-        } else if (event.eventType == 'TurnEnded') {
-          final pid = payload['player_id'] as String?;
-          if (pid != playerId) {
-            currentTurnScore = 0;
-            continue;
-          }
-          final reason = payload['reason'] as String?;
-          if (reason != 'bust') {
-            final s = currentTurnScore;
-            if (s == 180) oneEighty++;
-            if (s >= 140) oneFortyPlus++;
-            if (s >= 100) oneHundredPlus++;
-            if (s >= 60) sixtyPlus++;
-          }
+      final payload = jsonDecode(event.payloadJson) as Map<String, dynamic>;
+
+      if (event.eventType == 'DartThrown') {
+        final pid = payload['player_id'] as String?;
+        if (pid != playerId) continue;
+        final seg = (payload['segment'] as num?)?.toInt();
+        final mult = (payload['multiplier'] as num?)?.toInt();
+        final score = (seg != null && mult != null)
+            ? seg * mult
+            : (payload['score'] as num?)?.toInt() ?? 0;
+        currentTurnScore += score;
+      } else if (event.eventType == 'TurnEnded') {
+        final pid = payload['player_id'] as String?;
+        if (pid != playerId) {
           currentTurnScore = 0;
-        } else if (event.eventType == 'TurnStarted') {
-          currentTurnScore = 0;
+          continue;
         }
+        final reason = payload['reason'] as String?;
+        if (reason != 'bust') {
+          final s = currentTurnScore;
+          if (s == 180) oneEighty++;
+          if (s >= 140) oneFortyPlus++;
+          if (s >= 100) oneHundredPlus++;
+          if (s >= 60) sixtyPlus++;
+        }
+        currentTurnScore = 0;
+      } else if (event.eventType == 'TurnStarted') {
+        currentTurnScore = 0;
       }
     }
 

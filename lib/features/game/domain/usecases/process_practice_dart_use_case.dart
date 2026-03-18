@@ -12,6 +12,7 @@ import '../models/game_state.dart';
 import '../models/game_config.dart';
 import '../engines/base_game_engine.dart';
 import '../../../../core/error/repository_exception.dart';
+import 'game_use_case_helpers.dart';
 import 'package:uuid/uuid.dart';
 import 'package:my_darts/core/utils/constants.dart';
 
@@ -44,7 +45,7 @@ class ProcessPracticeDartUseCase {
         await _eventRepository.getLatestSequence(currentState.gameId) + 1;
 
     // 4. Build DartThrown event
-    final currentPlayerId = _getCurrentPlayerId(currentState, dartThrow.competitorId);
+    final currentPlayerId = getCurrentPlayerId(currentState, dartThrow.competitorId);
 
     final dartEvent = GameEvent(
       eventId: dartThrow.dartId,
@@ -121,15 +122,4 @@ class ProcessPracticeDartUseCase {
     return finalState;
   }
 
-  String _getCurrentPlayerId(GameState state, String competitorId) {
-    final competitor = state.competitors.firstWhere(
-      (c) => c.competitorId == competitorId,
-      orElse: () =>
-          throw const InvalidGameStateException('Competitor not found'),
-    );
-    if (competitor.playerIds.isNotEmpty) {
-      return competitor.playerIds.first;
-    }
-    return 'system';
-  }
 }

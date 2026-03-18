@@ -1,6 +1,7 @@
 import 'package:my_darts/core/utils/constants.dart';
 import 'package:my_darts/features/game/domain/entities/game_event.dart';
 import 'package:my_darts/features/statistics/domain/engines/projection_engine.dart';
+import 'cricket_segment_utils.dart';
 
 /// Computes hit rate: fraction of darts that land on a valid cricket target.
 /// hitRate = cricketDarts / totalDarts (0.0–1.0).
@@ -11,8 +12,6 @@ class CricketHitRateProjection extends ProjectionEngine {
     consumedEventTypes: {'DartThrown'},
     scope: ProjectionScope.career,
   );
-
-  static const _cricketTargets = {15, 16, 17, 18, 19, 20, 25};
 
   @override
   ProjectionDescriptor get descriptor => _kDescriptor;
@@ -35,20 +34,9 @@ class CricketHitRateProjection extends ProjectionEngine {
     if (playerId != _context?.playerId) return;
     _totalDarts++;
     final segment = event.payload['segment'] as String?;
-    if (segment != null && _isTargetSegment(segment)) {
+    if (segment != null && isCricketTargetSegment(segment)) {
       _cricketDarts++;
     }
-  }
-
-  bool _isTargetSegment(String segment) {
-    if (segment == 'DB' || segment == 'SB') return true;
-    if (segment == 'MISS') return false;
-    String stripped = segment;
-    if (segment.startsWith('T') || segment.startsWith('D')) {
-      stripped = segment.substring(1);
-    }
-    final n = int.tryParse(stripped);
-    return n != null && _cricketTargets.contains(n);
   }
 
   @override

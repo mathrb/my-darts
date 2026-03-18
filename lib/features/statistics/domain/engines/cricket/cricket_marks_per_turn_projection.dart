@@ -1,6 +1,7 @@
 import 'package:my_darts/core/utils/constants.dart';
 import 'package:my_darts/features/game/domain/entities/game_event.dart';
 import 'package:my_darts/features/statistics/domain/engines/projection_engine.dart';
+import 'cricket_segment_utils.dart';
 
 /// Computes Marks Per Turn (MPT) — the primary cricket metric.
 /// A mark is one hit on a valid cricket target (15–20, Bull).
@@ -14,8 +15,6 @@ class CricketMarksPerTurnProjection extends ProjectionEngine {
     consumedEventTypes: {'DartThrown', 'TurnEnded'},
     scope: ProjectionScope.turn,
   );
-
-  static const _cricketTargets = {15, 16, 17, 18, 19, 20, 25};
 
   @override
   ProjectionDescriptor get descriptor => _kDescriptor;
@@ -41,10 +40,7 @@ class CricketMarksPerTurnProjection extends ProjectionEngine {
         if (playerId != _context?.playerId) return;
         final segment = event.payload['segment'] as String?;
         if (segment == null) return;
-        final parsed = _parseSegment(segment);
-        if (parsed != null && _cricketTargets.contains(parsed.numericValue)) {
-          _turnMarks += parsed.multiplier;
-        }
+        _turnMarks += cricketMarksForSegment(segment);
       case 'TurnEnded':
         final playerId = event.payload['player_id'] as String?;
         if (playerId != _context?.playerId) return;
@@ -72,24 +68,3 @@ class CricketMarksPerTurnProjection extends ProjectionEngine {
   }
 }
 
-class _ParsedSegment {
-  final int numericValue;
-  final int multiplier;
-  const _ParsedSegment(this.numericValue, this.multiplier);
-}
-
-_ParsedSegment? _parseSegment(String segment) {
-  if (segment == 'DB') return const _ParsedSegment(25, 2);
-  if (segment == 'SB') return const _ParsedSegment(25, 1);
-  if (segment == 'MISS') return null;
-  if (segment.startsWith('T')) {
-    final n = int.tryParse(segment.substring(1));
-    return n != null ? _ParsedSegment(n, 3) : null;
-  }
-  if (segment.startsWith('D')) {
-    final n = int.tryParse(segment.substring(1));
-    return n != null ? _ParsedSegment(n, 2) : null;
-  }
-  final n = int.tryParse(segment);
-  return n != null ? _ParsedSegment(n, 1) : null;
-}

@@ -31,6 +31,7 @@ import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_hit_
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_mark_buckets_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_legs_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_win_rate_projection.dart';
+import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_segment_utils.dart';
 import 'package:my_darts/features/statistics/domain/entities/player_leg_snapshot.dart';
 
 
@@ -334,13 +335,10 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
 
       final playersResult = await _db.rawQuery(playersQuery, [gameType.name, minGames]);
 
-      // Calculate stats for each player
-      final List<PlayerStats> leaderboard = [];
-      for (final playerRow in playersResult) {
-        final playerId = playerRow['player_id'] as String;
-        final stats = await getPlayerStats(playerId, gameType: gameType);
-        leaderboard.add(stats);
-      }
+      // Calculate stats for all players in parallel
+      final leaderboard = await Future.wait(
+        playersResult.map((row) => getPlayerStats(row['player_id'] as String, gameType: gameType)),
+      );
 
       // Sort by 3-dart average descending
       leaderboard.sort((a, b) => b.threeDartAverage.compareTo(a.threeDartAverage));
@@ -476,19 +474,11 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         }
       }
       if (legCompletedIndices.length > legLimit) {
-        final cutIndex = legCompletedIndices[legCompletedIndices.length - legLimit];
-        events = events.sublist(cutIndex - (cutIndex > 0 ? 0 : 0));
-        // We want the last legLimit legs, so keep events from the start of
-        // the (N-legLimit)th leg. Find the TurnStarted before that LegCompleted.
-        final cutEventIndex = legCompletedIndices[legCompletedIndices.length - legLimit];
-        // Walk backwards to find start of that leg (first TurnStarted after previous LegCompleted)
-        int legStart = 0;
-        if (legCompletedIndices.length > legLimit) {
-          final prevLegCompletedIdx = legCompletedIndices[legCompletedIndices.length - legLimit - 1];
-          legStart = prevLegCompletedIdx + 1;
-        }
-        events = events.sublist(legStart);
-        // Adjust game count to reflect the limit
+        // Keep only the last legLimit legs: start from the event after the
+        // (N - legLimit)th LegCompleted event.
+        final prevLegCompletedIdx =
+            legCompletedIndices[legCompletedIndices.length - legLimit - 1];
+        events = events.sublist(prevLegCompletedIdx + 1);
         gameIds = events.map((e) => e.gameId).toSet().toList();
       }
     }
@@ -716,7 +706,6 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         final Set<int> legTurnNumbers = {};
 
         // Cricket MPT tracking
-        const cricketTargets = {15, 16, 17, 18, 19, 20, 25};
         int legTotalMarks = 0;
         int legTotalTurns = 0;
         int currentTurnMarks = 0;
@@ -742,11 +731,11 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
               // Accumulate cricket marks (payload segment may be int or String)
               final rawSeg = event.payload['segment'];
               if (rawSeg is String) {
-                currentTurnMarks += _cricketMarksForSegment(rawSeg, cricketTargets);
+                currentTurnMarks += cricketMarksForSegment(rawSeg);
               } else if (rawSeg is num) {
                 final segInt = rawSeg.toInt();
                 final multInt = (event.payload['multiplier'] as num?)?.toInt() ?? 1;
-                if (cricketTargets.contains(segInt)) {
+                if (kCricketTargets.contains(segInt)) {
                   currentTurnMarks += multInt.clamp(0, 3);
                 }
               }
@@ -1027,70 +1016,32 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
     }
   }
 
-  static int _cricketMarksForSegment(String segment, Set<int> targets) {
-    if (segment == 'DB') return 2;
-    if (segment == 'SB') return 1;
-    if (segment == 'MISS') return 0;
-    int multiplier = 1;
-    String stripped = segment;
-    if (segment.startsWith('T')) {
-      multiplier = 3;
-      stripped = segment.substring(1);
-    } else if (segment.startsWith('D')) {
-      multiplier = 2;
-      stripped = segment.substring(1);
-    }
-    final n = int.tryParse(stripped);
-    if (n == null || !targets.contains(n)) return 0;
-    return multiplier;
-  }
-
   // Helper method to calculate bust rate
   Future<double> _calculateBustRate(String playerId, GameType? gameType, {String? gameId}) async {
     try {
-      // Get all turn ended events that were busts
-      String query = '''
-        SELECT COUNT(*) as bust_count
-        FROM game_events
-        WHERE event_type = 'TurnEnded'
-        AND JSON_EXTRACT(payload_json, '\$.player_id') = ?
-        AND JSON_EXTRACT(payload_json, '\$.reason') = 'bust'
-      ''';
-
+      String scopeFilter = '';
       List<dynamic> args = [playerId];
 
       if (gameId != null) {
-        query += ' AND game_id = ?';
+        scopeFilter = ' AND game_id = ?';
         args.add(gameId);
       } else if (gameType != null) {
-        query += ' AND game_id IN (SELECT game_id FROM games WHERE game_type = ?)';
+        scopeFilter = ' AND game_id IN (SELECT game_id FROM games WHERE game_type = ?)';
         args.add(gameType.name);
       }
 
-      final bustResult = await _db.rawQuery(query, args);
-      int bustCount = bustResult.first['bust_count'] as int? ?? 0;
-
-      // Get total turn count
-      String turnQuery = '''
-        SELECT COUNT(*) as turn_count
+      final result = await _db.rawQuery('''
+        SELECT
+          COUNT(*) AS turn_count,
+          SUM(CASE WHEN JSON_EXTRACT(payload_json, '\$.reason') = 'bust' THEN 1 ELSE 0 END) AS bust_count
         FROM game_events
         WHERE event_type = 'TurnEnded'
         AND JSON_EXTRACT(payload_json, '\$.player_id') = ?
-      ''';
+        $scopeFilter
+      ''', args);
 
-      List<dynamic> turnArgs = [playerId];
-
-      if (gameId != null) {
-        turnQuery += ' AND game_id = ?';
-        turnArgs.add(gameId);
-      } else if (gameType != null) {
-        turnQuery += ' AND game_id IN (SELECT game_id FROM games WHERE game_type = ?)';
-        turnArgs.add(gameType.name);
-      }
-
-      final turnResult = await _db.rawQuery(turnQuery, turnArgs);
-      int turnCount = turnResult.first['turn_count'] as int? ?? 1; // Avoid division by zero
-
+      final turnCount = result.first['turn_count'] as int? ?? 0;
+      final bustCount = result.first['bust_count'] as int? ?? 0;
       return turnCount > 0 ? bustCount / turnCount : 0.0;
     } catch (e) {
       print('Error calculating bust rate: ${e.toString()}');

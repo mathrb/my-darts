@@ -10,6 +10,7 @@ import '../models/game_state.dart';
 import '../models/game_config.dart';
 import '../engines/base_game_engine.dart';
 import '../../../../core/error/repository_exception.dart';
+import 'game_use_case_helpers.dart';
 import 'package:uuid/uuid.dart';
 import 'package:my_darts/core/utils/constants.dart';
 
@@ -41,7 +42,7 @@ class ProcessDartUseCase {
     int nextSeq = await _eventRepository.getLatestSequence(currentState.gameId) + 1;
 
     // 4. Create DartThrown event (eventId == dartId per spec)
-    final currentPlayerId = _getCurrentPlayerId(currentState, dartThrow.competitorId);
+    final currentPlayerId = getCurrentPlayerId(currentState, dartThrow.competitorId);
 
     var dartEvent = GameEvent(
       eventId: dartThrow.dartId,
@@ -85,7 +86,7 @@ class ProcessDartUseCase {
     if (!finalState.turnActive) {
       if (result.outcome == LegOutcome.gameCompleted) {
         // Append TurnEnded + LegCompleted + GameCompleted; call completeGame()
-        final winnerPlayerId = _getPlayerIdForCompetitor(currentState, result.winnerCompetitorId);
+        final winnerPlayerId = getPlayerIdForCompetitor(currentState, result.winnerCompetitorId);
         final turnEndedEvent = GameEvent(
           eventId: const Uuid().v4(),
           gameId: currentState.gameId,
@@ -139,7 +140,7 @@ class ProcessDartUseCase {
 
       } else if (result.outcome == LegOutcome.legCompleted) {
         // Append TurnEnded + LegCompleted + TurnStarted for first player of new leg
-        final winnerPlayerId = _getPlayerIdForCompetitor(currentState, result.winnerCompetitorId);
+        final winnerPlayerId = getPlayerIdForCompetitor(currentState, result.winnerCompetitorId);
         final turnEndedEvent = GameEvent(
           eventId: const Uuid().v4(),
           gameId: currentState.gameId,
@@ -220,23 +221,4 @@ class ProcessDartUseCase {
     return finalState;
   }
 
-  String _getCurrentPlayerId(GameState state, String competitorId) {
-    final competitor = state.competitors.firstWhere(
-      (c) => c.competitorId == competitorId,
-      orElse: () => throw const InvalidGameStateException('Competitor not found'),
-    );
-    if (competitor.playerIds.isNotEmpty) {
-      return competitor.playerIds.first;
-    }
-    return 'system';
-  }
-
-  String _getPlayerIdForCompetitor(GameState state, String? competitorId) {
-    if (competitorId == null) return '';
-    final competitor = state.competitors.firstWhere(
-      (c) => c.competitorId == competitorId,
-      orElse: () => state.competitors.first,
-    );
-    return competitor.playerIds.isNotEmpty ? competitor.playerIds.first : '';
-  }
 }

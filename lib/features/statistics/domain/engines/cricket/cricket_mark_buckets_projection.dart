@@ -1,6 +1,7 @@
 import 'package:my_darts/core/utils/constants.dart';
 import 'package:my_darts/features/game/domain/entities/game_event.dart';
 import 'package:my_darts/features/statistics/domain/engines/projection_engine.dart';
+import 'cricket_segment_utils.dart';
 
 /// Counts high-mark turns: turns scoring 6+ marks or 9 marks (maximum).
 class CricketMarkBucketsProjection extends ProjectionEngine {
@@ -10,8 +11,6 @@ class CricketMarkBucketsProjection extends ProjectionEngine {
     consumedEventTypes: {'DartThrown', 'TurnEnded'},
     scope: ProjectionScope.turn,
   );
-
-  static const _cricketTargets = {15, 16, 17, 18, 19, 20, 25};
 
   @override
   ProjectionDescriptor get descriptor => _kDescriptor;
@@ -37,8 +36,7 @@ class CricketMarkBucketsProjection extends ProjectionEngine {
         if (playerId != _context?.playerId) return;
         final segment = event.payload['segment'] as String?;
         if (segment == null) return;
-        final marks = _marksForSegment(segment);
-        _turnMarks += marks;
+        _turnMarks += cricketMarksForSegment(segment);
       case 'TurnEnded':
         final playerId = event.payload['player_id'] as String?;
         if (playerId != _context?.playerId) return;
@@ -46,24 +44,6 @@ class CricketMarkBucketsProjection extends ProjectionEngine {
         if (_turnMarks >= 6) _sixMarkTurns++;
         _turnMarks = 0;
     }
-  }
-
-  int _marksForSegment(String segment) {
-    if (segment == 'DB') return 2;
-    if (segment == 'SB') return 1;
-    if (segment == 'MISS') return 0;
-    int multiplier = 1;
-    String stripped = segment;
-    if (segment.startsWith('T')) {
-      multiplier = 3;
-      stripped = segment.substring(1);
-    } else if (segment.startsWith('D')) {
-      multiplier = 2;
-      stripped = segment.substring(1);
-    }
-    final n = int.tryParse(stripped);
-    if (n == null || !_cricketTargets.contains(n)) return 0;
-    return multiplier;
   }
 
   @override
