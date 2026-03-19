@@ -47,6 +47,8 @@ abstract class PlayerStats with _$PlayerStats {
     double? atcHitRate,
     double? atcAvgTurns,
     int? atcBestTurns,
+    @Default(<int, int>{}) Map<int, int> atcSegmentHits,
+    @Default(<int, int>{}) Map<int, int> atcSegmentAttempts,
     // Bob's 27 practice fields
     double? bobs27AvgScore,
     int? bobs27BestScore,

@@ -41,6 +41,16 @@ _PlayerStats _$PlayerStatsFromJson(Map<String, dynamic> json) => _PlayerStats(
   atcHitRate: (json['atcHitRate'] as num?)?.toDouble(),
   atcAvgTurns: (json['atcAvgTurns'] as num?)?.toDouble(),
   atcBestTurns: (json['atcBestTurns'] as num?)?.toInt(),
+  atcSegmentHits:
+      (json['atcSegmentHits'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(int.parse(k), (e as num).toInt()),
+      ) ??
+      const <int, int>{},
+  atcSegmentAttempts:
+      (json['atcSegmentAttempts'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(int.parse(k), (e as num).toInt()),
+      ) ??
+      const <int, int>{},
   bobs27AvgScore: (json['bobs27AvgScore'] as num?)?.toDouble(),
   bobs27BestScore: (json['bobs27BestScore'] as num?)?.toInt(),
   bobs27CompletionRate: (json['bobs27CompletionRate'] as num?)?.toDouble(),
@@ -98,6 +108,12 @@ Map<String, dynamic> _$PlayerStatsToJson(_PlayerStats instance) =>
       'atcHitRate': instance.atcHitRate,
       'atcAvgTurns': instance.atcAvgTurns,
       'atcBestTurns': instance.atcBestTurns,
+      'atcSegmentHits': instance.atcSegmentHits.map(
+        (k, e) => MapEntry(k.toString(), e),
+      ),
+      'atcSegmentAttempts': instance.atcSegmentAttempts.map(
+        (k, e) => MapEntry(k.toString(), e),
+      ),
       'bobs27AvgScore': instance.bobs27AvgScore,
       'bobs27BestScore': instance.bobs27BestScore,
       'bobs27CompletionRate': instance.bobs27CompletionRate,

@@ -16,6 +16,14 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
 
   StatisticsRepositoryDrift(this._db);
 
+  static const _practiceGameTypes = {
+    GameType.aroundTheClock,
+    GameType.bobs27,
+    GameType.shanghai,
+    GameType.catch40,
+    GameType.checkoutPractice,
+  };
+
   @override
   Future<GameStats> getGameStats(String gameId) async {
     try {
@@ -225,6 +233,12 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       final legsWon = await _getLegsWonByPlayer(playerId, gameType);
       final double dartsPerLeg =
           legsPlayed > 0 ? dartCount / legsPlayed : 0.0;
+
+      // Practice game types: compute stats from event log
+      if (gameType != null && _practiceGameTypes.contains(gameType)) {
+        return await _computePracticeStatsDrift(
+            playerId, gameType, totalGames, dartCount);
+      }
 
       // Cricket-specific stats (early return — X01 fields not applicable)
       if (gameType == GameType.cricket) {
@@ -1278,6 +1292,165 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
           checkoutCount > 0 ? checkoutScoreSum / checkoutCount : null,
       bestGameCheckoutPercentage: bestGameCo,
       highestCheckout: highestCheckout,
+    );
+  }
+
+  // ── Practice statistics ────────────────────────────────────────────────────
+
+  PlayerStats _emptyPracticeStats(
+          String playerId, GameType gameType, int totalGames, int totalDartsThrown) =>
+      PlayerStats(
+        playerId: playerId,
+        gameType: gameType,
+        totalGames: totalGames,
+        gamesWon: 0,
+        winRate: 0.0,
+        threeDartAverage: 0.0,
+        highestTurnScore: 0,
+        totalDartsThrown: totalDartsThrown,
+        dartsPerLeg: 0.0,
+        bustRate: 0.0,
+      );
+
+  Future<PlayerStats> _computePracticeStatsDrift(
+    String playerId,
+    GameType gameType,
+    int totalGames,
+    int totalDartsThrown,
+  ) async {
+    // Fetch game IDs where this player participated with the given game type
+    final gameIdsQuery = _db.selectOnly(_db.dartThrows)
+      ..addColumns([_db.dartThrows.gameId])
+      ..join([
+        innerJoin(_db.games, _db.games.gameId.equalsExp(_db.dartThrows.gameId))
+      ])
+      ..where(_db.dartThrows.playerId.equals(playerId) &
+          _db.games.gameType.equals(gameType.name))
+      ..groupBy([_db.dartThrows.gameId]);
+    final gameIdRows = await gameIdsQuery.get();
+    final gameIds = gameIdRows
+        .map((r) => r.read(_db.dartThrows.gameId))
+        .whereType<String>()
+        .toList();
+
+    if (gameIds.isEmpty) {
+      return _emptyPracticeStats(playerId, gameType, totalGames, totalDartsThrown);
+    }
+
+    // Read variant from the most-recently-started game's config_json
+    String variant = 'standard';
+    final gameRow = await (_db.select(_db.games)
+          ..where((g) => g.gameId.isIn(gameIds))
+          ..orderBy([(g) => OrderingTerm.desc(g.startTime)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (gameRow != null) {
+      try {
+        final cfg = jsonDecode(gameRow.configJson) as Map<String, dynamic>;
+        variant = cfg['variant'] as String? ?? 'standard';
+      } catch (_) {}
+    }
+
+    // Fetch all events for those games ordered by local_sequence
+    final events = await (_db.select(_db.gameEvents)
+          ..where((e) => e.gameId.isIn(gameIds))
+          ..orderBy([(e) => OrderingTerm.asc(e.localSequence)]))
+        .get();
+
+    return switch (gameType) {
+      GameType.aroundTheClock => _computeAtcStatsDrift(
+          playerId, events, variant, totalGames, totalDartsThrown),
+      _ => _emptyPracticeStats(playerId, gameType, totalGames, totalDartsThrown),
+    };
+  }
+
+  /// Around the Clock stats computed from the event log.
+  /// ATC is solo practice — no cross-player filtering needed; all events in
+  /// the list already belong to this player's games.
+  PlayerStats _computeAtcStatsDrift(
+    String playerId,
+    List<drift_db.GameEvent> events,
+    String variant,
+    int totalGames,
+    int totalDartsThrown,
+  ) {
+
+    int totalDartsAtTargets = 0;
+    int totalHits = 0;
+    int completions = 0;
+    int totalTurnsForCompletions = 0;
+    int? bestTurns;
+    final Map<int, int> segHits = {};
+    final Map<int, int> segAttempts = {};
+
+    int currentTarget = 1;
+    int gameTurns = 0;
+    bool inPlayerTurn = false;
+
+    for (final event in events) {
+      switch (event.eventType) {
+        case 'TurnStarted':
+          inPlayerTurn = true;
+          gameTurns++;
+        case 'DartThrown':
+          if (!inPlayerTurn) break;
+          final payload =
+              jsonDecode(event.payloadJson) as Map<String, dynamic>;
+          final seg = (payload['segment'] as num?)?.toInt() ?? 0;
+          final mult = (payload['multiplier'] as num?)?.toInt() ?? 1;
+          if (currentTarget <= 20) {
+            totalDartsAtTargets++;
+            segAttempts[currentTarget] = (segAttempts[currentTarget] ?? 0) + 1;
+            final hit = variant == 'doublesOnly'
+                ? (seg == currentTarget && mult == 2)
+                : (seg == currentTarget);
+            if (hit) {
+              totalHits++;
+              segHits[currentTarget] = (segHits[currentTarget] ?? 0) + 1;
+              currentTarget++;
+            }
+          }
+        case 'TurnEnded':
+          inPlayerTurn = false;
+        case 'LegCompleted':
+          if (currentTarget > 20) {
+            completions++;
+            totalTurnsForCompletions += gameTurns;
+            if (bestTurns == null || gameTurns < bestTurns) {
+              bestTurns = gameTurns;
+            }
+          }
+          currentTarget = 1;
+          gameTurns = 0;
+          inPlayerTurn = false;
+        case 'GameCompleted':
+          // ATC is a 1-leg practice game: GameCompleted signals drill completion
+          if (currentTarget > 20) {
+            completions++;
+            totalTurnsForCompletions += gameTurns;
+            if (bestTurns == null || gameTurns < bestTurns) {
+              bestTurns = gameTurns;
+            }
+          }
+          currentTarget = 1;
+          gameTurns = 0;
+          inPlayerTurn = false;
+      }
+    }
+
+    final hitRate =
+        totalDartsAtTargets > 0 ? totalHits / totalDartsAtTargets : null;
+    final avgTurns =
+        completions > 0 ? totalTurnsForCompletions / completions : null;
+
+    return _emptyPracticeStats(playerId, GameType.aroundTheClock, totalGames, totalDartsThrown)
+        .copyWith(
+      atcCompletions: completions,
+      atcHitRate: hitRate,
+      atcAvgTurns: avgTurns,
+      atcBestTurns: bestTurns,
+      atcSegmentHits: segHits,
+      atcSegmentAttempts: segAttempts,
     );
   }
 }

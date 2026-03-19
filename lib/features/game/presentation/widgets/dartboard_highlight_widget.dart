@@ -1,6 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+/// Clockwise segment order starting from 20 at the top.
+const List<int> kDartboardClockOrder = [
+  20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5,
+];
+
 class DartboardHighlightWidget extends StatelessWidget {
   const DartboardHighlightWidget({
     super.key,
@@ -48,10 +53,7 @@ class _DartboardPainter extends CustomPainter {
   final bool noHighlight;
   final ColorScheme colorScheme;
 
-  // Clockwise segment order starting from top (20 at top)
-  static const List<int> _clockOrder = [
-    20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5
-  ];
+  static const List<int> _clockOrder = kDartboardClockOrder;
 
   // Radii as fractions of total radius
   static const double _rDoubleBull = 0.05;

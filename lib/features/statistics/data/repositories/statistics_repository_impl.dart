@@ -1167,6 +1167,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
     int completions = 0;
     int totalTurnsForCompletions = 0;
     int? bestTurns;
+    final Map<int, int> segHits = {};
+    final Map<int, int> segAttempts = {};
 
     // Per-game state
     int currentTarget = 1;
@@ -1174,28 +1176,27 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
     bool inPlayerTurn = false;
 
     for (final event in events) {
-      final pid = event.payload['player_id'] as String?;
       switch (event.eventType) {
         case 'TurnStarted':
-          if (pid != playerId) break;
           inPlayerTurn = true;
           gameTurns++;
         case 'DartThrown':
-          if (!inPlayerTurn || pid != playerId) break;
+          if (!inPlayerTurn) break;
           final seg = (event.payload['segment'] as num?)?.toInt() ?? 0;
           final mult = (event.payload['multiplier'] as num?)?.toInt() ?? 1;
           if (currentTarget <= 20) {
             totalDartsAtTargets++;
+            segAttempts[currentTarget] = (segAttempts[currentTarget] ?? 0) + 1;
             final hit = variant == 'doublesOnly'
                 ? (seg == currentTarget && mult == 2)
                 : (seg == currentTarget);
             if (hit) {
               totalHits++;
+              segHits[currentTarget] = (segHits[currentTarget] ?? 0) + 1;
               currentTarget++;
             }
           }
         case 'TurnEnded':
-          if (pid != playerId) break;
           inPlayerTurn = false;
         case 'LegCompleted':
           // ATC leg completed = drill done
@@ -1210,7 +1211,15 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
           gameTurns = 0;
           inPlayerTurn = false;
         case 'GameCompleted':
-          // Reset for next game
+          // ATC is a 1-leg practice game: GameCompleted signals drill completion
+          // (LegCompleted is never emitted when legsToWin==1)
+          if (currentTarget > 20) {
+            completions++;
+            totalTurnsForCompletions += gameTurns;
+            if (bestTurns == null || gameTurns < bestTurns) {
+              bestTurns = gameTurns;
+            }
+          }
           currentTarget = 1;
           gameTurns = 0;
           inPlayerTurn = false;
@@ -1226,6 +1235,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
       atcHitRate: hitRate,
       atcAvgTurns: avgTurns,
       atcBestTurns: bestTurns,
+      atcSegmentHits: segHits,
+      atcSegmentAttempts: segAttempts,
     );
   }
 

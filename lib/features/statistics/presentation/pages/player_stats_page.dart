@@ -7,6 +7,8 @@ import '../../../players/presentation/providers/players_provider.dart';
 import '../../domain/entities/player_stats.dart';
 import '../providers/statistics_provider.dart';
 import '../state/player_stats_page_state.dart';
+import '../widgets/atc_annotated_dartboard_widget.dart';
+import '../widgets/atc_summary_column_widget.dart';
 import '../widgets/cricket_stats_detail_table_widget.dart';
 import '../widgets/cricket_variant_chip_selector_widget.dart';
 import '../widgets/mpt_trend_chart_widget.dart';
@@ -208,6 +210,9 @@ class _PracticeTabContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncStats = ref.watch(filteredPracticeStatsProvider(playerId));
+    final pageState = ref.watch(playerStatsPageProvider(playerId));
+    final isAtc =
+        pageState.selectedPracticeGameType == GameType.aroundTheClock;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 24),
@@ -233,11 +238,6 @@ class _PracticeTabContent extends ConsumerWidget {
           ),
           TimeRangeSelectorWidget(playerId: playerId),
           const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: PracticeTrendChartWidget(playerId: playerId),
-          ),
-          const SizedBox(height: 16),
           asyncStats.when(
             loading: () => const SizedBox(
               height: 200,
@@ -248,7 +248,52 @@ class _PracticeTabContent extends ConsumerWidget {
               onRetry: () =>
                   ref.invalidate(filteredPracticeStatsProvider(playerId)),
             ),
-            data: (stats) => PracticeStatsDetailTableWidget(stats: stats),
+            data: (stats) => isAtc
+                ? _AtcBoardAndSummary(stats: stats)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: PracticeTrendChartWidget(playerId: playerId),
+                      ),
+                      const SizedBox(height: 16),
+                      PracticeStatsDetailTableWidget(stats: stats),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AtcBoardAndSummary extends StatelessWidget {
+  final PlayerStats stats;
+
+  const _AtcBoardAndSummary({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 4,
+            child: AtcAnnotatedDartboardWidget(
+              hits: stats.atcSegmentHits,
+              attempts: stats.atcSegmentAttempts,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 1,
+            child: AtcSummaryColumnWidget(
+              hits: stats.atcSegmentHits,
+              attempts: stats.atcSegmentAttempts,
+            ),
           ),
         ],
       ),

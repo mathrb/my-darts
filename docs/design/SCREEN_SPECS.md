@@ -833,7 +833,8 @@ Per-player statistics page with in-page navigation across game types. Reached fr
 - Tab indicator: `colorPrimary` underline, 2dp
 - Active tab label: `colorPrimary`, `textLabelLarge`
 - Inactive tab label: `colorOnSurfaceVariant`, `textLabelLarge`
-- Practice and Others tabs show a "coming soon" placeholder (same desaturated treatment as Home coming-soon cards) at this stage
+- Practice tab: Around the Clock variant is fully specified (see Practice Tab section below). All other practice variants show a "coming soon" placeholder.
+- Others tab shows a "coming soon" placeholder (same desaturated treatment as Home coming-soon cards) at this stage.
 
 ### Summary Cards Row
 - 3 cards in a single horizontal row, equal width, `colorSurface`, `radiusMedium`, elevation 1
@@ -849,7 +850,8 @@ Per-player statistics page with in-page navigation across game types. Reached fr
 - Selected chip: `colorPrimaryContainer` background, `colorOnPrimaryContainer` text
 - Unselected chip: `colorSurfaceVariant` background, `colorOnSurfaceVariant` text
 - Variant selection filters both the trend chart and the detail table
-- Hidden on tabs without variants (Cricket, Practice, Others)
+- Hidden on tabs without variants (Cricket, Others)
+- **Practice tab has its own variant selector** — see Practice Tab section below
 
 ### Time Range Selector
 - `SegmentedButton` with 3 options: **Last 10**, **Last 100**, **All**
@@ -953,14 +955,149 @@ Metric field sources in `PlayerStats`:
 - Coming-soon tab placeholder: `colorSurfaceVariant` background, `colorOnSurfaceVariant` text + icon, `opacity: 0.6`
 
 ### Special Notes
-- **Cricket tab is implemented** — see Cricket Tab section below. Practice and Others tabs remain stubbed.
-- **Practice, Others tabs are stubbed:** show a centred "Stats for [game type] coming soon" placeholder. No summary cards, no chart, no table.
 - **Cricket tab is implemented** — see Cricket Tab section below.
-- **Variant selector** appears on the X01 tab and the Cricket tab. Hidden on Practice and Others tabs.
+- **Practice tab — Around the Clock** is fully specified — see Practice Tab section below. All other practice variants remain stubbed.
+- **Others tab is stubbed:** shows a centred "Stats for [game type] coming soon" placeholder. No summary cards, no chart, no table.
+- **Variant selector** appears on the X01 tab, the Cricket tab, and the Practice tab. Hidden on the Others tab.
 - **Time range** applies across the entire tab (chart + table). Switching range recomputes all displayed metrics.
 - **No leaderboard** on this page. Strictly per-player, per-game-type stats.
 - **Projection data dependency:** The trend chart requires time-series PPR data per leg/game. The current `PlayerStats` entity is a flat aggregate and does not carry time-series data. A new data structure (list of per-game snapshots) will be needed in `StatisticsRepository` and `PlayerStats`. This is flagged for the implementation ticket.
 - **Route rename:** The previous route was `/stats/career/:playerId`. This spec uses `/stats/player/:playerId`. Implementation must update the router accordingly.
+
+### Practice Tab
+
+#### Variant Selector
+
+- Horizontal scrollable chip row below the summary cards (same chip-row pattern as X01/Cricket)
+- Chips (in order): **All Practice** (default selected), **Around the Clock**, **Bob's 27**, **Catch-40**, **Checkout Practice**, **Shanghai**
+- Selected chip: `colorPrimaryContainer` background, `colorOnPrimaryContainer` text
+- Unselected chip: `colorSurfaceVariant` background, `colorOnSurfaceVariant` text
+- Hidden when the player has no practice data at all
+- Selecting a chip filters the view to that practice variant only
+
+#### Practice Tab — Non-ATC Variants (Stubbed)
+
+All variants except **Around the Clock** show the coming-soon placeholder:
+- Centred `"Stats for [variant name] coming soon"` text
+- `textBodyMedium`, `colorOnSurfaceVariant`, `opacity: 0.6`
+- `colorSurfaceVariant` background card, `radiusMedium`
+
+#### Practice Tab — Around the Clock Stats View
+
+Shown when **Around the Clock** chip is selected (or when **All Practice** is selected and the player has ATC data).
+
+**Time range selector:** `SegmentedButton` — **Last 10** | **Last 100** | **All** (default). "10/100" counts completed ATC sessions, not individual turns.
+
+**Layout:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  [All Practice▾][ATC][Bob's 27][Catch-40][Checkout][...] │  ← variant chip row
+├─────────────────────────────────────────────────────────┤
+│  [Last 10] [Last 100] [All]                              │  ← time range
+├─────────────────────────────────────────────────────────┤
+│  ┌───────────────────────────────┐  ┌─────────────────┐  │
+│  │                               │  │ OVERALL         │  │
+│  │   Annotated dartboard         │  │   72%           │  │
+│  │   (hit rate % on each wedge)  │  ├─────────────────┤  │
+│  │                               │  │ BEST            │  │
+│  │                               │  │  20  94%        │  │
+│  │                               │  │  19  91%        │  │
+│  │                               │  │  18  88%        │  │
+│  │                               │  ├─────────────────┤  │
+│  │                               │  │ WEAKEST         │  │
+│  │                               │  │   3  41%        │  │
+│  │                               │  │   7  44%        │  │
+│  │                               │  │  14  48%        │  │
+│  └───────────────────────────────┘  └─────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Layout proportions:**
+- Dartboard container: **4/5** of horizontal space (`flex: 4`)
+- Summary column: **1/5** of horizontal space (`flex: 1`)
+- Both containers share the same height (intrinsic height of the dartboard)
+- Minimum height of the combined row: board natural height (square aspect ratio filling 4/5 width)
+
+---
+
+##### Annotated Dartboard
+
+- Full circular dartboard rendered at normal opacity using the same read-only dartboard component used elsewhere in the app (all interactive tap zones disabled)
+- Each numbered wedge (1–20) shows its hit rate percentage at the **outer tip** of the wedge, just outside the board boundary
+  - Text style: `textLabelSmall` (11sp DM Sans Medium), `colorOnBackground`
+  - Format: `"72%"` (no decimal places)
+  - Segments with 0 attempts: render `"—"` instead of a percentage
+- **Bull position:** hit rate shown as a centred label overlaid inside the bull circle
+  - Format: `"DB 72%"` (prefix `"DB"` identifies the doubles bull / bullseye)
+  - Covers inner bull (bullseye, 50-point ring) hit rate only
+  - Text style: `textLabelSmall`, `colorOnBackground`
+- **Segment colours are not changed** — the dartboard uses standard alternating black/white wedge colours; hit rate labels use `colorOnBackground` regardless of rate
+- In `doublesOnly` variant: only `D1`–`D20` and `DB` are tracked; single and triple ring labels show `"—"`
+- Hit rate percentages on the board update when the time range selection changes
+
+---
+
+##### Summary Column (1/5 width)
+
+Single-column card (`colorSurface`, `radiusMedium`, elevation 1) divided into three sections separated by `colorOutline` hairlines.
+
+**Section 1 — Overall Hit Rate**
+- Header label: `"OVERALL"`, `textLabelSmall`, `colorOnSurfaceVariant`, ALL CAPS
+- Value: overall hit rate as `"72%"`, `textScoreSmall` (36sp Oswald Bold), `colorPrimary`
+- Definition: total targets hit ÷ total darts thrown across all numbers in the selected range
+
+**Section 2 — Best 3**
+- Header: `"BEST"`, `textLabelSmall`, `colorOnSurfaceVariant`, ALL CAPS
+- 3 rows, sorted by hit rate descending; ties broken by segment number ascending
+- Only segments with ≥ 1 attempt are eligible
+- Each row:
+  - Segment label (e.g. `"20"`, `"Bull"`): `textBodyMedium`, `colorSuccess` (`Colors.green.shade700` light / `Colors.green.shade400` dark; define token `colorSuccess` in `DESIGN_SYSTEM.md` if not already present)
+  - Hit rate: e.g. `"94%"`, `textBodyMedium`, `colorOnBackground`
+  - Layout: segment label left-aligned, hit rate right-aligned within column width
+
+**Section 3 — Weakest 3**
+- Header: `"WEAKEST"`, `textLabelSmall`, `colorOnSurfaceVariant`, ALL CAPS
+- 3 rows, sorted by hit rate ascending; ties broken by segment number ascending
+- Only segments with ≥ 1 attempt are eligible
+- Each row:
+  - Segment label: `textBodyMedium`, `colorError` (token `colorError`: `#B00020` light / `#CF6679` dark — distinct from `colorPrimary`)
+  - Hit rate: e.g. `"41%"`, `textBodyMedium`, `colorOnBackground`
+  - Layout: segment label left-aligned, hit rate right-aligned
+
+**Segment label mapping for the summary column:**
+
+| Game segment | Display label |
+|---|---|
+| Numbers 1–20 | `"1"` – `"20"` |
+| Bull (DB / inner bull) | `"Bull"` |
+
+In `doublesOnly` variant, Best/Weakest rows show only the double segments that were attempted.
+
+**Edge cases:**
+- Fewer than 3 attempted segments: show only the available rows (no placeholder dashes)
+- No data at all: show `"—"` for the Overall value; Best and Weakest sections show `"No data yet"` in `textBodySmall`, `colorOnSurfaceVariant`
+
+---
+
+##### Typography & Color Summary (ATC Stats View)
+
+| Element | Style token | Color token |
+|---|---|---|
+| Hit rate label on dartboard wedge | `textLabelSmall` | `colorOnBackground` |
+| Overall hit rate value | `textScoreSmall` | `colorPrimary` |
+| Section headers (OVERALL / BEST / WEAKEST) | `textLabelSmall` | `colorOnSurfaceVariant` |
+| Segment label — Best rows | `textBodyMedium` | `colorSuccess` |
+| Segment label — Weakest rows | `textBodyMedium` | `colorError` |
+| Hit rate value in Best/Weakest rows | `textBodyMedium` | `colorOnBackground` |
+
+---
+
+##### ATC Variant Pooling
+
+- By default (**All Practice** chip selected): ATC data from both `standard` and `doublesOnly` sub-variants is pooled together.
+- When **Around the Clock** chip is selected: still pools both ATC sub-variants. A sub-variant chip row is **not** added at this stage.
+- The `doublesOnly` display rule (single and triple rings show `"—"`) applies only when the player exclusively has `doublesOnly` data.
 
 ---
 
