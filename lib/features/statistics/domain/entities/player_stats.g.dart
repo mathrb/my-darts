@@ -37,6 +37,30 @@ _PlayerStats _$PlayerStatsFromJson(Map<String, dynamic> json) => _PlayerStats(
   nineMarkTurns: (json['nineMarkTurns'] as num?)?.toInt() ?? 0,
   bestLegMpt: (json['bestLegMpt'] as num?)?.toDouble(),
   bestGameHitRate: (json['bestGameHitRate'] as num?)?.toDouble(),
+  atcCompletions: (json['atcCompletions'] as num?)?.toInt() ?? 0,
+  atcHitRate: (json['atcHitRate'] as num?)?.toDouble(),
+  atcAvgTurns: (json['atcAvgTurns'] as num?)?.toDouble(),
+  atcBestTurns: (json['atcBestTurns'] as num?)?.toInt(),
+  bobs27AvgScore: (json['bobs27AvgScore'] as num?)?.toDouble(),
+  bobs27BestScore: (json['bobs27BestScore'] as num?)?.toInt(),
+  bobs27CompletionRate: (json['bobs27CompletionRate'] as num?)?.toDouble(),
+  bobs27DoubleHitRate: (json['bobs27DoubleHitRate'] as num?)?.toDouble(),
+  shanghaiAvgScore: (json['shanghaiAvgScore'] as num?)?.toDouble(),
+  shanghaiBestScore: (json['shanghaiBestScore'] as num?)?.toInt(),
+  shanghaiCount: (json['shanghaiCount'] as num?)?.toInt() ?? 0,
+  catch40AvgScore: (json['catch40AvgScore'] as num?)?.toDouble(),
+  catch40BestScore: (json['catch40BestScore'] as num?)?.toInt(),
+  catch40TwoDartCheckouts:
+      (json['catch40TwoDartCheckouts'] as num?)?.toInt() ?? 0,
+  catch40ThreeDartCheckouts:
+      (json['catch40ThreeDartCheckouts'] as num?)?.toInt() ?? 0,
+  catch40FourSixDartCheckouts:
+      (json['catch40FourSixDartCheckouts'] as num?)?.toInt() ?? 0,
+  catch40FailedCheckouts:
+      (json['catch40FailedCheckouts'] as num?)?.toInt() ?? 0,
+  checkoutAttempts: (json['checkoutAttempts'] as num?)?.toInt() ?? 0,
+  checkoutSuccesses: (json['checkoutSuccesses'] as num?)?.toInt() ?? 0,
+  checkoutSuccessRate: (json['checkoutSuccessRate'] as num?)?.toDouble(),
 );
 
 Map<String, dynamic> _$PlayerStatsToJson(_PlayerStats instance) =>
@@ -70,6 +94,26 @@ Map<String, dynamic> _$PlayerStatsToJson(_PlayerStats instance) =>
       'nineMarkTurns': instance.nineMarkTurns,
       'bestLegMpt': instance.bestLegMpt,
       'bestGameHitRate': instance.bestGameHitRate,
+      'atcCompletions': instance.atcCompletions,
+      'atcHitRate': instance.atcHitRate,
+      'atcAvgTurns': instance.atcAvgTurns,
+      'atcBestTurns': instance.atcBestTurns,
+      'bobs27AvgScore': instance.bobs27AvgScore,
+      'bobs27BestScore': instance.bobs27BestScore,
+      'bobs27CompletionRate': instance.bobs27CompletionRate,
+      'bobs27DoubleHitRate': instance.bobs27DoubleHitRate,
+      'shanghaiAvgScore': instance.shanghaiAvgScore,
+      'shanghaiBestScore': instance.shanghaiBestScore,
+      'shanghaiCount': instance.shanghaiCount,
+      'catch40AvgScore': instance.catch40AvgScore,
+      'catch40BestScore': instance.catch40BestScore,
+      'catch40TwoDartCheckouts': instance.catch40TwoDartCheckouts,
+      'catch40ThreeDartCheckouts': instance.catch40ThreeDartCheckouts,
+      'catch40FourSixDartCheckouts': instance.catch40FourSixDartCheckouts,
+      'catch40FailedCheckouts': instance.catch40FailedCheckouts,
+      'checkoutAttempts': instance.checkoutAttempts,
+      'checkoutSuccesses': instance.checkoutSuccesses,
+      'checkoutSuccessRate': instance.checkoutSuccessRate,
     };
 
 const _$GameTypeEnumMap = {

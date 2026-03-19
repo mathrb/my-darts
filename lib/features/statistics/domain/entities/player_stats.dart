@@ -42,6 +42,31 @@ abstract class PlayerStats with _$PlayerStats {
     // Cricket best-of metrics (null when no data)
     double? bestLegMpt,
     double? bestGameHitRate,
+    // ATC practice fields
+    @Default(0) int atcCompletions,
+    double? atcHitRate,
+    double? atcAvgTurns,
+    int? atcBestTurns,
+    // Bob's 27 practice fields
+    double? bobs27AvgScore,
+    int? bobs27BestScore,
+    double? bobs27CompletionRate,
+    double? bobs27DoubleHitRate,
+    // Shanghai practice fields
+    double? shanghaiAvgScore,
+    int? shanghaiBestScore,
+    @Default(0) int shanghaiCount,
+    // Catch-40 practice fields
+    double? catch40AvgScore,
+    int? catch40BestScore,
+    @Default(0) int catch40TwoDartCheckouts,
+    @Default(0) int catch40ThreeDartCheckouts,
+    @Default(0) int catch40FourSixDartCheckouts,
+    @Default(0) int catch40FailedCheckouts,
+    // Checkout practice fields
+    @Default(0) int checkoutAttempts,
+    @Default(0) int checkoutSuccesses,
+    double? checkoutSuccessRate,
   }) = _PlayerStats;
 
   factory PlayerStats.fromJson(Map<String, dynamic> json) =>

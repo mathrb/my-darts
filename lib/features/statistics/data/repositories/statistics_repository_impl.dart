@@ -45,6 +45,14 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
 
   StatisticsRepositoryImpl(this._db);
 
+  static const _practiceGameTypes = {
+    GameType.aroundTheClock,
+    GameType.bobs27,
+    GameType.shanghai,
+    GameType.catch40,
+    GameType.checkoutPractice,
+  };
+
   @override
   Future<GameStats> getGameStats(String gameId) async {
     try {
@@ -513,6 +521,19 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
 
     final isCricket = effectiveGameType == GameType.cricket;
 
+    final isPractice = _practiceGameTypes.contains(effectiveGameType);
+
+    if (isPractice) {
+      return _buildPracticePlayerStats(
+        playerId,
+        effectiveGameType,
+        gamesResult,
+        events,
+        totalGames,
+        totalDartsThrown,
+      );
+    }
+
     final runner = isCricket
         ? ProjectionRunner([
             CricketMarksPerTurnProjection(),
@@ -722,6 +743,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
           turnScores[turn] = (turnScores[turn] ?? 0) + score;
         }
 
+        final isPracticeGame = _practiceGameTypes.contains(gameType);
+
         // Scan events to accumulate per-leg darts and PPR/MPT
         int legDartCount = 0;
         int legScoreTotal = 0;
@@ -733,6 +756,12 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         int legTotalTurns = 0;
         int currentTurnMarks = 0;
 
+        // ATC hit-rate tracking (for practice trend chart)
+        int atcDartsAtTarget = 0;
+        int atcHits = 0;
+        int atcCurrentTarget = 1;
+        bool atcInPlayerTurn = false;
+
         for (final eventRow in eventsResult) {
           final event = GameEvent.fromJson(eventRow);
           switch (event.eventType) {
@@ -741,6 +770,7 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
               if (pid != playerId) break;
               currentTurnNumber = event.payload['turn_number'] as int? ?? currentTurnNumber;
               currentTurnMarks = 0;
+              atcInPlayerTurn = true;
             case 'DartThrown':
               final pid = event.payload['player_id'] as String?;
               if (pid != playerId) break;
@@ -762,12 +792,24 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
                   currentTurnMarks += multInt.clamp(0, 3);
                 }
               }
+              // ATC hit tracking
+              if (isPracticeGame && gameType == GameType.aroundTheClock && atcInPlayerTurn) {
+                final segVal = (event.payload['segment'] as num?)?.toInt() ?? 0;
+                if (atcCurrentTarget <= 20) {
+                  atcDartsAtTarget++;
+                  if (segVal == atcCurrentTarget) {
+                    atcHits++;
+                    atcCurrentTarget++;
+                  }
+                }
+              }
             case 'TurnEnded':
               final pid = event.payload['player_id'] as String?;
               if (pid != playerId) break;
               legTotalMarks += currentTurnMarks;
               legTotalTurns++;
               currentTurnMarks = 0;
+              atcInPlayerTurn = false;
             case 'LegCompleted':
               legIndex++;
               final ppr = legDartCount > 0
@@ -784,6 +826,18 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
                 checkoutPct = (1 / checkoutAttempts) * 100;
               }
 
+              // Compute practiceScore for the trend chart
+              double? practiceScore;
+              if (isPracticeGame) {
+                if (gameType == GameType.aroundTheClock) {
+                  practiceScore = atcDartsAtTarget > 0
+                      ? atcHits / atcDartsAtTarget
+                      : null;
+                } else {
+                  practiceScore = legScoreTotal.toDouble();
+                }
+              }
+
               snapshots.add(PlayerLegSnapshot(
                 gameId: gameId,
                 legIndex: legIndex,
@@ -792,6 +846,7 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
                 checkoutPct: checkoutPct,
                 startingScore: gamStartingScore,
                 mpt: mpt,
+                practiceScore: practiceScore,
               ));
 
               // Reset for next leg
@@ -801,6 +856,10 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
               legTotalMarks = 0;
               legTotalTurns = 0;
               currentTurnMarks = 0;
+              atcDartsAtTarget = 0;
+              atcHits = 0;
+              atcCurrentTarget = 1;
+              atcInPlayerTurn = false;
           }
         }
       }
@@ -1042,6 +1101,376 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
     } catch (e) {
       throw StatisticsException('Failed to retrieve cricket variants: ${e.toString()}');
     }
+  }
+
+  // ── Practice statistics ────────────────────────────────────────────────────
+
+  PlayerStats _buildPracticePlayerStats(
+    String playerId,
+    GameType gameType,
+    List<Map<String, dynamic>> games,
+    List<GameEvent> events,
+    int totalGames,
+    int totalDartsThrown,
+  ) {
+    return switch (gameType) {
+      GameType.aroundTheClock =>
+          _computeAtcStats(playerId, games, events, totalGames, totalDartsThrown),
+      GameType.bobs27 =>
+          _computeBobs27Stats(playerId, events, totalGames, totalDartsThrown),
+      GameType.shanghai =>
+          _computeShanghaiStats(playerId, events, totalGames, totalDartsThrown),
+      GameType.catch40 =>
+          _computeCatch40Stats(playerId, events, totalGames, totalDartsThrown),
+      GameType.checkoutPractice =>
+          _computeCheckoutStats(playerId, events, totalGames, totalDartsThrown),
+      _ => throw ArgumentError('Not a practice game type: $gameType'),
+    };
+  }
+
+  PlayerStats _emptyPracticeStats(String playerId, GameType gameType, int totalGames) =>
+      PlayerStats(
+        playerId: playerId,
+        gameType: gameType,
+        totalGames: totalGames,
+        gamesWon: 0,
+        winRate: 0.0,
+        threeDartAverage: 0.0,
+        highestTurnScore: 0,
+        totalDartsThrown: 0,
+        dartsPerLeg: 0.0,
+        bustRate: 0.0,
+      );
+
+  // Around the Clock
+  PlayerStats _computeAtcStats(
+    String playerId,
+    List<Map<String, dynamic>> games,
+    List<GameEvent> events,
+    int totalGames,
+    int totalDartsThrown,
+  ) {
+    // Read variant from the first game's config_json (or latest)
+    String variant = 'standard';
+    if (games.isNotEmpty) {
+      final configJson = games.first['config_json'] as String?;
+      if (configJson != null) {
+        try {
+          final cfg = jsonDecode(configJson) as Map<String, dynamic>;
+          variant = cfg['variant'] as String? ?? 'standard';
+        } catch (_) {}
+      }
+    }
+
+    int totalDartsAtTargets = 0;
+    int totalHits = 0;
+    int completions = 0;
+    int totalTurnsForCompletions = 0;
+    int? bestTurns;
+
+    // Per-game state
+    int currentTarget = 1;
+    int gameTurns = 0;
+    bool inPlayerTurn = false;
+
+    for (final event in events) {
+      final pid = event.payload['player_id'] as String?;
+      switch (event.eventType) {
+        case 'TurnStarted':
+          if (pid != playerId) break;
+          inPlayerTurn = true;
+          gameTurns++;
+        case 'DartThrown':
+          if (!inPlayerTurn || pid != playerId) break;
+          final seg = (event.payload['segment'] as num?)?.toInt() ?? 0;
+          final mult = (event.payload['multiplier'] as num?)?.toInt() ?? 1;
+          if (currentTarget <= 20) {
+            totalDartsAtTargets++;
+            final hit = variant == 'doublesOnly'
+                ? (seg == currentTarget && mult == 2)
+                : (seg == currentTarget);
+            if (hit) {
+              totalHits++;
+              currentTarget++;
+            }
+          }
+        case 'TurnEnded':
+          if (pid != playerId) break;
+          inPlayerTurn = false;
+        case 'LegCompleted':
+          // ATC leg completed = drill done
+          if (currentTarget > 20) {
+            completions++;
+            totalTurnsForCompletions += gameTurns;
+            if (bestTurns == null || gameTurns < bestTurns) {
+              bestTurns = gameTurns;
+            }
+          }
+          currentTarget = 1;
+          gameTurns = 0;
+          inPlayerTurn = false;
+        case 'GameCompleted':
+          // Reset for next game
+          currentTarget = 1;
+          gameTurns = 0;
+          inPlayerTurn = false;
+      }
+    }
+
+    final hitRate = totalDartsAtTargets > 0 ? totalHits / totalDartsAtTargets : null;
+    final avgTurns = completions > 0 ? totalTurnsForCompletions / completions : null;
+
+    return _emptyPracticeStats(playerId, GameType.aroundTheClock, totalGames).copyWith(
+      totalDartsThrown: totalDartsThrown,
+      atcCompletions: completions,
+      atcHitRate: hitRate,
+      atcAvgTurns: avgTurns,
+      atcBestTurns: bestTurns,
+    );
+  }
+
+  // Bob's 27
+  PlayerStats _computeBobs27Stats(
+    String playerId,
+    List<GameEvent> events,
+    int totalGames,
+    int totalDartsThrown,
+  ) {
+    int totalScore = 0;
+    int? bestScore;
+    int completedGames = 0;
+    int successfulCompletions = 0; // score > 0 at end
+    int doubleAttempts = 0;
+    int doubleHits = 0;
+
+    int currentRound = 1;
+    int currentScore = 27;
+    int turnDoubleHits = 0;
+    bool inPlayerTurn = false;
+
+    for (final event in events) {
+      final epid = event.payload['player_id'] as String?;
+      switch (event.eventType) {
+        case 'TurnStarted':
+          if (epid != playerId) break;
+          inPlayerTurn = true;
+          turnDoubleHits = 0;
+        case 'DartThrown':
+          if (!inPlayerTurn || epid != playerId) break;
+          final seg = (event.payload['segment'] as num?)?.toInt() ?? 0;
+          final mult = (event.payload['multiplier'] as num?)?.toInt() ?? 1;
+          if (mult == 2) {
+            doubleAttempts++;
+            if (seg == currentRound) {
+              doubleHits++;
+              turnDoubleHits++;
+            }
+          }
+        case 'TurnEnded':
+          if (!inPlayerTurn || epid != playerId) break;
+          inPlayerTurn = false;
+          // Apply Bob's 27 scoring: each double hit of currentRound = currentRound * 2
+          // Miss all: score -= currentRound * 2
+          if (turnDoubleHits > 0) {
+            currentScore += turnDoubleHits * currentRound * 2;
+          } else {
+            currentScore -= currentRound * 2;
+          }
+          currentRound++;
+        case 'LegCompleted':
+          completedGames++;
+          if (currentScore > 0) {
+            successfulCompletions++;
+            totalScore += currentScore;
+            if (bestScore == null || currentScore > bestScore) {
+              bestScore = currentScore;
+            }
+          }
+          // Reset for next drill
+          currentRound = 1;
+          currentScore = 27;
+          inPlayerTurn = false;
+        case 'GameCompleted':
+          currentRound = 1;
+          currentScore = 27;
+          inPlayerTurn = false;
+      }
+    }
+
+    final avgScore = successfulCompletions > 0 ? totalScore / successfulCompletions : null;
+    final completionRate = completedGames > 0 ? successfulCompletions / completedGames : null;
+    final doubleHitRate = doubleAttempts > 0 ? doubleHits / doubleAttempts : null;
+
+    return _emptyPracticeStats(playerId, GameType.bobs27, totalGames).copyWith(
+      totalDartsThrown: totalDartsThrown,
+      bobs27AvgScore: avgScore,
+      bobs27BestScore: bestScore,
+      bobs27CompletionRate: completionRate,
+      bobs27DoubleHitRate: doubleHitRate,
+    );
+  }
+
+  // Shanghai
+  PlayerStats _computeShanghaiStats(
+    String playerId,
+    List<GameEvent> events,
+    int totalGames,
+    int totalDartsThrown,
+  ) {
+    int shanghaiCount = 0;
+    int scoreAcc = 0;
+    int gamesCompleted = 0;
+    int totalScore = 0;
+    int? bestScore;
+
+    int currentRound = 1;
+    bool inPlayerTurn = false;
+    final Set<int> turnMultipliers = {}; // for Shanghai detection (all 3 mults in one turn)
+
+    for (final event in events) {
+      final epid = event.payload['player_id'] as String?;
+      switch (event.eventType) {
+        case 'TurnStarted':
+          if (epid != playerId) break;
+          inPlayerTurn = true;
+          turnMultipliers.clear();
+        case 'DartThrown':
+          if (epid != playerId) break;
+          final score = (event.payload['score'] as num?)?.toInt() ?? 0;
+          scoreAcc += score;
+          if (inPlayerTurn) {
+            final seg = (event.payload['segment'] as num?)?.toInt() ?? 0;
+            final mult = (event.payload['multiplier'] as num?)?.toInt() ?? 1;
+            if (seg == currentRound) turnMultipliers.add(mult);
+          }
+        case 'TurnEnded':
+          if (!inPlayerTurn || epid != playerId) break;
+          inPlayerTurn = false;
+          if (turnMultipliers.containsAll({1, 2, 3})) shanghaiCount++;
+          currentRound++;
+        case 'LegCompleted':
+          gamesCompleted++;
+          totalScore += scoreAcc;
+          if (bestScore == null || scoreAcc > bestScore) bestScore = scoreAcc;
+          scoreAcc = 0;
+          currentRound = 1;
+          inPlayerTurn = false;
+        case 'GameCompleted':
+          scoreAcc = 0;
+          currentRound = 1;
+          inPlayerTurn = false;
+      }
+    }
+
+    final avgScore = gamesCompleted > 0 ? totalScore / gamesCompleted : null;
+
+    return _emptyPracticeStats(playerId, GameType.shanghai, totalGames).copyWith(
+      totalDartsThrown: totalDartsThrown,
+      shanghaiAvgScore: avgScore,
+      shanghaiBestScore: bestScore,
+      shanghaiCount: shanghaiCount,
+    );
+  }
+
+  // Catch-40
+  PlayerStats _computeCatch40Stats(
+    String playerId,
+    List<GameEvent> events,
+    int totalGames,
+    int totalDartsThrown,
+  ) {
+    int totalScore = 0;
+    int? bestScore;
+    int gamesCompleted = 0;
+    int twoDart = 0;
+    int threeDart = 0;
+    int fourSixDart = 0;
+    int failed = 0;
+
+    int gameScore = 0;
+    int turnDarts = 0;
+    bool inPlayerTurn = false;
+
+    for (final event in events) {
+      final epid = event.payload['player_id'] as String?;
+      switch (event.eventType) {
+        case 'TurnStarted':
+          if (epid != playerId) break;
+          inPlayerTurn = true;
+          turnDarts = 0;
+        case 'DartThrown':
+          if (!inPlayerTurn || epid != playerId) break;
+          final score = (event.payload['score'] as num?)?.toInt() ?? 0;
+          gameScore += score;
+          turnDarts++;
+        case 'TurnEnded':
+          if (!inPlayerTurn || epid != playerId) break;
+          inPlayerTurn = false;
+          // Classify checkout by turn dart count
+          final reason = event.payload['reason'] as String?;
+          if (reason == 'checkout') {
+            if (turnDarts == 2) twoDart++;
+            else if (turnDarts == 3) threeDart++;
+            else if (turnDarts >= 4 && turnDarts <= 6) fourSixDart++;
+          } else if (reason == 'failed') {
+            failed++;
+          }
+        case 'LegCompleted':
+          gamesCompleted++;
+          totalScore += gameScore;
+          if (bestScore == null || gameScore > bestScore) bestScore = gameScore;
+          gameScore = 0;
+          inPlayerTurn = false;
+        case 'GameCompleted':
+          gameScore = 0;
+          inPlayerTurn = false;
+      }
+    }
+
+    final avgScore = gamesCompleted > 0 ? totalScore / gamesCompleted : null;
+
+    return _emptyPracticeStats(playerId, GameType.catch40, totalGames).copyWith(
+      totalDartsThrown: totalDartsThrown,
+      catch40AvgScore: avgScore,
+      catch40BestScore: bestScore,
+      catch40TwoDartCheckouts: twoDart,
+      catch40ThreeDartCheckouts: threeDart,
+      catch40FourSixDartCheckouts: fourSixDart,
+      catch40FailedCheckouts: failed,
+    );
+  }
+
+  // Checkout Practice
+  PlayerStats _computeCheckoutStats(
+    String playerId,
+    List<GameEvent> events,
+    int totalGames,
+    int totalDartsThrown,
+  ) {
+    int attempts = 0;
+    int successes = 0;
+
+    for (final event in events) {
+      final epid = event.payload['player_id'] as String?;
+      if (epid != playerId) continue;
+      switch (event.eventType) {
+        case 'TurnEnded':
+          attempts++;
+          final reason = event.payload['reason'] as String?;
+          if (reason == 'checkout') successes++;
+        default:
+          break;
+      }
+    }
+
+    final successRate = attempts > 0 ? successes / attempts : null;
+
+    return _emptyPracticeStats(playerId, GameType.checkoutPractice, totalGames).copyWith(
+      totalDartsThrown: totalDartsThrown,
+      checkoutAttempts: attempts,
+      checkoutSuccesses: successes,
+      checkoutSuccessRate: successRate,
+    );
   }
 
   // Helper method to calculate bust rate

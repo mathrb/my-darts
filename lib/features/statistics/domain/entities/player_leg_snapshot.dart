@@ -12,5 +12,6 @@ abstract class PlayerLegSnapshot with _$PlayerLegSnapshot {
     double? checkoutPct,
     int? startingScore,
     double? mpt,
+    double? practiceScore,
   }) = _PlayerLegSnapshot;
 }

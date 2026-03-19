@@ -68,6 +68,8 @@ class PlayerStatsPage extends _$PlayerStatsPage {
       state = state.copyWith(timeRange: range);
   void toggleCheckoutOverlay() =>
       state = state.copyWith(showCheckoutOverlay: !state.showCheckoutOverlay);
+  void setPracticeGameType(GameType gameType) =>
+      state = state.copyWith(selectedPracticeGameType: gameType);
 }
 
 @riverpod
@@ -138,6 +140,36 @@ Future<List<PlayerLegSnapshot>> cricketLegHistory(Ref ref, String playerId) {
     playerId,
     gameType: GameType.cricket,
     variant: s.selectedCricketVariant,
+    limit: limit,
+  );
+}
+
+@riverpod
+Future<PlayerStats> filteredPracticeStats(Ref ref, String playerId) {
+  final s = ref.watch(playerStatsPageProvider(playerId));
+  final limit = switch (s.timeRange) {
+    StatsTimeRange.last10 => 10,
+    StatsTimeRange.last100 => 100,
+    StatsTimeRange.all => null,
+  };
+  return ref.watch(statisticsRepositoryProvider).getPlayerStats(
+    playerId,
+    gameType: s.selectedPracticeGameType,
+    legLimit: limit,
+  );
+}
+
+@riverpod
+Future<List<PlayerLegSnapshot>> practiceDrillHistory(Ref ref, String playerId) {
+  final s = ref.watch(playerStatsPageProvider(playerId));
+  final limit = switch (s.timeRange) {
+    StatsTimeRange.last10 => 10,
+    StatsTimeRange.last100 => 100,
+    StatsTimeRange.all => null,
+  };
+  return ref.watch(statisticsRepositoryProvider).getPlayerLegHistory(
+    playerId,
+    gameType: s.selectedPracticeGameType,
     limit: limit,
   );
 }

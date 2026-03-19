@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/utils/constants.dart';
 import '../../../players/presentation/providers/players_provider.dart';
+import '../../domain/entities/player_stats.dart';
 import '../providers/statistics_provider.dart';
 import '../state/player_stats_page_state.dart';
 import '../widgets/cricket_stats_detail_table_widget.dart';
 import '../widgets/cricket_variant_chip_selector_widget.dart';
 import '../widgets/mpt_trend_chart_widget.dart';
+import '../widgets/practice_game_type_chip_selector_widget.dart';
+import '../widgets/practice_stats_detail_table_widget.dart';
+import '../widgets/practice_trend_chart_widget.dart';
 import '../widgets/ppr_trend_chart_widget.dart';
+import '../widgets/stats_card_widget.dart';
 import '../widgets/stats_detail_table_widget.dart';
 import '../widgets/summary_cards_row_widget.dart';
 import '../widgets/time_range_selector_widget.dart';
@@ -76,7 +82,7 @@ class _PlayerStatsPageState extends ConsumerState<PlayerStatsPage>
         children: [
           _X01TabContent(playerId: widget.playerId),
           _CricketTabContent(playerId: widget.playerId),
-          const _ComingSoonTab(label: 'Practice'),
+          _PracticeTabContent(playerId: widget.playerId),
           const _ComingSoonTab(label: 'Others'),
         ],
       ),
@@ -190,6 +196,133 @@ class _CricketTabContent extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PracticeTabContent extends ConsumerWidget {
+  final String playerId;
+
+  const _PracticeTabContent({required this.playerId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncStats = ref.watch(filteredPracticeStatsProvider(playerId));
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 16),
+          PracticeGameTypeChipSelectorWidget(playerId: playerId),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: asyncStats.when(
+              loading: () => const SizedBox(
+                height: 80,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) => _ErrorRetry(
+                message: 'Failed to load stats: $e',
+                onRetry: () =>
+                    ref.invalidate(filteredPracticeStatsProvider(playerId)),
+              ),
+              data: (stats) => _PracticeSummaryCards(stats: stats),
+            ),
+          ),
+          TimeRangeSelectorWidget(playerId: playerId),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: PracticeTrendChartWidget(playerId: playerId),
+          ),
+          const SizedBox(height: 16),
+          asyncStats.when(
+            loading: () => const SizedBox(
+              height: 200,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => _ErrorRetry(
+              message: 'Failed to load stats: $e',
+              onRetry: () =>
+                  ref.invalidate(filteredPracticeStatsProvider(playerId)),
+            ),
+            data: (stats) => PracticeStatsDetailTableWidget(stats: stats),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PracticeSummaryCards extends StatelessWidget {
+  final PlayerStats stats;
+
+  const _PracticeSummaryCards({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    String fmtPct(double? v) =>
+        v != null ? '${(v * 100).toStringAsFixed(1)}%' : '—';
+
+    final (label1, val1, label2, val2, label3, val3) = switch (stats.gameType) {
+      GameType.aroundTheClock => (
+          'Drills Played',
+          stats.totalGames.toString(),
+          'Completions',
+          stats.atcCompletions.toString(),
+          'Hit Rate',
+          fmtPct(stats.atcHitRate),
+        ),
+      GameType.bobs27 => (
+          'Drills Played',
+          stats.totalGames.toString(),
+          'Best Score',
+          stats.bobs27BestScore?.toString() ?? '—',
+          'Avg Score',
+          stats.bobs27AvgScore?.toStringAsFixed(1) ?? '—',
+        ),
+      GameType.shanghai => (
+          'Drills Played',
+          stats.totalGames.toString(),
+          'Best Score',
+          stats.shanghaiBestScore?.toString() ?? '—',
+          'Shanghais',
+          stats.shanghaiCount.toString(),
+        ),
+      GameType.catch40 => (
+          'Drills Played',
+          stats.totalGames.toString(),
+          'Best Score',
+          stats.catch40BestScore?.toString() ?? '—',
+          'Avg Score',
+          stats.catch40AvgScore?.toStringAsFixed(1) ?? '—',
+        ),
+      GameType.checkoutPractice => (
+          'Attempts',
+          stats.checkoutAttempts.toString(),
+          'Successes',
+          stats.checkoutSuccesses.toString(),
+          'Success Rate',
+          fmtPct(stats.checkoutSuccessRate),
+        ),
+      _ => (
+          'Games Played',
+          stats.totalGames.toString(),
+          '—',
+          '—',
+          '—',
+          '—',
+        ),
+    };
+
+    return Row(
+      children: [
+        Expanded(child: StatsCardWidget(label: label1, value: val1)),
+        Expanded(child: StatsCardWidget(label: label2, value: val2)),
+        Expanded(child: StatsCardWidget(label: label3, value: val3)),
+      ],
     );
   }
 }
