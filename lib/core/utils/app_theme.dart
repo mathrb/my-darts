@@ -2,11 +2,19 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_text_styles.dart';
 
-/// App theme factories (DESIGN_SYSTEM.md §11).
+/// App theme factories (DESIGN_SYSTEM.md §6, §11).
 /// Build exact-token ColorSchemes — never use ColorScheme.fromSeed.
 abstract final class AppTheme {
-  static const double radiusMedium = 12.0;
-  static const double radiusLarge  = 16.0;
+  // Shape tokens — use radiusNone (0) in Match Boards only.
+  // Use radiusLarge / radiusXLarge / radiusFull for all Admin/Nav components.
+  static const double radiusNone    = 0.0;
+  static const double radiusLarge   = 16.0;
+  static const double radiusXLarge  = 24.0;
+  static const double radiusFull    = 9999.0;
+
+  // Deprecated — alias to radiusLarge until remaining call sites are migrated.
+  @Deprecated('Use radiusLarge')
+  static const double radiusMedium  = radiusLarge;
 
   static ThemeData light() => _build(Brightness.light);
   static ThemeData dark()  => _build(Brightness.dark);
@@ -28,8 +36,8 @@ abstract final class AppTheme {
         foregroundColor:
             isDark ? AppColorsDark.onBackground : AppColors.onBackground,
         elevation: 0,
-        centerTitle: true,
-        titleTextStyle: AppTextStyles.headingMedium.copyWith(
+        centerTitle: false,
+        titleTextStyle: AppTextStyles.headlineMedium.copyWith(
           color: isDark ? AppColorsDark.onBackground : AppColors.onBackground,
         ),
       ),
@@ -38,21 +46,25 @@ abstract final class AppTheme {
 
   static ColorScheme _lightScheme() => const ColorScheme(
     brightness: Brightness.light,
+    primaryFixed:         AppColors.primaryContainer,
     primary:              AppColors.primary,
     onPrimary:            AppColors.onPrimary,
     primaryContainer:     AppColors.primaryContainer,
-    onPrimaryContainer:   AppColors.onPrimaryContainer,
-    secondary:            AppColors.secondary,
-    onSecondary:          AppColors.onSecondary,
-    secondaryContainer:   AppColors.secondaryContainer,
-    onSecondaryContainer: AppColors.onSecondaryContainer,
+    onPrimaryContainer:   AppColors.onPrimaryFixed,
+    secondary:            AppColors.primary,
+    onSecondary:          AppColors.onPrimary,
+    secondaryContainer:   AppColors.primaryContainer,
+    onSecondaryContainer: AppColors.onPrimaryFixed,
     error:                AppColors.error,
     onError:              AppColors.onError,
     errorContainer:       AppColors.errorContainer,
     onErrorContainer:     AppColors.onErrorContainer,
-    surface:              AppColors.surface,
-    onSurface:            AppColors.onSurface,
-    surfaceContainerHighest: AppColors.surfaceVariant,
+    surface:                  AppColors.surface,
+    onSurface:                AppColors.onSurface,
+    surfaceContainerLowest:   AppColors.surfaceContainerLowest,
+    surfaceContainerLow:      AppColors.surfaceContainerLow,
+    surfaceContainer:         AppColors.surfaceContainer,
+    surfaceContainerHighest:  AppColors.surfaceContainerHighest,
     onSurfaceVariant:     AppColors.onSurfaceVariant,
     outline:              AppColors.outline,
     outlineVariant:       AppColors.outlineVariant,
@@ -61,36 +73,62 @@ abstract final class AppTheme {
 
   static ColorScheme _darkScheme() => const ColorScheme(
     brightness: Brightness.dark,
-    primary:              AppColorsDark.primary,
-    onPrimary:            AppColorsDark.onPrimary,
-    primaryContainer:     AppColorsDark.primaryContainer,
-    onPrimaryContainer:   AppColorsDark.onPrimaryContainer,
-    secondary:            AppColorsDark.secondary,
-    onSecondary:          AppColorsDark.onSecondary,
-    secondaryContainer:   AppColorsDark.secondaryContainer,
-    onSecondaryContainer: AppColorsDark.onSecondaryContainer,
-    error:                AppColorsDark.error,
-    onError:              AppColorsDark.onError,
-    errorContainer:       AppColorsDark.errorContainer,
-    onErrorContainer:     AppColorsDark.onErrorContainer,
-    surface:              AppColorsDark.surface,
-    onSurface:            AppColorsDark.onSurface,
-    surfaceContainerHighest: AppColorsDark.surfaceVariant,
-    onSurfaceVariant:     AppColorsDark.onSurfaceVariant,
-    outline:              AppColorsDark.outline,
-    outlineVariant:       AppColorsDark.outlineVariant,
-    scrim:                AppColors.scrim,
+    primaryFixed:             AppColorsDark.primaryFixed,
+    primary:                  AppColorsDark.primary,
+    onPrimary:                AppColorsDark.onPrimary,
+    primaryContainer:         AppColorsDark.primaryContainer,
+    onPrimaryContainer:       AppColorsDark.onPrimaryContainer,
+    secondary:                AppColorsDark.secondary,
+    onSecondary:              AppColorsDark.onSecondary,
+    secondaryContainer:       AppColorsDark.secondaryContainer,
+    onSecondaryContainer:     AppColorsDark.onSecondaryContainer,
+    error:                    AppColorsDark.error,
+    onError:                  AppColorsDark.onError,
+    errorContainer:           AppColorsDark.errorContainer,
+    onErrorContainer:         AppColorsDark.onErrorContainer,
+    surface:                  AppColorsDark.surface,
+    onSurface:                AppColorsDark.onSurface,
+    surfaceContainerLowest:   AppColorsDark.surfaceContainerLowest,
+    surfaceContainerLow:      AppColorsDark.surfaceContainerLow,
+    surfaceContainer:         AppColorsDark.surfaceContainer,
+    surfaceContainerHigh:     AppColorsDark.surfaceContainerHigh,
+    surfaceContainerHighest:  AppColorsDark.surfaceContainerHighest,
+    onSurfaceVariant:         AppColorsDark.onSurfaceVariant,
+    outline:                  AppColorsDark.outline,
+    outlineVariant:           AppColorsDark.outlineVariant,
+    scrim:                    AppColorsDark.scrim,
+  );
+
+  /// Gradient card decoration for primary game cards (Kinetic Architect design).
+  /// Use on [Container] with [clipBehavior: Clip.antiAlias].
+  static BoxDecoration kineticCardDecoration() => BoxDecoration(
+    gradient: const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color(0x66232629), // surfaceContainerHigh ~40% opacity
+        Color(0xCC111416), // surfaceContainerLow  ~80% opacity
+      ],
+    ),
+    borderRadius: BorderRadius.circular(radiusLarge),
+    border: Border.all(
+      color: const Color(0x0DFFFFFF), // rgba(255,255,255,0.05) ghost border
+      width: 1,
+    ),
   );
 
   static TextTheme _textTheme() => TextTheme(
-    displayLarge:  AppTextStyles.displayLarge,
-    titleLarge:    AppTextStyles.headingMedium,
-    titleMedium:   AppTextStyles.headingSmall,
-    bodyLarge:     AppTextStyles.bodyLarge,
-    bodyMedium:    AppTextStyles.bodyMedium,
-    bodySmall:     AppTextStyles.bodySmall,
-    labelLarge:    AppTextStyles.labelLarge,
-    labelMedium:   AppTextStyles.labelMedium,
-    labelSmall:    AppTextStyles.labelSmall,
+    displayLarge:   AppTextStyles.displayLarge,
+    headlineLarge:  AppTextStyles.headlineLarge,
+    headlineMedium: AppTextStyles.headlineMedium,
+    headlineSmall:  AppTextStyles.headlineSmall,
+    titleLarge:     AppTextStyles.headlineLarge,
+    titleMedium:    AppTextStyles.titleMedium,
+    bodyLarge:      AppTextStyles.bodyLarge,
+    bodyMedium:     AppTextStyles.bodyMedium,
+    bodySmall:      AppTextStyles.bodySmall,
+    labelLarge:     AppTextStyles.labelLarge,
+    labelMedium:    AppTextStyles.labelMedium,
+    labelSmall:     AppTextStyles.labelSmall,
   );
 }

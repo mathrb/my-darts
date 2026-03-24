@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:my_darts/core/persistence/database_provider.dart';
-import 'package:my_darts/core/utils/app_colors.dart';
+import 'package:my_darts/core/utils/app_theme.dart';
 import 'package:my_darts/features/game/presentation/pages/home_page.dart';
 import 'package:my_darts/features/game/presentation/providers/game_setup_provider.dart';
 import 'package:my_darts/features/game/presentation/state/game_setup_state.dart';
@@ -50,7 +50,7 @@ Widget _buildApp({GoRouter? router}) {
       playerRepositoryProvider.overrideWithValue(_FakePlayerRepository()),
       gameSetupProvider.overrideWith(() => _FixedGameSetupNotifier()),
     ],
-    child: MaterialApp.router(routerConfig: r),
+    child: MaterialApp.router(routerConfig: r, theme: AppTheme.light()),
   );
 }
 
@@ -104,63 +104,39 @@ void main() {
   // ── Render tests ────────────────────────────────────────────────────────────
 
   group('HomePage — render', () {
-    testWidgets('renders PLAY section label', (tester) async {
+    testWidgets('renders MYDARTS app title in header', (tester) async {
       await tester.pumpWidget(_buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('PLAY'), findsOneWidget);
+      expect(find.text('MYDARTS'), findsOneWidget);
     });
 
-    testWidgets('renders all four PLAY rows', (tester) async {
+    testWidgets('renders all three game cards', (tester) async {
       await tester.pumpWidget(_buildApp());
       await tester.pumpAndSettle();
 
       expect(find.text('X01'), findsOneWidget);
-      expect(find.text('Cricket'), findsOneWidget);
-      expect(find.text('Practice'), findsOneWidget);
-      expect(find.text('Statistics'), findsOneWidget);
+      expect(find.text('CRICKET'), findsOneWidget);
+      expect(find.text('PRACTICE'), findsOneWidget);
     });
 
-    testWidgets('renders History and Local Players nav cards', (tester) async {
-      await tester.pumpWidget(_buildApp());
-      await tester.pumpAndSettle();
-
-      expect(find.text('History'), findsOneWidget);
-      expect(find.text('Local Players'), findsOneWidget);
-    });
-
-    testWidgets('renders coming-soon cards with 0.6 opacity', (tester) async {
-      await tester.pumpWidget(_buildApp());
-      await tester.pumpAndSettle();
-
-      expect(find.text('Game Lobby'), findsOneWidget);
-      expect(find.text('VS Friends'), findsOneWidget);
-
-      final opacities = tester.widgetList<Opacity>(find.byType(Opacity));
-      expect(opacities.any((o) => o.opacity == 0.6), isTrue);
-    });
-
-    testWidgets('coming-soon cards have Tooltip with "Coming soon" message',
+    testWidgets('renders flat nav rows for Statistics, History, Players',
         (tester) async {
       await tester.pumpWidget(_buildApp());
       await tester.pumpAndSettle();
 
-      final tooltips = tester.widgetList<Tooltip>(find.byType(Tooltip));
-      final comingSoonTooltips =
-          tooltips.where((t) => t.message == 'Coming soon');
-      expect(comingSoonTooltips.length, equals(2));
+      expect(find.text('STATISTICS'), findsOneWidget);
+      expect(find.text('HISTORY'), findsOneWidget);
+      expect(find.text('PLAYERS'), findsOneWidget);
     });
 
-    testWidgets('coming-soon cards use SystemMouseCursors.forbidden',
-        (tester) async {
+    testWidgets('renders descriptor labels for flat nav rows', (tester) async {
       await tester.pumpWidget(_buildApp());
       await tester.pumpAndSettle();
 
-      final regions =
-          tester.widgetList<MouseRegion>(find.byType(MouseRegion));
-      final forbidden =
-          regions.where((r) => r.cursor == SystemMouseCursors.forbidden);
-      expect(forbidden.length, equals(2));
+      expect(find.text('ANALYZE DATA'), findsOneWidget);
+      expect(find.text('SESSIONS'), findsOneWidget);
+      expect(find.text('ROSTER'), findsOneWidget);
     });
 
     testWidgets('AppBar displays gear icon with Settings tooltip',
@@ -169,6 +145,26 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byTooltip('Settings'), findsOneWidget);
+    });
+
+    testWidgets('each game card renders its icon', (tester) async {
+      await tester.pumpWidget(_buildApp());
+      await tester.pumpAndSettle();
+
+      // X01, Cricket and Practice cards each render their icon.
+      expect(find.byIcon(Icons.adjust), findsOneWidget);
+      expect(find.byIcon(Icons.sports_cricket), findsOneWidget);
+      expect(find.byIcon(Icons.track_changes), findsOneWidget);
+    });
+
+    testWidgets('game cards render 80dp height SizedBoxes', (tester) async {
+      await tester.pumpWidget(_buildApp());
+      await tester.pumpAndSettle();
+
+      final boxes = tester.widgetList<SizedBox>(
+        find.byWidgetPredicate((w) => w is SizedBox && w.height == 80),
+      );
+      expect(boxes.length, greaterThanOrEqualTo(3));
     });
   });
 
@@ -194,7 +190,7 @@ void main() {
       await tester.pumpWidget(_buildApp(router: _navRouter(captured)));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Cricket'));
+      await tester.tap(find.text('CRICKET'));
       await tester.pumpAndSettle();
 
       expect(find.text('variant-selection-cricket'), findsOneWidget);
@@ -207,7 +203,7 @@ void main() {
       await tester.pumpWidget(_buildApp(router: _navRouter(captured)));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Practice'));
+      await tester.tap(find.text('PRACTICE'));
       await tester.pumpAndSettle();
 
       expect(find.text('variant-selection-practice'), findsOneWidget);
@@ -218,30 +214,29 @@ void main() {
       await tester.pumpWidget(_buildApp(router: _navRouter(captured)));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Statistics'));
+      await tester.tap(find.text('STATISTICS'));
       await tester.pumpAndSettle();
 
       expect(find.text('stats'), findsOneWidget);
     });
 
-    testWidgets('tapping History card navigates to /history', (tester) async {
+    testWidgets('tapping History row navigates to /history', (tester) async {
       final captured = <String>[];
       await tester.pumpWidget(_buildApp(router: _navRouter(captured)));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('History'));
+      await tester.tap(find.text('HISTORY'));
       await tester.pumpAndSettle();
 
       expect(find.text('history'), findsOneWidget);
     });
 
-    testWidgets('tapping Local Players card navigates to /players',
-        (tester) async {
+    testWidgets('tapping Players row navigates to /players', (tester) async {
       final captured = <String>[];
       await tester.pumpWidget(_buildApp(router: _navRouter(captured)));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Local Players'));
+      await tester.tap(find.text('PLAYERS'));
       await tester.pumpAndSettle();
 
       expect(find.text('players'), findsOneWidget);
@@ -259,105 +254,20 @@ void main() {
     });
   });
 
-  // ── Interaction / disabled state tests ───────────────────────────────────────
+  // ── Chevron tests ──────────────────────────────────────────────────────────
 
-  group('HomePage — interaction', () {
-    testWidgets('tapping Game Lobby card does nothing', (tester) async {
-      final captured = <String>[];
-      await tester.pumpWidget(_buildApp(router: _navRouter(captured)));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Game Lobby'));
-      await tester.pumpAndSettle();
-
-      // Still on home page — none of the destination stubs rendered.
-      expect(find.text('X01'), findsOneWidget);
-      expect(captured, isEmpty);
-    });
-
-    testWidgets('tapping VS Friends card does nothing', (tester) async {
-      final captured = <String>[];
-      await tester.pumpWidget(_buildApp(router: _navRouter(captured)));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('VS Friends'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('X01'), findsOneWidget);
-      expect(captured, isEmpty);
-    });
-
-    testWidgets('PLAY rows have minimum 64dp height', (tester) async {
+  group('HomePage — chevrons', () {
+    testWidgets('game cards each have a chevron_right icon', (tester) async {
       await tester.pumpWidget(_buildApp());
       await tester.pumpAndSettle();
 
-      final boxes = tester.widgetList<ConstrainedBox>(
-        find.byType(ConstrainedBox),
-      );
-      final playRowBoxes =
-          boxes.where((b) => b.constraints.minHeight >= 64.0).toList();
-      // At least 4 play rows + 2 nav cards = 6 ConstrainedBoxes with minHeight 64
-      expect(playRowBoxes.length, greaterThanOrEqualTo(4));
-    });
-
-    testWidgets('History and Local Players cards have minimum 64dp height',
-        (tester) async {
-      await tester.pumpWidget(_buildApp());
-      await tester.pumpAndSettle();
-
-      final boxes = tester.widgetList<ConstrainedBox>(find.byType(ConstrainedBox));
-      final tallBoxes =
-          boxes.where((b) => b.constraints.minHeight >= 64.0).toList();
-      // 4 play rows + 2 nav cards + 2 coming-soon cards = 8
-      expect(tallBoxes.length, greaterThanOrEqualTo(6));
-    });
-  });
-
-  // ── Accent bar tests ──────────────────────────────────────────────────────────
-
-  group('HomePage — accent bars', () {
-    testWidgets('X01 row accent bar uses colorPrimary (#C62828)',
-        (tester) async {
-      await tester.pumpWidget(_buildApp());
-      await tester.pumpAndSettle();
-
-      final primaryContainers = tester.widgetList<Container>(
+      final chevrons = tester.widgetList<Icon>(
         find.byWidgetPredicate(
-          (w) => w is Container && w.color == AppColors.primary,
+          (w) => w is Icon && w.icon == Icons.chevron_right,
         ),
       );
-      expect(primaryContainers, isNotEmpty);
-      expect(primaryContainers.first.color, equals(const Color(0xFFC62828)));
-    });
-
-    testWidgets('Cricket row accent bar uses colorSecondary (#1A237E)',
-        (tester) async {
-      await tester.pumpWidget(_buildApp());
-      await tester.pumpAndSettle();
-
-      final secondaryContainers = tester.widgetList<Container>(
-        find.byWidgetPredicate(
-          (w) => w is Container && w.color == AppColors.secondary,
-        ),
-      );
-      // Cricket + Statistics both use secondary accent
-      expect(secondaryContainers.length, greaterThanOrEqualTo(2));
-      expect(secondaryContainers.first.color, equals(const Color(0xFF1A237E)));
-    });
-
-    testWidgets('Statistics row chevron color matches colorSecondary',
-        (tester) async {
-      await tester.pumpWidget(_buildApp());
-      await tester.pumpAndSettle();
-
-      // Find all chevron icons coloured with secondary
-      final icons = tester.widgetList<Icon>(
-        find.byWidgetPredicate(
-          (w) => w is Icon && w.icon == Icons.chevron_right && w.color == AppColors.secondary,
-        ),
-      );
-      // Cricket + Statistics chevrons are both secondary
-      expect(icons.length, greaterThanOrEqualTo(2));
+      // Three game cards each have a chevron.
+      expect(chevrons.length, greaterThanOrEqualTo(3));
     });
   });
 }
