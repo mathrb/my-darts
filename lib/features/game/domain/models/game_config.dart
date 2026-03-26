@@ -14,6 +14,7 @@ abstract class GameConfig with _$GameConfig {
     required String inStrategy, // 'straight', 'double', 'master'
     required String outStrategy, // 'straight', 'double', 'master'
     @Default(1) int legsToWin,
+    @Default(null) int? totalRounds,
     @Default(null) String? startingPlayerId,
   }) = X01GameConfig;
 
