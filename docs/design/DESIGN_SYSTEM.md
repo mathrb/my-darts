@@ -1,113 +1,99 @@
 # Design System — my-darts
 
-**Theme name:** Kinetic Precision
-**Last updated:** 2026-03-22
-**Status:** Specification (pre-implementation)
+**Theme name:** Dual-Tone Performance Framework
+**Last updated:** 2026-03-23
+**Status:** Active specification
 
 ---
 
-## 1. Design Principles
+## 1. Overview & Creative North Star
 
-### North Star: Kinetic Architect
+The "Creative North Star" of this design system is **Technical Kineticism**.
 
-The visual language is **Zero-Radius Brutalism** — editorial precision meets technical luxury. Every surface is intentional. Every edge is clean. The palette pairs neon green with charcoal-white in a way that reads as high-performance tooling, not a consumer app.
+This is a "two-speed" experience designed to mirror the psychology of a darts player: the surgical, high-adrenaline focus of the throw (Match Mode) and the calm, analytical reflection of the clubhouse (Admin/Nav Mode). We break the "template" look by oscillating between aggressive, sharp-edged brutalism and soft, high-end editorial layouts.
 
-### P1 — Zero-Radius Brutalism
-No border-radius on any component by default. Corners are square. Containment is expressed through tonal surface shifts and spacing — never by rounding edges. If a radius is applied, it is a deliberate exception, not a default.
+- **Match Boards:** "Brutalist Precision." Zero-radius corners, high-contrast neon accents, and oversized typography that feels like a broadcast scoreboard.
+- **Admin/Nav:** "Soft Luxury." 16px+ radii, generous whitespace, and tonal layering that feels like a premium Swiss watch application.
 
-### P2 — No-Line Rule
-Never use 1px opaque borders as dividers. Surface hierarchy is communicated by tonal steps between surface tokens (`surface` → `surfaceContainerLow` → `surfaceContainerHighest`). When a ghost border is genuinely needed for a floating element, use `outlineVariant` at 20% opacity — never 100%.
+### P1 — The No-Line Rule
+Standard 1px borders are strictly prohibited for sectioning. To define boundaries:
+- **Tonal Shifts:** Place a `surfaceContainerLow` card against a `surface` background.
+- **Negative Space:** Use the Spacing Scale (`spacing-8` to `spacing-12`) to create structural "voids" that act as invisible dividers.
 
-### P3 — Technical Luxury
-The aesthetic borrows from precision instruments and editorial sport media — not consumer dashboards. Bold, uppercase labels. Asymmetric accent bars. Neon `#00FFAB` on charcoal-white `#1A1C1C`. Whitespace is structural, not decorative.
+### P2 — Sharp / Soft Hybrid
+Only use `radiusNone` (0dp) in Match Board components. Use `radiusXLarge` (24dp) or `radiusFull` (pill) for everything in Admin/Nav. Avoid the "uncanny valley" of 4px or 8px corners.
 
-### P4 — State is always visible
-The active player, current score, darts thrown this turn, and remaining outs are always on screen during play. No action collapses this information. Status is conveyed by color and position — never by icon alone.
+### P3 — State is Always Visible
+The active player, current score, darts thrown this turn, and remaining outs are always on screen during play. Status is conveyed by color and position — never by icon alone.
 
 ---
 
 ## 2. Color Tokens
 
-### 2.1 Palette (Light Mode)
+### 2.1 Palette
+
+The palette is rooted in `surface` (#0c0e10), providing a deep, obsidian base that allows the neon `primaryContainer` (#00FFAB) to vibrate with intensity.
 
 | Token | Hex | Usage |
 |---|---|---|
-| `surface` | `#F9F9F9` | App scaffold background (Level 0) |
-| `surfaceContainerLow` | `#F3F3F3` | Distinct content zones / sections (Level 1) |
-| `surfaceContainer` | `#EEEEEE` | Secondary navigation backgrounds, deep inset elements |
-| `surfaceContainerLowest` | `#FFFFFF` | Pure white — "lifted" cards, dialogs (Level 2) |
-| `surfaceContainerHighest` | `#E2E2E2` | Pressed states, inactive chips, progress track |
-| `primary` | `#006C46` | Primary action text/icons (dark green for accessibility) |
-| `onPrimary` | `#FFFFFF` | Text/icons on `primary` backgrounds (in-game action fills, triple cells) — 10.4:1 contrast |
-| `primaryContainer` | `#00FFAB` | Brand neon — CTA button fills, active player accent |
-| `onPrimaryFixed` | `#002112` | Text on `primaryContainer` (neon fill) — 8.9:1 contrast |
-| `primaryFixedDim` | `#00E297` | Hover / pressed state of `primaryContainer` |
-| `onSurface` | `#1A1C1C` | Primary body text and icons |
-| `onSurfaceVariant` | `#6B7070` | Secondary labels, metadata, placeholder text, inactive items — 4.6:1 on `surface` |
-| `outlineVariant` | `#B9CBBE` | Ghost borders at 20% opacity only — see No-Line Rule |
-| `colorError` | `#D32F2F` | Bust indicator, validation errors |
-| `colorOnError` | `#FFFFFF` | Text on error-colored backgrounds |
-| `colorErrorContainer` | `#FFEBEE` | Bust snackbar background, error cards |
-| `colorOnErrorContainer` | `#B71C1C` | Text inside error container |
-| `colorScrim` | `#000000` | Modal backdrop at 80% opacity + 20px backdrop-blur |
+| `surface` | `#0c0e10` | App scaffold background — Level 0 base |
+| `surfaceDim` | `#0a0c0e` | Match Mode deepest background |
+| `surfaceContainerLowest` | `#0a0c0e` | Most inset / Match Mode dark cells |
+| `surfaceContainerLow` | `#111416` | Level-1 sections |
+| `surfaceContainer` | `#171a1c` | Level-2 interactive cards |
+| `surfaceContainerHigh` | `#1e2124` | Intermediate elevation |
+| `surfaceContainerHighest` | `#242729` | Score input buttons (Match Mode) |
+| `surfaceBright` | `#292c30` | Level-3 popovers / floating elements |
+| `primary` | `#afffd1` | Primary action text / icons |
+| `onPrimary` | `#002112` | Text on `primary` backgrounds |
+| `primaryContainer` | `#00ffab` | Brand neon — CTA fills, active player accent |
+| `onPrimaryContainer` | `#002112` | Text on `primaryContainer` |
+| `onPrimaryFixed` | `#002112` | Text on any neon fill — 8.9:1 contrast |
+| `primaryFixed` | `#00ffab` | Admin primary button fill |
+| `primaryFixedDim` | `#00e297` | Hover / pressed neon state |
+| `primaryDim` | `#00cc88` | Graph gradient stroke end |
+| `onSurface` | `#eeeef0` | Primary body text and icons |
+| `onSurfaceVariant` | `#8f9193` | Secondary labels, metadata, placeholder text |
+| `outlineVariant` | `#46484a` | Ghost border at 20% opacity only — see No-Line Rule |
+| `outline` | `#46484a` | Structural outlines when required |
+| `error` | `#cf6679` | Bust indicator, validation errors |
+| `onError` | `#000000` | Text on error-colored backgrounds |
+| `errorContainer` | `#370b0a` | Bust snackbar background, error cards |
+| `onErrorContainer` | `#ffcdd2` | Text inside error container |
+| `scrim` | `#000000` | Modal backdrop at 80% opacity + 20px backdrop-blur |
 
 ### 2.2 Surface Hierarchy & Nesting
 
-Treat the UI as a series of stacked, precision-cut physical layers. Hierarchy is achieved by "stacking" tones — not shadows or borders.
+Treat the UI as physical layers of "Obsidian Glass."
 
 | Level | Token | Hex | Role |
 |---|---|---|---|
-| **0 — Base** | `surface` | `#F9F9F9` | Global scaffold background |
-| **1 — Sections** | `surfaceContainerLow` | `#F3F3F3` | Distinct content zones |
-| **2 — Active Cards** | `surfaceContainerLowest` | `#FFFFFF` | "Lift" through purity — white card on level-1 background creates a sharp, natural distinction without shadows |
+| **0 — Base** | `surface` | `#0c0e10` | Global scaffold background |
+| **1 — Sections** | `surfaceContainerLow` | `#111416` | Distinct content zones / sections |
+| **2 — Cards** | `surfaceContainer` | `#171a1c` | Interactive cards, inputs |
+| **3 — Popovers** | `surfaceBright` | `#292c30` | Floating elements, modals |
+
+`surfaceContainerHigh` and `surfaceContainerHighest` sit between Level 2 and Level 3 and are used for score input buttons (Match) and axis ticks (graphs) respectively. `surfaceContainerLowest` sits below Level 0 — reserved for the deepest Match Mode backgrounds.
 
 ### 2.3 Glass & Gradient Rule
 
-To prevent the high-contrast palette from feeling flat:
+For CTAs and hero moments, move beyond flat hex codes. Apply a **15% linear gradient** from `primary` (`#afffd1`) to `primaryContainer` (`#00ffab`) at a **135° angle**. This adds a "lithium-ion" glow to gameplay elements.
 
-- **Signature CTAs:** Use a linear gradient from `primary` (`#006C46`) to `primaryContainer` (`#00FFAB`) at a **135-degree angle** for hero call-to-action buttons.
-- **Overlays:** Use `surface` (`#F9F9F9`) at **80% opacity** + **20px backdrop-blur** for floating modals or navigation bars to maintain Kinetic transparency.
+For overlays: use `scrim` (`#000000`) at **80% opacity** + **20px backdrop-blur**.
 
-### 2.4 Palette (Dark Mode)
+### 2.4 The "Ghost Border" Fallback
 
-> **Dark mode: TBD — to be specified in a future revision.**
-> The Kinetic Precision spec covers Light Mode only. The tokens below are carried over from the prior "Court Ready" theme as a placeholder and should not be treated as final.
-
-| Token | Hex | Usage |
-|---|---|---|
-| `colorBackground` | `#0F1117` | App scaffold background |
-| `colorSurface` | `#1C1F26` | Cards, sheets |
-| `colorSurfaceVariant` | `#272B34` | Input fields, inactive chips |
-| `colorPrimary` | `#00E297` | Neon green (dim) for legibility on dark |
-| `colorOnPrimary` | `#002112` | Text on primary buttons |
-| `colorPrimaryContainer` | `#006C46` | Selection chips in dark mode |
-| `colorOnPrimaryContainer` | `#00FFAB` | Text inside primary container |
-| `colorSecondary` | `#7986CB` | Active player accent, links |
-| `colorOnSecondary` | `#0D1257` | Text on secondary elements |
-| `colorSecondaryContainer` | `#1A237E` | Secondary selection |
-| `colorOnSecondaryContainer` | `#E8EAF6` | Text inside secondary container |
-| `colorError` | `#EF5350` | Bust, validation |
-| `colorOnError` | `#7F0000` | Text on error background |
-| `colorErrorContainer` | `#370B0A` | Bust snackbar background |
-| `colorOnErrorContainer` | `#FFCDD2` | Text inside error container |
-| `colorOutline` | `#374151` | Dividers |
-| `colorOutlineVariant` | `#4B5563` | Input borders |
-| `colorOnBackground` | `#F9FAFB` | Primary body text |
-| `colorOnSurface` | `#F9FAFB` | Text on cards |
-| `colorOnSurfaceVariant` | `#9CA3AF` | Secondary labels |
+If contrast is required for accessibility, use a "Ghost Border": `outlineVariant` (`#46484a`) at **20% opacity**. Never use 100% opacity.
 
 ### 2.5 Semantic Aliases (game-specific)
 
 | Token | Resolves to | Meaning |
 |---|---|---|
-| `colorActivePlayer` | `primaryContainer` (`#00FFAB`) | Left border and tint on active player panel |
-| `colorActivePlayerBg` | `surfaceContainerLow` (`#F3F3F3`) / dark: `#2A1515` | Panel background tint for active player |
-| `colorInactiveScore` | `outlineVariant` (`#B9CBBE`) / dark: `#6B7280` | Score numeral for non-active players |
-| `colorBust` | `colorError` | Bust flash overlay, snackbar |
-| `colorCricketClosed` | `#00FFAB` | Cricket number closed indicator (neon accent) |
-| `colorCricketLeading` | `primaryContainer` | Cricket player leading indicator |
-| `colorWin` | `primary` (`#006C46`) | Win banner, end-game highlight |
-| `colorWinContainer` | `surfaceContainerLow` / dark: `#1B3A1C` | Win screen card background |
+| `activePlayerBg` | `surfaceContainerLow` (`#111416`) | Panel background tint for active player |
+| `inactiveScore` | `outlineVariant` (`#46484a`) | Score numeral for non-active players |
+| `cricketClosed` | `primaryContainer` (`#00ffab`) | Cricket number closed indicator |
+| `win` | `primary` (`#afffd1`) | Win banner, end-game highlight |
+| `winContainer` | `surfaceContainerLow` (`#111416`) | Win screen card background |
 
 ---
 
@@ -117,41 +103,42 @@ To prevent the high-contrast palette from feeling flat:
 
 | Family | Weight used | Source | Purpose |
 |---|---|---|---|
-| **Space Grotesk** | Medium (500), Bold (700) | `google_fonts` | Display, headlines, labels — geometric, technical ("Architect" font) |
-| **Inter** | Regular (400), SemiBold (600) | `google_fonts` | Body text, titles — neutral, maximum legibility at data density |
+| **Space Grotesk** | Medium (500), Bold (700) | `google_fonts` | Display, headlines, labels — geometric, technical ("Oche Precision") |
+| **Inter** | Regular (400), SemiBold (600) | `google_fonts` | Body text, titles — neutral clarity for admin / data density |
 
 Fallback stack: `system-ui, sans-serif`
 
-> **Game-specific override (TBD):** Score display numerals (active player score, inactive scores) may retain **Oswald Bold** as a sub-theme override to preserve the condensed, athletic aesthetic for large numeric readouts. This is under review and will be confirmed in `SCREEN_SPECS.md` before implementation.
-
 ### 3.2 Type Scale
 
-| Token | Family | Weight | Size | Line height | Letter spacing | Case | Usage |
-|---|---|---|---|---|---|---|---|
-| `display-lg` | Space Grotesk | Medium | 3.5rem | 1.1 | -0.02em | — | Page titles, hero numerals |
-| `headline-md` | Space Grotesk | Bold | 1.75rem | 1.2 | 0 | — | Section headers, dialog titles, card headers |
-| `title-md` | Inter | SemiBold | 1.125rem | 1.4 | 0 | — | Subsection labels, player names in scoreboard |
-| `body-md` | Inter | Regular | 0.875rem | 1.5 | 0 | — | Primary body content, list descriptions |
-| `label-md` | Space Grotesk | Bold | 0.75rem | 1.3 | 0.05em | ALL CAPS | Button text, chips, tags, tab labels |
+| Token | Family | Weight | Size | Line height | Letter spacing | Usage |
+|---|---|---|---|---|---|---|
+| `display-lg` | Space Grotesk | Medium (500) | 3.5rem / 56px | 1.1 | -0.02em | Live scores in Match Mode, hero numerals |
+| `headline-md` | Space Grotesk | Bold (700) | 1.75rem / 28px | 1.2 | 0 | Screen titles. Match Mode: ALL CAPS + `tracking-tighter` |
+| `title-md` | Inter | SemiBold (600) | 1.125rem / 18px | 1.4 | 0 | Subsection labels, player names in scoreboard |
+| `body-md` | Inter | Regular (400) | 0.875rem / 14px | 1.5 | 0 | All administrative data, list descriptions |
+| `label-md` | Space Grotesk | Bold (700) | 0.75rem / 12px | 1.3 | 0.05em | Button text, chips, tab labels — ALL CAPS |
+| `label-sm` | Space Grotesk | Bold (700) | 0.6875rem / 11px | 1.45 | 0.05em | Over-line text above a headline. Use `primaryFixed` color to ground the technical feel. |
 
-**Game-specific score tokens** (retained from prior spec, pending Oswald TBD resolution):
+**Game-specific score tokens:**
 
-| Token | Family | Weight | Size | Line height | Usage |
-|---|---|---|---|---|---|
-| `textScoreActive` | Oswald / Space Grotesk Bold | Bold | 80sp | 80sp | Active player score |
-| `textScoreInactive` | Oswald / Space Grotesk Bold | Bold | 56sp | 56sp | Inactive player scores |
-| `textScoreMedium` | Oswald / Space Grotesk Bold | Bold | 48sp | 52sp | Post-game summary, leaderboard top |
-| `textScoreSmall` | Oswald / Space Grotesk Bold | Bold | 36sp | 40sp | History list scores, stat cards |
-| `textSegmentButton` | Inter | SemiBold | 18sp | 18sp | Dart segment grid button numbers |
-| `textMultiplierLabel` | Inter | Medium | 11sp | 14sp | "DBL" / "TRP" labels on segment buttons |
+| Token | Family | Weight | Size | Usage |
+|---|---|---|---|---|
+| `textScoreActive` | Space Grotesk | Bold (700) | 80px | Active player score |
+| `textScoreInactive` | Space Grotesk | Bold (700) | 56px | Inactive player scores |
+| `textScoreMedium` | Space Grotesk | Bold (700) | 48px | Post-game summary, leaderboard top |
+| `textScoreSmall` | Space Grotesk | Bold (700) | 36px | History list scores, stat cards |
+| `textSegmentButton` | Inter | SemiBold (600) | 18px | Dart segment grid button numbers |
+| `textMultiplierLabel` | Inter | Medium (500) | 11px | "DBL" / "TRP" labels on segment buttons |
 
 ### 3.3 Usage Rules
 
-- Never use score display tokens for non-numeric content.
-- `title-md` (player names in scoreboard) must always render in ALL CAPS via `toUpperCase()` on the string — do not rely on CSS `text-transform`.
-- `label-md` (Space Grotesk Bold, ALL CAPS) is the correct token for all interactive control labels — buttons, chips, tab labels. Do not substitute Inter for label text.
-- Minimum rendered size is 11sp. Never go below this for any text users need to read.
+- `headline-md` in Match Mode must use ALL CAPS and `tracking-tighter` (`letter-spacing: -0.02em`). Apply via `toUpperCase()` on the string — do not rely on CSS `text-transform`.
+- `title-md` (player names in scoreboard) must also render in ALL CAPS.
+- `label-md` is the correct token for all interactive control labels — buttons, chips, tab labels.
+- `label-sm` in `primaryFixed` color is used for "over-line" text (small text above a headline).
+- Minimum rendered size is 11px. Never go below this.
 - Score numerals must never truncate or wrap. Constrain the container width, not the text size.
+- Never mix Space Grotesk and Inter within the same UI element (e.g. a single label line).
 
 ---
 
@@ -163,7 +150,7 @@ Base unit: **4dp**
 |---|---|---|
 | `space1` | 4dp | Minimum internal padding — icon gap, tight chip padding |
 | `space2` | 8dp | Compact padding — list tile vertical padding, small gaps |
-| `space3` | 12dp | Icon + label gaps, input field internal padding |
+| `space3` | 12dp | No-divider gap between list items (replaces 1px lines) |
 | `space4` | 16dp | Standard content padding (horizontal page margin) |
 | `space5` | 20dp | Card internal padding (top/bottom) |
 | `space6` | 24dp | Section spacing within a screen |
@@ -172,136 +159,147 @@ Base unit: **4dp**
 | `space12` | 48dp | Empty state illustration margin |
 | `space16` | 64dp | Bottom padding for scrollable content above nav bar |
 
-**Named layout tokens (Kinetic Precision additions):**
-
-| Token | rem | px equivalent | Usage |
-|---|---|---|---|
-| `spacing.8` | 1.75rem | ≈ 28px | Intra-component gap for grouped elements |
-| `spacing.10` | 2.25rem | ≈ 36px | Data-point separation within cards and data grids |
-| `spacing.16` | 3.5rem | ≈ 56px | Section separation, editorial card-to-card gap |
-| `spacing.24` | 5.5rem | ≈ 88px | Hero section top margin, major layout region separation |
+**Asymmetric spacing (Admin screens):** Use `spacing-16` (64dp / 3.5rem) for top padding and `spacing-8` (32dp) for sides to create a "gallery" feel.
 
 **Page horizontal margin:** `space4` (16dp) on both sides.
-**Bottom safe area:** All scrollable content must include `space16` (64dp) bottom padding to clear the system navigation bar on devices that use on-screen gesture navigation.
+**Bottom safe area:** All scrollable content must include `space16` (64dp) bottom padding.
 
 ---
 
-## 5. Shape Tokens
+## 5. Elevation & Depth
 
-### Zero-Radius Brutalism
+### Tonal Layering (Admin views)
 
-`radiusNone` (0dp) is the **default for all components**. Do not add border-radius without a documented reason.
+Avoid shadows in Admin views. Instead, stack `surfaceContainerLowest` components inside `surfaceContainerHigh` regions to create an "inset" look. Hierarchy is expressed through tonal stepping alone — never through drop shadows or borders.
 
-| Token | Value | Status | Notes |
+### Ambient Shadows (Match Mode modals)
+
+For floating Match Mode modals, use an "Aura Shadow":
+- **Color:** `onSurface` (`#eeeef0`) at **6% opacity**
+- **Blur:** 40px–60px
+- **Spread:** -10px
+
+This mimics the soft glow of a dartboard spotlight rather than a digital drop shadow.
+
+### The "Ghost Border" Fallback
+
+If contrast is required for accessibility on a floating element, use a "Ghost Border": `outlineVariant` (`#46484a`) at **20% opacity**. Never use 100% opacity.
+
+---
+
+## 6. Shape Tokens
+
+### Dual-Mode Radius System
+
+| Token | Value | Context | Notes |
 |---|---|---|---|
-| `radiusNone` | 0dp | **Active — default** | Buttons, cards, inputs, sheets, dialogs |
-| `radiusXSmall` | 4dp | Deprecated | Do not use in new work |
-| `radiusSmall` | 8dp | Deprecated | Do not use in new work |
-| `radiusMedium` | 12dp | Deprecated | Do not use in new work |
-| `radiusLarge` | 16dp | Deprecated | Do not use in new work |
-| `radiusXLarge` | 24dp | Deprecated | Do not use in new work |
-| `radiusFull` | 9999dp | Deprecated | Do not use in new work |
+| `radiusNone` | 0dp | **Match Boards only** | Score inputs, active player cards, progress bar ends |
+| `radiusLarge` | 16dp | Admin cards, stats cards | Standard "Soft Luxury" card radius |
+| `radiusXLarge` | 24dp | Admin primary buttons | Large CTA feel |
+| `radiusFull` | 9999dp | Selection chips, pill buttons | Fully rounded |
 
-**Ghost Border fallback:** When a floating element requires a boundary for legibility, use `outlineVariant` (`#B9CBBE`) at **20% opacity**. Never at 100% opacity.
-
-**Ambient shadow:** `0px 20px 40px rgba(26,28,28,0.04)` — 4% opacity only. Do not use heavier shadows.
-
-**Contiguous grid containers:** Game board input grids (X01, Practice) span the full screen width (edge-to-edge) and use `radiusNone` to maximize tap area and visual clarity. Cell separators use tonal surface shifts — not 1px opaque hairlines.
+**Rule:** Only use `radiusNone` in Match Board components. Use `radiusLarge` / `radiusXLarge` / `radiusFull` for everything in Admin/Nav. Never use 4dp or 8dp — these are the "uncanny valley" of corner radii.
 
 ---
 
-## 6. Components
+## 7. Components
 
-### 6.1 Buttons
+### 7.1 Match-Speed Components (Brutalist Precision)
 
-**Primary Button**
-- Background: `primaryContainer` (`#00FFAB`)
-- Label: `onPrimaryFixed` (`#002112`) — `label-md` (Space Grotesk Bold, ALL CAPS, 0.05em letter-spacing)
-- Border-radius: 0dp (`radiusNone`)
+*Designed for high-contrast, peripheral-vision readability.*
+
+**Score Input Buttons**
+- Border-radius: `radiusNone` (0dp)
+- Background: `surfaceContainerHighest` (`#242729`)
+- Text: `primary` (`#afffd1`)
+- No shadow
+
+**Active Player Card**
+- Border-radius: `radiusNone` (0dp)
+- Left edge: 4dp solid `primaryContainer` (`#00ffab`) — "strike bar"
+- Background: `activePlayerBg` (`surfaceContainerLow` / `#111416`)
+
+**The "Oche" Progress Bar**
+- Height: 2px line across the top of the Match Board
+- Color: `primaryContainer` (`#00ffab`)
+- No rounded ends (`radiusNone`)
+- Animation: linear fill only
+
+### 7.2 Admin-Speed Components (Soft Luxury)
+
+*Designed for tactile comfort and high-end feel.*
+
+**Primary Action Button**
+- Border-radius: `radiusFull` (pill) or `radiusXLarge` (24dp)
+- Background: `primaryFixed` (`#00ffab`) — or glass/gradient variant (see §2.3)
+- Text: `onPrimaryFixed` (`#002112`) — `label-md`, ALL CAPS
 - Padding: 14dp vertical, 24dp horizontal
 - No shadow
+
+**Stats Cards**
+- Border-radius: `radiusLarge` (16dp)
+- Background: `surfaceContainerLow` (`#111416`)
+- No borders — tonal background provides hierarchy
+
+**Selection Chips**
+- Border-radius: `radiusFull` (pill)
+- Unselected: `surfaceContainerHighest` background, `onSurfaceVariant` text
+- Selected: `primaryContainer` background, `onPrimaryContainer` text
 
 **Secondary Button**
 - Background: transparent
-- Border: 1px Ghost Border — `outlineVariant` (`#B9CBBE`) at 20% opacity
-- Label: `onSurface` (`#1A1C1C`) — `label-md`, ALL CAPS
-- Border-radius: 0dp
+- Border: Ghost Border — `outlineVariant` at 20% opacity
+- Text: `onSurface` (`#eeeef0`) — `label-md`, ALL CAPS
+- Border-radius: `radiusXLarge` (24dp)
 - Padding: 14dp vertical, 24dp horizontal
 
-**Action Button** (in-game confirmatory actions — "NEXT ROUND", "NEXT PLAYER", "PLAY AGAIN")
-- Background: `primary` (`#006C46`)
-- Label: `onPrimary` (`#FFFFFF`) — `label-md`, ALL CAPS
-- Border-radius: 0dp
-- Padding: 14dp vertical, 24dp horizontal
-- No shadow
-- Use when the action advances game state (as opposed to launching/creating — those use Primary Button)
+**Input Fields**
+- Background: `surfaceContainerLow` (`#111416`)
+- Border-radius: `radiusLarge` (16dp) in admin; `radiusNone` in match
+- Focus indicator: 2dp bottom bar in `primary` (`#afffd1`) expanding from center
+- Label: `label-sm` — Space Grotesk Bold, ALL CAPS — at 60% opacity (unfocused), 100% (focused)
 
-**Hover / Pressed Interaction**
-- Primary: background shifts to `primaryFixedDim` (`#00E297`); element offsets **2px up and 2px right** ("kinetic" shift)
-- Action: background darkens by 8% (overlay at 8% opacity)
-- Secondary: border opacity increases to 60%
-- No scale transforms
+### 7.3 Performance Graph
 
-### 6.2 Input Fields
+- Plot area: `surfaceContainerLow` background
+- Trend line: gradient stroke from `primary` (`#afffd1`) to `primaryDim` (`#00cc88`)
+- No grid lines — use `surfaceContainerHigh` for axis ticks only
 
-- Background: `surfaceContainerLow` (`#F3F3F3`)
-- Border-radius: 0dp
-- Bottom-bar focus indicator: 2dp solid `primary` (`#006C46`) that **expands from the center** on focus — replaces any full-border focus ring
-- Unfocused: no visible border (tonal background only)
-- Label: `label-sm` — Space Grotesk, Bold, ALL CAPS — at 60% opacity (unfocused), 100% opacity (focused)
+### 7.4 Overlays & Modals
 
-### 6.3 Cards & Data Grids
-
-- Background: `surfaceContainerLow` (`#F3F3F3`)
-- Border-radius: 0dp
-- No internal dividers — use `spacing.8` (1.75rem) or `spacing.10` (2.25rem) to separate data points within a card
-- Accent bar: 4px vertical left border in `primary` (`#006C46`) to denote focus on active list items or selected cards
-- Padding: `space5` (20dp) internal, `space4` (16dp) horizontal page margin
-
-### 6.4 Kinetic Progress Bar
-
-- Track height: 2px
-- Track color: `surfaceContainerHighest` (`#E2E2E2`)
-- Fill color: `primaryContainer` (`#00FFAB`)
-- Ends: squared (no border-radius)
-- No animation easing on fill — linear only
-
-### 6.5 Overlays & Modals
-
-- Backdrop: `colorScrim` (`#000000`) at **80% opacity** + **20px backdrop-blur**
-- Sheet / dialog surface: `surfaceContainerLowest` (`#FFFFFF`)
-- Border-radius: 0dp — no rounded bottom-sheet handles
+- Backdrop: `scrim` (`#000000`) at **80% opacity** + **20px backdrop-blur**
+- Sheet / dialog surface: `surfaceBright` (`#292c30`)
+- Border-radius: `radiusXLarge` (24dp) for admin modals; `radiusNone` for match modals
 - Entry animation: slide up 200ms `easeOut`; dismiss: slide down 200ms `easeIn`
+- Aura Shadow applied (see §5 Elevation & Depth)
 
 ---
 
-## 7. Do's and Don'ts
+## 8. Do's and Don'ts
 
 ### Do
 
-- **Embrace White Space:** Use the `spacing.16` (3.5rem) and `spacing.24` (5.5rem) tokens to create an editorial, "high-end gallery" feel.
-- **Align to the Grid:** Every element must snap to the spacing scale. Precision is our brand.
-- **High Contrast:** Use `onSurface` (`#1A1C1C`) for all primary text to ensure maximum readability against the light background.
-- Use tonal surface steps (`surface` → `surfaceContainerLow` → `surfaceContainerLowest`) to create hierarchy without borders.
-- Apply `primaryContainer` (`#00FFAB`) as the single brand neon accent — CTA fills, progress fills, active player indicators.
-- Use the ghost border (`outlineVariant` at 20% opacity) only when a floating element needs a boundary that tone alone cannot provide.
-- Use the 4px `primary` accent bar on the left edge of a card to communicate "active" or "selected" state.
+- **Asymmetric Spacing (Admin):** Use `spacing-16` for top padding and `spacing-8` for sides for a "gallery" feel.
+- **Sharp/Soft Hybrid:** Only use `radiusNone` in the Match Board. Use `radiusXLarge` / `radiusFull` for everything else.
+- **Typographic Hierarchy:** Use `label-sm` in `primaryFixed` color for over-line text to ground the technical feel.
+- **No-Line Separation:** Replace dividers with a 12dp gap (`space3`) or a subtle `surface` → `surfaceContainerLow` tonal shift.
+- Apply `primaryContainer` (`#00ffab`) as the single brand neon accent.
+- Use the ghost border (`outlineVariant` at 20% opacity) only when tone alone cannot provide a boundary.
+- Use the 4dp `primaryContainer` strike bar on the left edge of a card for "active" / "selected" state.
 
 ### Don't
 
-- **No Border Radius:** Never use `border-radius`. Not even 2px. All corners must be 90 degrees.
-- **No Generic Grays:** Avoid middle-of-the-road grays. Stick to the tonal surface tokens provided (`surface`, `surfaceContainerLow`, `surfaceContainer`, `surfaceContainerLowest`, `surfaceContainerHighest`) to maintain the "Kinetic Architect" warmth.
-- **No Center Alignment:** Use left-aligned "Editorial" layouts. Center-alignment feels like a template; asymmetrical left-alignment feels designed.
-- Don't use 1px opaque borders as dividers — ever.
-- Don't use `primaryContainer` (`#00FFAB`) as text color on white — it fails WCAG contrast. Always pair with `onPrimaryFixed` (`#002112`) on neon fills.
-- Don't use `onPrimaryFixed` (`#002112`) on `primary` (`#006C46`) backgrounds — near-black on dark green fails contrast. Use `onPrimary` (`#FFFFFF`) on all `primary`-filled surfaces.
-- Don't add drop shadows beyond the ambient shadow (`rgba(26,28,28,0.04)` at 4% opacity).
-- Don't mix Space Grotesk and Inter within the same UI element (e.g. a single label line).
+- **No 1px Lines:** Never use a line to separate list items. Use a 12dp gap or a tonal surface shift.
+- **No Pure Black:** Avoid `#000000` except for `surfaceContainerLowest` in Match Mode. Use `surface` (`#0c0e10`) as the main canvas to maintain depth.
+- **No Standard Radii:** Avoid the "uncanny valley" of 4dp or 8dp corners. Stick to the extremes: `radiusNone` (Match) or `radiusLarge` / `radiusXLarge` / `radiusFull` (Admin).
+- Don't use `primaryContainer` (`#00ffab`) as text color on dark backgrounds — pair it with `onPrimaryContainer` (`#002112`) on neon fills.
 - Don't use `outlineVariant` at full (100%) opacity.
+- Don't add shadows beyond the Aura Shadow spec (§5).
+- Don't mix Space Grotesk and Inter within the same UI element.
 
 ---
 
-## 8. Minimum Tap Target Rules
+## 9. Minimum Tap Target Rules
 
 **Absolute minimum:** 48×48dp for any interactive element.
 
@@ -318,85 +316,76 @@ Base unit: **4dp**
 
 **Game board special rules:**
 
-**3-cell bar** (practice games with a single active target; Cricket input columns): cells expand to one-third of available width. Minimum 56dp height. No exception.
+**3-cell bar:** cells expand to one-third of available width. Minimum 56dp height. No exception.
 
-**10-column contiguous grid** (X01 Board, Catch-40, Checkout Practice): 10 cells per row keeps all 20 numbers in 2 rows per tier without reordering the dartboard clock sequence. On a 390dp device this yields ~39dp cell widths — an **accepted exception** because:
-- Cells are densely packed with no gaps, making horizontal mis-taps unlikely.
-- Minimum cell height is 48dp.
-- Every cell must carry a full `semanticsLabel` (e.g. "Triple 20", "Double Bull").
-- Never reduce cell height below 48dp. Never add more than 10 columns per row.
-
-**Responsive fallback** (narrow devices, screen width < 360dp): switch to 5 columns × 4 rows per tier. Implementation detail; not required for the primary 390dp layout.
+**10-column contiguous grid** (X01 Board, Catch-40, Checkout Practice): 10 cells per row keeps all 20 numbers in 2 rows per tier. On a 390dp device this yields ~39dp cell widths — an **accepted exception** because cells are densely packed with no gaps, and minimum cell height is 48dp. Every cell must carry a full `semanticsLabel`.
 
 ---
 
-## 9. Interactive States
+## 10. Interactive States
 
 ### 9.1 Pressed State
 
-All pressable surfaces use a ripple / ink effect constrained to the element boundary. Ripple color is `onSurface` at 12% opacity (light) / 16% opacity (dark). No scale transforms on press — avoid "pop" animations during rapid dart entry.
+Ripple color: `onSurface` at 12% opacity. No scale transforms — avoid "pop" animations during rapid dart entry.
+
+**Kinetic Shift:** Primary buttons offset **2px up and 2px right** on press. Background shifts to `primaryFixedDim` (`#00e297`).
 
 ### 9.2 Focused State (keyboard / accessibility)
 
-Focused interactive elements show a 2dp outline in `primaryContainer` (`#00FFAB`) with 2dp offset. Never use the browser default outline style.
+2dp outline in `primaryContainer` (`#00ffab`) with 2dp offset. Never use the browser default outline style.
 
 ### 9.3 Disabled State
 
 - Opacity: 38% on the element's normal foreground color.
 - Background: `surfaceContainerHighest`.
-- No ripple, no hover color change.
-- Always include a `Tooltip` explaining why the element is disabled.
+- No ripple. Always include a `Tooltip` explaining why disabled.
 
 ### 9.4 Active Player Highlight
 
-The active player's panel receives:
-- Left border: 4dp solid `colorActivePlayer` (`primaryContainer` / `#00FFAB`)
-- Background: `colorActivePlayerBg` (`surfaceContainerLow` / dark: `#2A1515`)
-- Score numeral: `textScoreActive` in `primary` (`#006C46`)
-- Player name: `title-md` in `onSurface`
-- Dart count indicators: visible (filled dots for thrown darts, outline dots for remaining)
+Active player panel:
+- Left border: 4dp solid `primaryContainer` (`#00ffab`)
+- Background: `activePlayerBg` (`surfaceContainerLow` / `#111416`)
+- Score numeral: `textScoreActive` in `primary` (`#afffd1`)
+- Player name: `title-md` in `onSurface`, ALL CAPS
 
 All other player panels:
 - No left border
 - Background: `surface`
-- Score numeral: `textScoreInactive` in `colorInactiveScore`
+- Score numeral: `textScoreInactive` in `inactiveScore` (`outlineVariant`)
 - Player name: `title-md` in `onSurface` at 60% opacity
 
 ### 9.5 Bust Feedback
 
-When a bust occurs:
-1. Snackbar appears at bottom: `colorErrorContainer` background, `colorOnErrorContainer` text, "BUST" label in `headline-md`, with the dart that caused the bust shown.
-2. Snackbar auto-dismisses after 2 seconds.
-3. Active player panel flashes `colorError` left border once (300ms fade in, 500ms hold, 300ms fade out).
-4. No full-screen overlay — the scoreboard must remain readable throughout.
+1. Snackbar: `errorContainer` background, `onErrorContainer` text, "BUST" in `headline-md`.
+2. Auto-dismisses after 2 seconds.
+3. Active player panel flashes `error` left border once (300ms in, 500ms hold, 300ms out).
+4. No full-screen overlay — scoreboard remains readable throughout.
 
 ### 9.6 Win State
 
-When a player wins:
 1. Full-screen win banner slides up from bottom (covers game board).
-2. Winner name in `display-lg`, `colorWin`.
-3. Final score and checkout dart shown.
-4. Two actions: "Post-Game Summary" (primary) and "Play Again" (secondary).
+2. Winner name in `display-lg`, `win` color.
+3. Two actions: "Post-Game Summary" (primary) and "Play Again" (secondary).
 
 ### 9.7 Loading State
 
-Async operations (load game, fetch history) show a centered `CircularProgressIndicator` in `primary`. The indicator sits on `surface` — never on a card. List skeletons (shimmer placeholders) are used for the history list when initial data is loading.
+Centered `CircularProgressIndicator` in `primary`. Sits on `surface`. List skeletons (shimmer placeholders) for history list initial load.
 
 ---
 
-## 10. Animation Guidelines
+## 11. Animation Guidelines
 
-- **Duration:** 200ms for micro-interactions (button state changes, chip selection). 350ms for page transitions and panel expansions.
-- **Easing:** `easeInOut` for symmetric animations. `easeOut` for items entering the screen. `easeIn` for items leaving.
-- **Score update:** Score numerals animate with a counter rolldown (250ms, linear) only when the active player's score changes. Inactive player scores update instantly.
-- **No decorative animations.** Never add particle effects, confetti, or idle animations that play during active gameplay. They interfere with focus.
-- **Respect `MediaQuery.disableAnimations`.** When system-level reduced motion is on, all transitions collapse to instant.
+- **Duration:** 200ms for micro-interactions. 350ms for page transitions and panel expansions.
+- **Easing:** `easeInOut` for symmetric animations. `easeOut` entering. `easeIn` leaving.
+- **Score update:** Counter rolldown (250ms, linear) for active player score only. Inactive scores update instantly.
+- **No decorative animations** during active gameplay. No particles, confetti, or idle animations.
+- **Respect `MediaQuery.disableAnimations`.** All transitions collapse to instant when reduced motion is on.
 
 ---
 
-## 11. Iconography
+## 12. Iconography
 
-Use `material_symbols_outlined` (weight 300, opticalSize 24) for all icons. Do not mix icon sets.
+Use `material_symbols_outlined` (weight 300, opticalSize 24) for all icons.
 
 | Icon | Usage |
 |---|---|
@@ -408,7 +397,7 @@ Use `material_symbols_outlined` (weight 300, opticalSize 24) for all icons. Do n
 | `settings` | Settings |
 | `add` | New player, add action |
 | `edit` | Edit player |
-| `delete` | Delete player (destructive — red tint) |
+| `delete` | Delete player (destructive — error tint) |
 | `check_circle` | Checkout success, win |
 | `error` | Bust, validation error |
 | `arrow_back` | Navigation back |
@@ -416,32 +405,26 @@ Use `material_symbols_outlined` (weight 300, opticalSize 24) for all icons. Do n
 | `filter_list` | History filter |
 | `expand_more` | Expandable sections |
 
-All icons rendered at 24dp visual size, 48dp touch target. Icon-only buttons must have a `Tooltip` with a descriptive label.
+All icons at 24dp visual size, 48dp touch target. Icon-only buttons must have a `Tooltip`.
 
 ---
 
-## 12. Accessibility
+## 13. Accessibility
 
-- **Contrast ratios:** All text/background combinations meet WCAG 2.1 AA (4.5:1 for body text, 3:1 for large text ≥18sp Bold).
-- **Primary neon fill:** `primaryContainer` (`#00FFAB`) must only carry text in `onPrimaryFixed` (`#002112`) — contrast ratio 8.9:1. Never use `#00FFAB` as text color on white surfaces.
-- **Score numerals** at 56sp+ meet large-text threshold; `colorInactiveScore` (`outlineVariant` `#B9CBBE`) on `surface` (`#F9F9F9`) = approximately 2.7:1. **Exception granted** for inactive score — it is intentionally de-emphasized and not a primary information carrier. Active score (`primary` `#006C46` on `surfaceContainerLowest` `#FFFFFF`) = 7.8:1. Meets AAA.
+- **Contrast ratios:** All text/background combinations meet WCAG 2.1 AA (4.5:1 body, 3:1 large text ≥18sp Bold).
+- **Primary neon fill:** `primaryContainer` (`#00ffab`) must only carry text in `onPrimaryContainer` (`#002112`) — 8.9:1 contrast.
+- **Score numerals** at 56px+ meet large-text threshold. `inactiveScore` (`outlineVariant` `#46484a`) on `surface` (`#0c0e10`) ≈ 3.5:1 — meets AA for large text. Active score (`primary` `#afffd1` on `surface`) = high contrast.
 - **Semantic labels:** All `IconButton` and image elements include `semanticsLabel`.
-- **Screen reader order:** Scoreboard panels are announced in turn order (active player first). Dart segment grid announces as "Single [number]", "Double [number]", "Triple [number]".
-- **Text scaling:** Layouts must not break at system text scale 1.4×. Score numerals may clip at 2.0× — this is acceptable given the sport context (scorer controls text scale setting).
+- **Screen reader order:** Scoreboard panels announced in turn order (active player first). Segment grid announces as "Single [number]", "Double [number]", "Triple [number]".
+- **Text scaling:** Layouts must not break at 1.4×. Score numerals may clip at 2.0× — accepted given sport context.
 
 ---
 
-## 13. Implementation Files (Code Phase)
-
-When approved, implement in this order:
+## 14. Implementation Files (Code Phase)
 
 | File | Purpose |
 |---|---|
-| `pubspec.yaml` | Add `google_fonts: ^6.x` |
-| `lib/core/utils/app_colors.dart` | `AppColors` class with all color token constants |
-| `lib/core/utils/app_text_styles.dart` | `AppTextStyles` class with all typography token constants |
-| `lib/core/utils/app_spacing.dart` | `AppSpacing` class with spacing scale constants |
-| `lib/core/utils/app_theme.dart` | `AppTheme.light()` and `AppTheme.dark()` returning `ThemeData` |
-| `lib/app/app.dart` | Replace inline `ThemeData` with `AppTheme.light()` / `AppTheme.dark()` |
-
-No widget files change in the initial token implementation pass. Tokens are wired into `ThemeData` so that `Theme.of(context)` picks them up automatically via Material 3 color scheme. Widget-level migration (replacing hardcoded colors/styles) is a follow-on pass.
+| `lib/core/utils/app_colors.dart` | `AppColors` — all color token constants (dark-first) |
+| `lib/core/utils/app_text_styles.dart` | `AppTextStyles` — Space Grotesk (display/headlines/labels) + Inter (body/titles) |
+| `lib/core/utils/app_theme.dart` | `AppTheme.light()` / `AppTheme.dark()` — dark obsidian scheme; radius tokens (`radiusNone`, `radiusLarge`, `radiusXLarge`, `radiusFull`) |
+| `lib/app/app.dart` | Default `themeMode` set to `ThemeMode.dark` |

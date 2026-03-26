@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:my_darts/app/app_router.dart';
 import 'package:my_darts/core/utils/app_theme.dart';
+import 'package:my_darts/core/widgets/app_header.dart';
 import 'package:my_darts/features/game/presentation/providers/game_setup_provider.dart';
 
 class HomePage extends ConsumerWidget {
@@ -10,6 +11,7 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -17,7 +19,13 @@ class HomePage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const _HomeHeader(),
+              AppHeader(
+                trailing: IconButton(
+                  icon: Icon(Icons.settings, color: cs.onSurface, semanticLabel: 'Settings'),
+                  tooltip: 'Settings',
+                  onPressed: () => context.go(GameRoutes.settings),
+                ),
+              ),
               const SizedBox(height: 16),
               _KineticGameCard(
                 label: 'X01',
@@ -80,35 +88,6 @@ class HomePage extends ConsumerWidget {
 
 // ── Private widgets ────────────────────────────────────────────────────────────
 
-class _HomeHeader extends StatelessWidget {
-  const _HomeHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'MYDARTS',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: cs.primaryFixed,
-                    letterSpacing: 1.5,
-                  ),
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.settings, color: cs.onSurface),
-            tooltip: 'Settings',
-            onPressed: () => context.go(GameRoutes.settings),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _KineticGameCard extends StatelessWidget {
   const _KineticGameCard({
@@ -133,8 +112,8 @@ class _KineticGameCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          splashColor: const Color(0x0D00FFAB),
-          highlightColor: const Color(0x0D00FFAB),
+          splashColor: AppTheme.kineticSplashColor,
+          highlightColor: AppTheme.kineticSplashColor,
           child: SizedBox(
             height: 80,
             child: Row(

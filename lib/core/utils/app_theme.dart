@@ -99,6 +99,9 @@ abstract final class AppTheme {
     scrim:                    AppColorsDark.scrim,
   );
 
+  /// Splash / highlight color for kinetic card InkWell surfaces.
+  static const Color kineticSplashColor = Color(0x0D00FFAB);
+
   /// Gradient card decoration for primary game cards (Kinetic Architect design).
   /// Use on [Container] with [clipBehavior: Clip.antiAlias].
   static BoxDecoration kineticCardDecoration() => BoxDecoration(
