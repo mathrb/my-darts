@@ -30,8 +30,8 @@ String _configSummaryFor(GameConfig config) {
   return config.maybeMap(
     x01: (c) {
       final legs = c.legsToWin;
-      final roundsLabel = '$legs Round${legs == 1 ? '' : 's'}';
-      return '${c.startingScore} · ${_outStrategyLabel(c.outStrategy)} Out · $roundsLabel';
+      final legsLabel = legs == 1 ? '1 Leg' : 'Best of $legs';
+      return '${c.startingScore} · ${_outStrategyLabel(c.outStrategy)} Out · $legsLabel';
     },
     cricket: (c) => '${c.variant} · ${c.pointsToWin} pts',
     aroundTheClock: (_) => 'Around the Clock',

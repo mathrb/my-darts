@@ -220,7 +220,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('Select players below'), findsOneWidget);
+    expect(find.text('Tap a player from the roster to add'), findsOneWidget);
   });
 
   // ── 6. Selected area shows player cells when players selected ────────────
@@ -237,7 +237,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Should not show the empty state text
-    expect(find.text('Select players below'), findsNothing);
+    expect(find.text('Tap a player from the roster to add'), findsNothing);
     // Initials appear in selected area (at least one 'A' for Alice and 'B' for Bob)
     expect(find.text('A'), findsWidgets); // 'A' for Alice (may appear in selected area + roster)
     expect(find.text('B'), findsWidgets); // 'B' for Bob
@@ -287,9 +287,9 @@ void main() {
     expect(find.text('Alice'), findsOneWidget);
   });
 
-  // ── 8. Tapping selected cell opens action sheet ───────────────────────────
+  // ── 8. Selected player card shows player name and remove button ───────────
 
-  testWidgets('8. Tapping selected player cell opens action sheet',
+  testWidgets('8. Selected player card shows name and remove button',
       (tester) async {
     final players = [_fakePlayer('p1', 'Alice')];
     await tester.pumpWidget(_buildApp(
@@ -298,23 +298,15 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // Tap the selected player cell in the selected area (top section)
-    // The selected area cells are GestureDetectors showing initials
-    final selectedCells = find.ancestor(
-      of: find.text('A'),
-      matching: find.byType(GestureDetector),
-    );
-    await tester.tap(selectedCells.first);
-    await tester.pumpAndSettle();
-
-    // Action sheet should appear with player name
-    expect(find.text('Alice'), findsWidgets);
-    expect(find.text('Deselect'), findsOneWidget);
+    // Player name appears in the active lineup (uppercase in card)
+    expect(find.text('ALICE'), findsOneWidget);
+    // Remove button is present
+    expect(find.byIcon(Icons.remove_circle_outline), findsOneWidget);
   });
 
-  // ── 9. Deselect in action sheet calls togglePlayer ────────────────────────
+  // ── 9. Remove button calls togglePlayer ───────────────────────────────────
 
-  testWidgets('9. Tapping Deselect in action sheet dismisses sheet',
+  testWidgets('9. Tapping remove button removes player from lineup',
       (tester) async {
     final players = [_fakePlayer('p1', 'Alice')];
     await tester.pumpWidget(_buildApp(
@@ -323,27 +315,21 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // Open action sheet
-    final selectedCells = find.ancestor(
-      of: find.text('A'),
-      matching: find.byType(GestureDetector),
-    );
-    await tester.tap(selectedCells.first);
+    // Player card is shown
+    expect(find.text('ALICE'), findsOneWidget);
+
+    // Tap the remove button
+    await tester.tap(find.byIcon(Icons.remove_circle_outline));
     await tester.pumpAndSettle();
 
-    expect(find.text('Deselect'), findsOneWidget);
-
-    // Tap Deselect
-    await tester.tap(find.text('Deselect'));
-    await tester.pumpAndSettle();
-
-    // Sheet should be dismissed
-    expect(find.text('Deselect'), findsNothing);
+    // No action sheet — the button directly calls togglePlayer
+    expect(find.byIcon(Icons.remove_circle_outline), findsNothing);
   });
 
-  // ── 10. Handicap tile is disabled in action sheet ─────────────────────────
+  // ── 10. Active lineup is empty after removing player ──────────────────────
 
-  testWidgets('10. Handicap tile is disabled in action sheet', (tester) async {
+  testWidgets('10. Empty state shown after all players removed',
+      (tester) async {
     final players = [_fakePlayer('p1', 'Alice')];
     await tester.pumpWidget(_buildApp(
       setupState: _selectingPlayersState(selectedPlayerIds: ['p1']),
@@ -351,19 +337,12 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // Open action sheet
-    final selectedCells = find.ancestor(
-      of: find.text('A'),
-      matching: find.byType(GestureDetector),
-    );
-    await tester.tap(selectedCells.first);
+    // Remove the player
+    await tester.tap(find.byIcon(Icons.remove_circle_outline));
     await tester.pumpAndSettle();
 
-    // Handicap tile should be present and disabled
-    final handicapTile = tester.widget<ListTile>(
-      find.widgetWithText(ListTile, 'Handicap'),
-    );
-    expect(handicapTile.enabled, isFalse);
+    // Empty state text is shown
+    expect(find.text('Tap a player from the roster to add'), findsOneWidget);
   });
 
   // ── 11. START GAME disabled with no players ───────────────────────────────
@@ -604,7 +583,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The add cell shows '+' text
-    await tester.tap(find.text('+'));
+    await tester.tap(find.text('NEW PLAYER'));
     await tester.pumpAndSettle();
 
     // Create player sheet has a text field and CREATE PLAYER button
@@ -621,7 +600,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('+'));
+    await tester.tap(find.text('NEW PLAYER'));
     await tester.pumpAndSettle();
 
     // Tap CREATE PLAYER without entering a name
@@ -672,7 +651,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('+'));
+    await tester.tap(find.text('NEW PLAYER'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'Charlie');
@@ -695,7 +674,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('+'));
+    await tester.tap(find.text('NEW PLAYER'));
     await tester.pumpAndSettle();
 
     // Initially shows '?'
@@ -713,6 +692,10 @@ void main() {
 
   testWidgets('21. X01 caps selection at 6 players — 7th shows tooltip',
       (tester) async {
+    // Use a larger viewport so 6 selected cards + 7 roster cells fit without overflow
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     final players = List.generate(
       7,
       (i) => _fakePlayer('p$i', 'Player $i'),
@@ -775,7 +758,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify we are on the player selection page
-    expect(find.text('Players'), findsOneWidget);
+    expect(find.text('ACTIVE LINEUP'), findsOneWidget);
 
     // Simulate a reset — state transitions to selectingType
     capturedNotifier.triggerReset();

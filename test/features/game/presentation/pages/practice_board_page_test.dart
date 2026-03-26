@@ -304,7 +304,7 @@ void main() {
     expect(dartboardFinder, findsWidgets);
   });
 
-  // ── 8. Target label uses scoreMedium / Oswald + primary color ────────────
+  // ── 8. Target label uses scoreMedium / Space Grotesk + primary color ──────
 
   testWidgets('8. Target label uses Oswald font and primary color',
       (tester) async {
@@ -326,7 +326,7 @@ void main() {
 
     final text = tester.widget<Text>(targetWidget);
     expect(text.style?.color, colorScheme.primary);
-    expect(text.style?.fontFamily?.toLowerCase().contains('oswald'), isTrue);
+    expect(text.style?.fontFamily?.toLowerCase().contains('spacegrotesk'), isTrue);
   });
 
   // ── 9. MISS button enabled during active play ─────────────────────────────
