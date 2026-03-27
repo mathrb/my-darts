@@ -244,9 +244,8 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.text('ALICE ▶'), findsOneWidget);
-    // '501' appears in both AppBar (startingScore) and PlayerScoreSection;
-    // we just verify it's visible somewhere.
+    expect(find.text('ALICE'), findsWidgets);
+    // '501' appears in the status bar and in the player score section.
     expect(find.text('501'), findsWidgets);
   });
 
@@ -265,14 +264,14 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.text('ALICE ▶'), findsOneWidget);
-    expect(find.text('BOB'), findsOneWidget);
-    expect(find.text('CAROL'), findsOneWidget);
+    expect(find.text('ALICE'), findsWidgets);
+    expect(find.text('BOB'), findsWidgets);
+    expect(find.text('CAROL'), findsWidgets);
   });
 
-  // ── 5. Active column has left border ────────────────────────────────────────
+  // ── 5. Active player card has neon accent bar ────────────────────────────────
 
-  testWidgets('5. Active column has 4dp left border; inactive has none',
+  testWidgets('5. Active column has 4dp neon accent bar; inactive has none',
       (tester) async {
     _setPhoneViewport(tester);
     final gs = _gameState(
@@ -286,22 +285,23 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
+    // The active player card has a neon accent bar: a Container with
+    // BoxDecoration color == cs.primaryFixed (which equals AppColors.primaryContainer
+    // in light mode) and width == 4.
     final containers = tester.widgetList<Container>(find.byType(Container));
-    final leftBorderContainers = containers.where((c) {
-      final d = c.decoration;
-      if (d is BoxDecoration) {
-        final b = d.border;
-        if (b is Border) return b.left.width == 4.0;
+    final accentBars = containers.where((c) {
+      if (c.decoration is BoxDecoration) {
+        return (c.decoration as BoxDecoration).color == AppColors.primaryContainer;
       }
       return false;
     }).toList();
 
-    expect(leftBorderContainers, isNotEmpty);
+    expect(accentBars, isNotEmpty);
   });
 
-  // ── 6. Active player ▶ suffix ───────────────────────────────────────────────
+  // ── 6. Both player names are visible ────────────────────────────────────────
 
-  testWidgets('6. Active player name shows ▶; inactive does not',
+  testWidgets('6. Both player names are visible; active indicated by accent bar',
       (tester) async {
     _setPhoneViewport(tester);
     final gs = _gameState(
@@ -315,9 +315,11 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.text('ALICE ▶'), findsOneWidget);
-    expect(find.text('BOB ▶'), findsNothing);
-    expect(find.text('BOB'), findsOneWidget);
+    // Both names are present (uppercased); no ▶ suffix in new design
+    expect(find.text('ALICE'), findsWidgets);
+    expect(find.text('BOB'), findsWidgets);
+    // No ▶ indicator in the new card design
+    expect(find.textContaining('▶'), findsNothing);
   });
 
   // ── 7. PPR shows — before 3 darts ───────────────────────────────────────────
@@ -332,7 +334,9 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.text('PPR —'), findsOneWidget);
+    // PPR label and value are separate Text widgets in the redesigned card
+    expect(find.text('PPR'), findsOneWidget);
+    expect(find.text('—'), findsOneWidget);
   });
 
   // ── 8. PPR shows numeric value after first complete turn ────────────────────
@@ -352,12 +356,14 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.text('PPR 60.0'), findsOneWidget);
+    // PPR label and value are separate Text widgets in the redesigned card
+    expect(find.text('PPR'), findsOneWidget);
+    expect(find.text('60.0'), findsOneWidget);
   });
 
-  // ── 9. Dart indicator — empty slots ─────────────────────────────────────────
+  // ── 9. Status bar — no dart info when no darts thrown ───────────────────────
 
-  testWidgets('9. Dart indicator shows round sum 0 before any dart thrown',
+  testWidgets('9. Status bar shows no dart info when no darts thrown',
       (tester) async {
     _setPhoneViewport(tester);
     final gs = _gameState(dartsThrownInTurn: 0);
@@ -365,8 +371,9 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    // Round sum label should show '0' — verified via DartIndicatorWidget
-    expect(find.text('0'), findsWidgets);
+    // Status bar shows game meta but no dart chip/count when no darts thrown
+    expect(find.text('501'), findsWidgets); // variant label in status bar
+    expect(find.byIcon(Icons.navigation), findsNothing); // no dart direction icon
   });
 
   // ── 10. Dart indicator — chips for thrown darts ──────────────────────────────
@@ -398,7 +405,8 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.lightbulb_outline), findsOneWidget);
+    // Checkout banner shows 'CHECKOUT' label in new design (no lightbulb icon)
+    expect(find.text('CHECKOUT'), findsOneWidget);
   });
 
   // ── 12. Checkout banner hidden for score > 170 ───────────────────────────────
@@ -410,7 +418,7 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.lightbulb_outline), findsNothing);
+    expect(find.text('CHECKOUT'), findsNothing);
   });
 
   // ── 13. Checkout banner hidden for score == 1 ────────────────────────────────
@@ -422,7 +430,7 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.lightbulb_outline), findsNothing);
+    expect(find.text('CHECKOUT'), findsNothing);
   });
 
   // ── 14. Grid row 0: MISS, SB, DB ──────────────────────────────────────────
@@ -433,12 +441,15 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
+    // Special buttons in new design: MISS, 25/BULL, 50/D-BULL
     expect(find.text('MISS'), findsOneWidget);
-    expect(find.text('SB'), findsOneWidget);
-    expect(find.text('DB'), findsOneWidget);
+    expect(find.text('25'), findsOneWidget);   // Bull button label
+    expect(find.text('BULL'), findsOneWidget); // Bull subtext
+    expect(find.text('50'), findsOneWidget);   // D-Bull button label
+    expect(find.text('D-BULL'), findsOneWidget); // D-Bull subtext
   });
 
-  // ── 15. Doubles rows have primaryContainer background ────────────────────────
+  // ── 15. Doubles rows show D-prefixed numbers ─────────────────────────────────
 
   testWidgets('15. Doubles rows have colorPrimaryContainer background',
       (tester) async {
@@ -447,16 +458,19 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
+    // Doubles grid cells use surfaceContainerLow background and show D-prefixed labels
+    expect(find.text('D20'), findsOneWidget);
+    expect(find.text('D1'), findsOneWidget);
     final containers = tester.widgetList<Container>(find.byType(Container));
-    final primaryContainerBg = containers.where((c) {
+    final surfaceContainerLowBg = containers.where((c) {
       final d = c.decoration;
-      if (d is BoxDecoration) return d.color == AppColors.primaryContainer;
+      if (d is BoxDecoration) return d.color == AppColors.surfaceContainerLow;
       return false;
     });
-    expect(primaryContainerBg, isNotEmpty);
+    expect(surfaceContainerLowBg, isNotEmpty);
   });
 
-  // ── 16. Triples rows have primary background ─────────────────────────────────
+  // ── 16. Triples rows show T-prefixed numbers ──────────────────────────────────
 
   testWidgets('16. Triples rows have colorPrimary background', (tester) async {
     _setPhoneViewport(tester);
@@ -464,13 +478,16 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
+    // Triples grid cells use surfaceContainer background and show T-prefixed labels
+    expect(find.text('T20'), findsOneWidget);
+    expect(find.text('T1'), findsOneWidget);
     final containers = tester.widgetList<Container>(find.byType(Container));
-    final primaryBg = containers.where((c) {
+    final surfaceContainerBg = containers.where((c) {
       final d = c.decoration;
-      if (d is BoxDecoration) return d.color == AppColors.primary;
+      if (d is BoxDecoration) return d.color == AppColors.surfaceContainer;
       return false;
     });
-    expect(primaryBg, isNotEmpty);
+    expect(surfaceContainerBg, isNotEmpty);
   });
 
   // ── 17. Semantic labels on grid cells ────────────────────────────────────────
@@ -561,13 +578,14 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final undoBtn = tester.widget<GestureDetector>(
+    // Undo button uses icon (Icons.undo) in new design; InkWell.onTap is null when disabled
+    final undoInkWell = tester.widget<InkWell>(
       find.ancestor(
-        of: find.text('UNDO'),
-        matching: find.byType(GestureDetector),
+        of: find.byIcon(Icons.undo),
+        matching: find.byType(InkWell),
       ).first,
     );
-    expect(undoBtn.onTap, isNull);
+    expect(undoInkWell.onTap, isNull);
   });
 
   // ── 22. Undo enabled when > 0 darts thrown ───────────────────────────────────
@@ -580,13 +598,13 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final undoBtn = tester.widget<GestureDetector>(
+    final undoInkWell = tester.widget<InkWell>(
       find.ancestor(
-        of: find.text('UNDO'),
-        matching: find.byType(GestureDetector),
+        of: find.byIcon(Icons.undo),
+        matching: find.byType(InkWell),
       ).first,
     );
-    expect(undoBtn.onTap, isNotNull);
+    expect(undoInkWell.onTap, isNotNull);
   });
 
   // ── 23. Tapping Undo calls undoDart ──────────────────────────────────────────
@@ -603,7 +621,7 @@ void main() {
     await tester.pumpWidget(_buildAppWithContainer(container));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('UNDO'));
+    await tester.tap(find.byIcon(Icons.undo));
     await tester.pump();
 
     final notifier = container.read(activeGameProvider('game-1').notifier)
@@ -701,21 +719,18 @@ void main() {
     expect(find.text('home'), findsOneWidget);
   });
 
-  // ── 28. Overflow menu shows End Game ─────────────────────────────────────────
+  // ── 28. Settings icon is present in custom header ────────────────────────────
 
-  testWidgets('28. Overflow menu shows End Game option', (tester) async {
+  testWidgets('28. Settings icon is present in custom header', (tester) async {
     _setPhoneViewport(tester);
     final notifier = _FakeActiveGameNotifier(_activeState());
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(PopupMenuButton<String>));
-    await tester.pumpAndSettle();
-
-    expect(find.text('End Game'), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
   });
 
-  // ── 29. End Game shows confirmation dialog ────────────────────────────────────
+  // ── 29. Tapping settings shows End Game confirmation dialog ──────────────────
 
   testWidgets('29. Selecting End Game shows confirmation dialog',
       (tester) async {
@@ -724,9 +739,7 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(PopupMenuButton<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('End Game'));
+    await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
 
     expect(find.text('End Game?'), findsOneWidget);
@@ -742,9 +755,7 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(PopupMenuButton<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('End Game'));
+    await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Cancel'));
@@ -762,28 +773,26 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(PopupMenuButton<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('End Game')); // Tap menu item
+    await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
 
-    // Now tap "End Game" button inside the dialog
+    // Tap "End Game" button inside the dialog
     await tester.tap(find.widgetWithText(FilledButton, 'End Game'));
     await tester.pumpAndSettle();
 
     expect(find.text('home'), findsOneWidget);
   });
 
-  // ── 32. No back button ───────────────────────────────────────────────────────
+  // ── 32. Back button is present in custom header ───────────────────────────────
 
-  testWidgets('32. No back button in AppBar', (tester) async {
+  testWidgets('32. Back button is present in custom header', (tester) async {
     _setPhoneViewport(tester);
     final notifier = _FakeActiveGameNotifier(_activeState());
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.byType(BackButton), findsNothing);
-    expect(find.byIcon(Icons.arrow_back), findsNothing);
+    // New custom header always has an explicit back button
+    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
   });
 
   // ── 33. Loading spinner with primary color ────────────────────────────────────

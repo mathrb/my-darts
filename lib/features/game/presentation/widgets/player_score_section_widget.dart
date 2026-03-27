@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/utils/app_theme.dart';
 import '../../domain/models/game_config.dart';
 import '../../domain/models/game_state.dart';
 
@@ -31,7 +31,7 @@ class PlayerScoreSectionWidget extends StatelessWidget {
 
   TextStyle _inactiveScoreStyle(BuildContext context) {
     final n = gameState.competitors.length;
-    if (n == 1) return AppTextStyles.scoreInactive(context); // N/A
+    if (n == 1) return AppTextStyles.scoreInactive(context);
     if (n == 2) return AppTextStyles.scoreMedium(context);
     if (n <= 4) return AppTextStyles.scoreSmall(context);
     return AppTextStyles.scoreSmall(context);
@@ -54,13 +54,15 @@ class PlayerScoreSectionWidget extends StatelessWidget {
     final activeStyle = _activeScoreStyle(context);
     final inactiveStyle = _inactiveScoreStyle(context);
 
-    return IntrinsicHeight(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (int i = 0; i < gameState.competitors.length; i++)
+          for (int i = 0; i < gameState.competitors.length; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
             Expanded(
-              child: _PlayerColumn(
+              child: _PlayerCard(
                 competitor: gameState.competitors[i],
                 isActive: i == gameState.currentTurnIndex,
                 scoreStyle: i == gameState.currentTurnIndex
@@ -74,14 +76,15 @@ class PlayerScoreSectionWidget extends StatelessWidget {
                 bustFlashAnim: bustFlashAnim,
               ),
             ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _PlayerColumn extends StatelessWidget {
-  const _PlayerColumn({
+class _PlayerCard extends StatelessWidget {
+  const _PlayerCard({
     required this.competitor,
     required this.isActive,
     required this.scoreStyle,
@@ -100,90 +103,139 @@ class _PlayerColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final activeBg =
-        isDark ? AppColorsDark.activePlayerBg : AppColors.activePlayerBg;
 
-    final decoration = isActive
-        ? BoxDecoration(
-            color: activeBg,
-            border: Border(
-              left: BorderSide(color: cs.primary, width: 4),
+    final stack = Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: isActive ? cs.surfaceContainerLow : cs.surfaceContainer,
+              borderRadius:
+                  BorderRadius.circular(AppTheme.radiusLarge),
+              border: Border.all(
+                color: isActive
+                    ? cs.primaryFixed.withValues(alpha: 0.2)
+                    : cs.outlineVariant.withValues(alpha: 0.1),
+              ),
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 24,
+                        offset: const Offset(0, 4),
+                        spreadRadius: -4,
+                      ),
+                    ]
+                  : null,
             ),
-          )
-        : BoxDecoration(color: cs.surface);
-
-    final nameColor = isActive ? cs.secondary : cs.onSurfaceVariant;
-    final nameText =
-        '${competitor.name.toUpperCase()}${isActive ? ' ▶' : ''}';
-
-    final scoreColor = isActive ? cs.primary : AppColors.inactiveScore;
-
-    return Stack(
-      children: [
-        Container(
-          decoration: decoration,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  if (isActive && roundSum > 0) ...[
-                    Text(
-                      '[$roundSum]',
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: cs.onSurfaceVariant),
+            clipBehavior: Clip.antiAlias,
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        competitor.name.toUpperCase(),
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: isActive ? cs.primaryFixed : cs.onSurfaceVariant,
+                          letterSpacing: 1.2,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    const SizedBox(width: 4),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'PPR',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: cs.onSurfaceVariant,
+                            fontSize: 8,
+                          ),
+                        ),
+                        Text(
+                          pprDisplay,
+                          style: AppTextStyles.labelMedium
+                              .copyWith(color: cs.onSurface),
+                        ),
+                      ],
+                    ),
                   ],
-                  _AnimatedScore(
-                    score: competitor.score,
-                    style: scoreStyle.copyWith(color: scoreColor),
+                ),
+                const SizedBox(height: 4),
+                if (isActive && roundSum > 0)
+                  Text(
+                    '-$roundSum',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: cs.primaryFixed.withValues(alpha: 0.7),
+                    ),
                   ),
-                ],
-              ),
-              Text(
-                nameText,
-                style: AppTextStyles.playerName.copyWith(color: nameColor),
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                'PPR $pprDisplay',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: cs.onSurfaceVariant),
-              ),
-            ],
+                _AnimatedScore(
+                  score: competitor.score,
+                  style: scoreStyle.copyWith(
+                    color: isActive ? cs.onSurface : cs.onSurfaceVariant,
+                    shadows: isActive
+                        ? [
+                            Shadow(
+                              color:
+                                  cs.primaryFixed.withValues(alpha: 0.3),
+                              blurRadius: 10,
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        // Bust border flash (active column only)
-        if (isActive)
-          AnimatedBuilder(
-            animation: bustFlashAnim,
-            builder: (context, _) {
-              if (bustFlashAnim.value == 0.0) return const SizedBox.shrink();
-              return Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        left: BorderSide(
-                          color: cs.error
-                              .withValues(alpha: bustFlashAnim.value),
-                          width: 4,
+          if (isActive)
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  color: cs.primaryFixed,
+                  borderRadius: const BorderRadius.only(
+                    topLeft:
+                        Radius.circular(AppTheme.radiusLarge),
+                    bottomLeft:
+                        Radius.circular(AppTheme.radiusLarge),
+                  ),
+                ),
+              ),
+            ),
+          if (isActive)
+            AnimatedBuilder(
+              animation: bustFlashAnim,
+              builder: (context, _) {
+                if (bustFlashAnim.value == 0.0) return const SizedBox.shrink();
+                return Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: cs.errorContainer
+                            .withValues(alpha: bustFlashAnim.value * 0.12),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusLarge),
+                        border: Border.all(
+                          color:
+                              cs.error.withValues(alpha: bustFlashAnim.value),
+                          width: 3,
                         ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-      ],
+                );
+              },
+            ),
+        ],
     );
+    return isActive ? stack : Opacity(opacity: 0.7, child: stack);
   }
 }
 

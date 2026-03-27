@@ -207,8 +207,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.edit_outlined));
     await tester.pumpAndSettle();
 
-    // GameConfigPanel shows "Game Settings"
-    expect(find.text('Game Settings'), findsOneWidget);
+    // GameConfigPanel shows "GAME CONFIG"
+    expect(find.text('GAME CONFIG'), findsOneWidget);
   });
 
   // ── 5. Empty selected area ────────────────────────────────────────────────
