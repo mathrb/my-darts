@@ -29,9 +29,9 @@ String _outStrategyLabel(String strategy) => switch (strategy) {
 String _configSummaryFor(GameConfig config) {
   return config.maybeMap(
     x01: (c) {
-      final legs = c.legsToWin;
-      final legsLabel = legs == 1 ? '1 Leg' : 'Best of $legs';
-      return '${c.startingScore} · ${_outStrategyLabel(c.outStrategy)} Out · $legsLabel';
+      final rounds = c.totalRounds;
+      final roundsLabel = rounds == null ? '∞ Rounds' : (rounds == 1 ? '1 Round' : '$rounds Rounds');
+      return '${c.startingScore} · ${_outStrategyLabel(c.outStrategy)} Out · $roundsLabel';
     },
     cricket: (c) => '${c.variant} · ${c.pointsToWin} pts',
     aroundTheClock: (_) => 'Around the Clock',
@@ -247,7 +247,6 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
                         if (!atMax) notifier.togglePlayer(id);
                       }
                     },
-                    onAddNew: () => _openCreatePlayerSheet(context),
                   ),
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (e, _) =>
@@ -348,8 +347,22 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
       context: context,
       isScrollControlled: true,
       builder: (_) => _CreatePlayerSheet(
-        onPlayerCreated: (id) =>
-            ref.read(gameSetupProvider.notifier).togglePlayer(id),
+        onPlayerCreated: (id) {
+          final state = ref.read(gameSetupProvider);
+          final gameType = state.maybeMap(
+            selectingPlayers: (s) => s.gameType,
+            orElse: () => null,
+          );
+          final maxPlayers = gameType != null ? _maxPlayersFor(gameType) : null;
+          final selectedCount = state.maybeMap(
+            selectingPlayers: (s) => s.selectedPlayerIds.length,
+            orElse: () => 0,
+          );
+          final atMax = maxPlayers != null && selectedCount >= maxPlayers;
+          if (!atMax) {
+            ref.read(gameSetupProvider.notifier).togglePlayer(id);
+          }
+        },
       ),
     );
   }
@@ -668,19 +681,17 @@ class _RosterGrid extends StatelessWidget {
     required this.selectedIds,
     required this.maxPlayers,
     required this.onTapPlayer,
-    required this.onAddNew,
   });
 
   final List<Player> players;
   final Set<String> selectedIds;
   final int? maxPlayers;
   final void Function(String id) onTapPlayer;
-  final VoidCallback onAddNew;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final itemCount = players.length + 1; // +1 for the "+" cell
+    final itemCount = players.length;
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainerLow,
@@ -698,9 +709,6 @@ class _RosterGrid extends StatelessWidget {
               ),
               itemCount: itemCount,
               itemBuilder: (context, index) {
-                if (index == players.length) {
-                  return _PlusCell(onTap: onAddNew);
-                }
                 final player = players[index];
                 final isSelected = selectedIds.contains(player.playerId);
                 final atMax = maxPlayers != null &&
@@ -722,43 +730,6 @@ class _RosterGrid extends StatelessWidget {
   }
 }
 
-class _PlusCell extends StatelessWidget {
-  const _PlusCell({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      splashColor: AppTheme.kineticSplashColor,
-      highlightColor: AppTheme.kineticSplashColor,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: cs.surfaceContainerHighest,
-            child: Icon(
-              Icons.add,
-              size: 20,
-              color: cs.primary,
-              semanticLabel: 'Add new player',
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'New',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.primary,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _PlayerRosterCell extends StatelessWidget {
   const _PlayerRosterCell({
@@ -960,6 +931,18 @@ class _CreatePlayerSheetState extends ConsumerState<_CreatePlayerSheet> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: cs.primaryFixed,
+                foregroundColor: AppColors.onPrimaryFixed,
+                disabledBackgroundColor:
+                    cs.primaryFixed.withValues(alpha: 0.38),
+                disabledForegroundColor:
+                    AppColors.onPrimaryFixed.withValues(alpha: 0.38),
+                minimumSize: const Size.fromHeight(56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                ),
+              ),
               onPressed: _isCreating ? null : _createPlayer,
               child: _isCreating
                   ? const SizedBox(

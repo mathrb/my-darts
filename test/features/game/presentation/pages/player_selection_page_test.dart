@@ -148,14 +148,14 @@ GameSetupState _selectingPlayersState({
 void main() {
   // ── 1. Config chip X01 ────────────────────────────────────────────────────
 
-  testWidgets('1. Config chip shows "501 · double out · 1 Leg" for X01',
+  testWidgets('1. Config chip shows "501 · Double Out · ∞ Rounds" for X01 with no totalRounds',
       (tester) async {
     await tester.pumpWidget(_buildApp(
       setupState: _selectingPlayersState(),
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('501 · Double Out · 1 Leg'), findsOneWidget);
+    expect(find.text('501 · Double Out · ∞ Rounds'), findsOneWidget);
   });
 
   // ── 2. Config chip Cricket ────────────────────────────────────────────────
