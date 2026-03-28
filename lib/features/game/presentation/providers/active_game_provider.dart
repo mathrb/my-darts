@@ -58,18 +58,13 @@ class ActiveGameNotifier extends _$ActiveGameNotifier {
       final newGs =
           await ref.read(processDartUseCaseProvider).execute(gs, dart);
 
-      // Bust: turn ended before player had a chance to throw 3 full darts
-      // (engine forces dartsThrownInTurn=3 on bust), OR the 3rd dart restored
-      // the score to a higher value (turnStartScore recovery).
+        // Bust: dartsThrownInTurn jumped to 3 before 3 darts were thrown, or
+      // score was restored (bust on 3rd dart).
       final showBust = !newGs.turnActive &&
           !newGs.isComplete &&
-          (
-            // Bust on 1st or 2nd dart: count jumped to 3 immediately
-            (oldDartsThrownInTurn < 2 && newGs.dartsThrownInTurn == 3) ||
-            // Bust on 3rd dart: score was restored (higher than pre-dart score)
-            newGs.competitors[oldTurnIndex].score >
-                gs.competitors[oldTurnIndex].score
-          );
+          ((oldDartsThrownInTurn < 2 && newGs.dartsThrownInTurn == 3) ||
+              newGs.competitors[oldTurnIndex].score >
+                  gs.competitors[oldTurnIndex].score);
 
       final legCompleted =
           newGs.currentLegIndex > oldLegIndex && !newGs.isComplete;
@@ -88,10 +83,7 @@ class ActiveGameNotifier extends _$ActiveGameNotifier {
     });
   }
 
-  /// Advances to the next player's turn. Called when the user taps NEXT ROUND
-  /// after all 3 darts have been thrown (or after a bust). Appends TurnEnded
-  /// and TurnStarted events to the event log.
-  Future<void> startNextTurn() async {
+  Future<void> _startNextTurn() async {
     final current = state.value;
     if (current == null) return;
     final gs = current.gameState;
@@ -185,6 +177,17 @@ class ActiveGameNotifier extends _$ActiveGameNotifier {
 
   void dismissLegModal() {
     state = state.whenData((s) => s?.copyWith(pendingLegWinnerId: null));
+  }
+
+  Future<void> advanceTurn() async {
+    dismissBust();
+    dismissLegModal();
+    var gs = state.value?.gameState;
+    while (gs != null && gs.turnActive) {
+      await processDart('MISS');
+      gs = state.value?.gameState;
+    }
+    await _startNextTurn();
   }
 
   void dismissGameModal() {

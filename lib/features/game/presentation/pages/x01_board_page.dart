@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/app_router.dart';
+import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/utils/app_theme.dart';
 import '../../../../core/utils/checkout_table.dart';
@@ -150,7 +151,7 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
         final dartsThrownInTurn = gameState.dartsThrownInTurn;
         final canUndo = dartsThrownInTurn > 0 ||
             gameState.competitors.any((c) => c.dartThrows.isNotEmpty);
-        final canNext = !gameState.turnActive && !gameState.isComplete;
+        final canNext = !gameState.isComplete;
         final currentScore = activeCompetitor.score;
 
         // Current turn darts: last dartsThrownInTurn items from active
@@ -160,6 +161,8 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
             dartsThrownInTurn == 0 || allDarts.length < dartsThrownInTurn
                 ? <String>[]
                 : allDarts.sublist(allDarts.length - dartsThrownInTurn);
+
+        final roundInLeg = gameState.currentRoundInLeg;
 
         // Winner name for win banner
         final pendingGameWinnerId = activeGameState.pendingGameWinnerId;
@@ -184,6 +187,8 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
                     startingScore: gameState.startingScore,
                     currentLegIndex: gameState.currentLegIndex,
                     legsToWin: gameState.legsToWin,
+                    roundInLeg: roundInLeg,
+                    totalRounds: gameState.x01TotalRounds,
                     currentTurnDarts: currentTurnDarts,
                   ),
                   PlayerScoreSectionWidget(
@@ -206,13 +211,9 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
                     onUndo: () => ref
                         .read(activeGameProvider(widget.gameId).notifier)
                         .undoDart(),
-                    onNextRound: () {
-                      final notifier = ref
-                          .read(activeGameProvider(widget.gameId).notifier);
-                      notifier.dismissBust();
-                      notifier.dismissLegModal();
-                      notifier.startNextTurn();
-                    },
+                    onNextRound: () => ref
+                        .read(activeGameProvider(widget.gameId).notifier)
+                        .advanceTurn(),
                   ),
                 ],
               ),
@@ -339,12 +340,16 @@ class _GameStatusBar extends StatelessWidget {
     required this.startingScore,
     required this.currentLegIndex,
     required this.legsToWin,
+    required this.roundInLeg,
+    required this.totalRounds,
     required this.currentTurnDarts,
   });
 
   final int startingScore;
   final int currentLegIndex;
   final int legsToWin;
+  final int roundInLeg;
+  final int? totalRounds;
   final List<String> currentTurnDarts;
 
   int get _turnSum => currentTurnDarts.isEmpty
@@ -373,10 +378,7 @@ class _GameStatusBar extends StatelessWidget {
       ),
     );
 
-    final dartsThrown = currentTurnDarts.length;
     final turnSum = _turnSum;
-    final lastDart =
-        currentTurnDarts.isNotEmpty ? currentTurnDarts.last : null;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
@@ -391,60 +393,48 @@ class _GameStatusBar extends StatelessWidget {
       child: Row(
         children: [
           Text('$startingScore', style: labelStyle),
-          if (legsToWin > 1) ...[
-            dot,
-            Text('ROUND ${currentLegIndex + 1} / $legsToWin', style: labelStyle),
-          ],
           dot,
-          Text('LEG ${currentLegIndex + 1}', style: labelStyle),
-          if (dartsThrown > 0) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: 1,
-                height: 16,
-                child: ColoredBox(
-                  color: cs.outlineVariant.withValues(alpha: 0.2),
-                ),
+          Text(
+            totalRounds != null
+                ? 'ROUND $roundInLeg / $totalRounds'
+                : 'ROUND $roundInLeg',
+            style: labelStyle,
+          ),
+          dot,
+          Text('LEG ${currentLegIndex + 1} / $legsToWin', style: labelStyle),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: 1,
+              height: 16,
+              child: ColoredBox(
+                color: cs.outlineVariant.withValues(alpha: 0.2),
               ),
             ),
-            if (turnSum > 0)
-              Text(
-                '$turnSum',
-                style: AppTextStyles.labelMedium.copyWith(
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.8),
-                ),
-              ),
-            const SizedBox(width: 8),
-            if (lastDart != null)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: cs.primaryFixed.withValues(alpha: 0.1),
-                  border: Border.all(
-                    color: cs.primaryFixed.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Text(
-                  lastDart,
-                  style: AppTextStyles.labelMedium.copyWith(
-                    color: cs.primaryFixed,
-                  ),
-                ),
-              ),
-            const SizedBox(width: 8),
-            Text(
-              '$dartsThrown',
-              style: AppTextStyles.labelMedium
-                  .copyWith(color: cs.onSurfaceVariant),
+          ),
+          Text(
+            '$turnSum',
+            style: AppTextStyles.labelMedium.copyWith(
+              color: turnSum > 0
+                  ? cs.onSurfaceVariant.withValues(alpha: 0.8)
+                  : cs.onSurfaceVariant.withValues(alpha: 0.2),
             ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.navigation,
-              size: 14,
-              color: cs.onSurfaceVariant.withValues(alpha: 0.4),
-              semanticLabel: '',
+          ),
+          const SizedBox(width: 8),
+          for (int i = 0; i < 3; i++) ...[
+            if (i > 0) const SizedBox(width: 4),
+            SizedBox(
+              height: 20,
+              child: Center(
+                child: currentTurnDarts.length > i
+                    ? _DartBadge(segment: currentTurnDarts[i])
+                    : Icon(
+                        Icons.navigation,
+                        size: 14,
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.3),
+                        semanticLabel: 'dart not thrown',
+                      ),
+              ),
             ),
           ],
         ],
@@ -461,55 +451,54 @@ class _CheckoutBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final visible = score >= 2 && score <= 170;
-    final suggestion = visible ? checkoutSuggestion(score) : null;
+    final inRange = score >= 2 && score <= 170;
+    final suggestion = inRange ? checkoutSuggestion(score) : null;
 
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 200),
-      child: Visibility(
-        visible: visible,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: cs.surfaceContainer,
-              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: IntrinsicHeight(
-              child: Row(
-                children: [
-                  ColoredBox(
-                    color: cs.primaryFixed,
-                    child: const SizedBox(width: 2),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'CHECKOUT',
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: cs.onSurfaceVariant,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          Text(
-                            suggestion ?? '',
-                            style: AppTextStyles.labelLarge.copyWith(
-                              color: cs.primaryFixed,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surfaceContainer,
+          borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: inRange ? 2 : 0,
+                color: cs.primaryFixed,
               ),
-            ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'CHECKOUT',
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: inRange
+                              ? cs.onSurfaceVariant
+                              : cs.onSurfaceVariant.withValues(alpha: 0.35),
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      Text(
+                        suggestion ?? 'Suggestions appear in checkout range',
+                        style: AppTextStyles.labelLarge.copyWith(
+                          color: inRange
+                              ? cs.primaryFixed
+                              : cs.onSurfaceVariant.withValues(alpha: 0.25),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -579,51 +568,23 @@ class _BottomActionBar extends StatelessWidget {
             const SizedBox(width: 10),
             // Next player / round — primary neon button
             Expanded(
-              child: Opacity(
-                opacity: canNext ? 1.0 : 0.38,
-                child: InkWell(
-                  onTap: canNext ? onNextRound : null,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-                  splashColor: AppTheme.kineticSplashColor,
-                  highlightColor: AppTheme.kineticSplashColor,
-                  child: Container(
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: cs.primaryFixed,
-                      borderRadius:
-                          BorderRadius.circular(AppTheme.radiusLarge),
-                      boxShadow: canNext
-                          ? [
-                              BoxShadow(
-                                color: cs.primaryFixed
-                                    .withValues(alpha: 0.25),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          isMultiplayer ? 'NEXT PLAYER' : 'NEXT ROUND',
-                          style: AppTextStyles.labelLarge.copyWith(
-                            color: cs.onPrimaryContainer,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.arrow_forward,
-                          size: 20,
-                          color: cs.onPrimaryContainer,
-                          semanticLabel: '',
-                        ),
-                      ],
-                    ),
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: cs.primaryFixed,
+                  foregroundColor: AppColors.onPrimaryFixed,
+                  disabledBackgroundColor:
+                      cs.primaryFixed.withValues(alpha: 0.38),
+                  disabledForegroundColor:
+                      AppColors.onPrimaryFixed.withValues(alpha: 0.38),
+                  minimumSize: const Size.fromHeight(56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppTheme.radiusMedium),
                   ),
                 ),
+                onPressed: canNext ? onNextRound : null,
+                icon: const Icon(Icons.arrow_forward, semanticLabel: ''),
+                label: Text(isMultiplayer ? 'NEXT PLAYER' : 'NEXT ROUND'),
               ),
             ),
           ],
@@ -689,6 +650,33 @@ class _WinBannerWidget extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DartBadge extends StatelessWidget {
+  const _DartBadge({required this.segment});
+
+  final String segment;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: cs.primaryFixed.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+        border: Border.all(
+          color: cs.primaryFixed.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Text(
+        segment,
+        style: AppTextStyles.labelMedium.copyWith(
+          color: cs.primaryFixed,
         ),
       ),
     );

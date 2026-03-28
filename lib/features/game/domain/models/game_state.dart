@@ -23,6 +23,8 @@ abstract class GameState with _$GameState {
     @Default(false) bool turnActive,
     @Default(1) int legsToWin,
     @Default(0) int currentLegIndex,
+    @Default(1) int currentRoundInLeg,
+    int? x01TotalRounds,
     @Default('straight') String inStrategy,
     @Default('double') String outStrategy,
     @Default(501) int startingScore,
@@ -115,6 +117,9 @@ abstract class GameState with _$GameState {
       legsToWin: (game.config is X01GameConfig)
           ? (game.config as X01GameConfig).legsToWin
           : 1,
+      x01TotalRounds: (game.config is X01GameConfig)
+          ? (game.config as X01GameConfig).totalRounds
+          : null,
       currentLegIndex: 0,
       inStrategy: inStrategy,
       outStrategy: outStrategy,

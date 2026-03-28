@@ -33,7 +33,6 @@ class PlayerScoreSectionWidget extends StatelessWidget {
     final n = gameState.competitors.length;
     if (n == 1) return AppTextStyles.scoreInactive(context);
     if (n == 2) return AppTextStyles.scoreMedium(context);
-    if (n <= 4) return AppTextStyles.scoreSmall(context);
     return AppTextStyles.scoreSmall(context);
   }
 
@@ -104,30 +103,30 @@ class _PlayerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    final stack = Stack(
+    final card = Container(
+      decoration: BoxDecoration(
+        color: isActive ? cs.surfaceContainerLow : cs.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        border: Border.all(
+          color: isActive
+              ? cs.primaryFixed.withValues(alpha: 0.2)
+              : cs.outlineVariant.withValues(alpha: 0.1),
+        ),
+        boxShadow: isActive
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  blurRadius: 24,
+                  offset: const Offset(0, 4),
+                  spreadRadius: -4,
+                ),
+              ]
+            : null,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: isActive ? cs.surfaceContainerLow : cs.surfaceContainer,
-              borderRadius:
-                  BorderRadius.circular(AppTheme.radiusLarge),
-              border: Border.all(
-                color: isActive
-                    ? cs.primaryFixed.withValues(alpha: 0.2)
-                    : cs.outlineVariant.withValues(alpha: 0.1),
-              ),
-              boxShadow: isActive
-                  ? [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        blurRadius: 24,
-                        offset: const Offset(0, 4),
-                        spreadRadius: -4,
-                      ),
-                    ]
-                  : null,
-            ),
-            clipBehavior: Clip.antiAlias,
+          Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,11 +165,13 @@ class _PlayerCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                if (isActive && roundSum > 0)
+                if (isActive)
                   Text(
-                    '-$roundSum',
+                    '$roundSum',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: cs.primaryFixed.withValues(alpha: 0.7),
+                      color: roundSum > 0
+                          ? cs.primaryFixed.withValues(alpha: 0.7)
+                          : cs.onSurfaceVariant.withValues(alpha: 0.25),
                     ),
                   ),
                 _AnimatedScore(
@@ -180,8 +181,7 @@ class _PlayerCard extends StatelessWidget {
                     shadows: isActive
                         ? [
                             Shadow(
-                              color:
-                                  cs.primaryFixed.withValues(alpha: 0.3),
+                              color: cs.primaryFixed.withValues(alpha: 0.3),
                               blurRadius: 10,
                             ),
                           ]
@@ -198,15 +198,7 @@ class _PlayerCard extends StatelessWidget {
               bottom: 0,
               child: Container(
                 width: 4,
-                decoration: BoxDecoration(
-                  color: cs.primaryFixed,
-                  borderRadius: const BorderRadius.only(
-                    topLeft:
-                        Radius.circular(AppTheme.radiusLarge),
-                    bottomLeft:
-                        Radius.circular(AppTheme.radiusLarge),
-                  ),
-                ),
+                color: cs.primaryFixed,
               ),
             ),
           if (isActive)
@@ -220,11 +212,8 @@ class _PlayerCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: cs.errorContainer
                             .withValues(alpha: bustFlashAnim.value * 0.12),
-                        borderRadius:
-                            BorderRadius.circular(AppTheme.radiusLarge),
                         border: Border.all(
-                          color:
-                              cs.error.withValues(alpha: bustFlashAnim.value),
+                          color: cs.error.withValues(alpha: bustFlashAnim.value),
                           width: 3,
                         ),
                       ),
@@ -234,8 +223,9 @@ class _PlayerCard extends StatelessWidget {
               },
             ),
         ],
+      ),
     );
-    return isActive ? stack : Opacity(opacity: 0.7, child: stack);
+    return isActive ? card : Opacity(opacity: 0.7, child: card);
   }
 }
 

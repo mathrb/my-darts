@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_text_styles.dart';
 import '../../../../core/utils/app_theme.dart';
 
@@ -19,196 +20,212 @@ class DartInputGridWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        // Singles → Doubles → Triples (6 equal rows)
-        Expanded(
-          child: Column(
-            children: [
-              // Singles (20–11)
-              Expanded(
-                child: _NumberRow(
-                  numbers: _row1,
-                  prefix: '',
-                  dots: 0,
-                  bgColor: cs.surfaceContainerHighest,
-                  textColor: cs.onSurface,
-                  onTap: onSegmentTapped,
-                  enabled: enabled,
+    return Padding(
+      padding: const EdgeInsets.all(2),
+      child: Column(
+        children: [
+          // Singles → Doubles → Triples (6 equal rows)
+          Expanded(
+            child: Column(
+              children: [
+                // Singles (20–11)
+                Expanded(
+                  child: _NumberRow(
+                    numbers: _row1,
+                    prefix: '',
+                    dots: 0,
+                    bgColor: cs.surfaceContainerHighest,
+                    textColor: cs.onSurface,
+                    onTap: onSegmentTapped,
+                    enabled: enabled,
+                  ),
                 ),
-              ),
-              // Singles (10–1)
-              Expanded(
-                child: _NumberRow(
-                  numbers: _row2,
-                  prefix: '',
-                  dots: 0,
-                  bgColor: cs.surfaceContainerHighest,
-                  textColor: cs.onSurface,
-                  onTap: onSegmentTapped,
-                  enabled: enabled,
+                const SizedBox(height: 4),
+                // Singles (10–1)
+                Expanded(
+                  child: _NumberRow(
+                    numbers: _row2,
+                    prefix: '',
+                    dots: 0,
+                    bgColor: cs.surfaceContainerHighest,
+                    textColor: cs.onSurface,
+                    onTap: onSegmentTapped,
+                    enabled: enabled,
+                  ),
                 ),
-              ),
-              // Doubles (D20–D11)
-              Expanded(
-                child: _NumberRow(
-                  numbers: _row1,
-                  prefix: 'D',
-                  dots: 2,
-                  bgColor: cs.surfaceContainerLow,
-                  textColor: cs.onSurfaceVariant,
-                  dotColor: cs.primaryFixed.withValues(alpha: 0.7),
-                  onTap: onSegmentTapped,
-                  enabled: enabled,
+                const SizedBox(height: 4),
+                // Doubles (D20–D11)
+                Expanded(
+                  child: _NumberRow(
+                    numbers: _row1,
+                    prefix: 'D',
+                    dots: 2,
+                    bgColor: cs.surfaceContainerLow,
+                    textColor: cs.onSurfaceVariant,
+                    dotColor: cs.primaryFixed.withValues(alpha: 0.7),
+                    onTap: onSegmentTapped,
+                    enabled: enabled,
+                  ),
                 ),
-              ),
-              // Doubles (D10–D1)
-              Expanded(
-                child: _NumberRow(
-                  numbers: _row2,
-                  prefix: 'D',
-                  dots: 2,
-                  bgColor: cs.surfaceContainerLow,
-                  textColor: cs.onSurfaceVariant,
-                  dotColor: cs.primaryFixed.withValues(alpha: 0.7),
-                  onTap: onSegmentTapped,
-                  enabled: enabled,
+                const SizedBox(height: 4),
+                // Doubles (D10–D1)
+                Expanded(
+                  child: _NumberRow(
+                    numbers: _row2,
+                    prefix: 'D',
+                    dots: 2,
+                    bgColor: cs.surfaceContainerLow,
+                    textColor: cs.onSurfaceVariant,
+                    dotColor: cs.primaryFixed.withValues(alpha: 0.7),
+                    onTap: onSegmentTapped,
+                    enabled: enabled,
+                  ),
                 ),
-              ),
-              // Triples (T20–T11)
-              Expanded(
-                child: _NumberRow(
-                  numbers: _row1,
-                  prefix: 'T',
-                  dots: 3,
-                  bgColor: cs.surfaceContainer,
-                  textColor: cs.onSurfaceVariant,
-                  dotColor: cs.primaryFixed.withValues(alpha: 0.7),
-                  onTap: onSegmentTapped,
-                  enabled: enabled,
+                const SizedBox(height: 4),
+                // Triples (T20–T11)
+                Expanded(
+                  child: _NumberRow(
+                    numbers: _row1,
+                    prefix: 'T',
+                    dots: 3,
+                    bgColor: cs.surfaceContainer,
+                    textColor: cs.onSurfaceVariant,
+                    dotColor: cs.primaryFixed.withValues(alpha: 0.7),
+                    onTap: onSegmentTapped,
+                    enabled: enabled,
+                  ),
                 ),
-              ),
-              // Triples (T10–T1)
-              Expanded(
-                child: _NumberRow(
-                  numbers: _row2,
-                  prefix: 'T',
-                  dots: 3,
-                  bgColor: cs.surfaceContainer,
-                  textColor: cs.onSurfaceVariant,
-                  dotColor: cs.primaryFixed.withValues(alpha: 0.7),
-                  onTap: onSegmentTapped,
-                  enabled: enabled,
+                const SizedBox(height: 4),
+                // Triples (T10–T1)
+                Expanded(
+                  child: _NumberRow(
+                    numbers: _row2,
+                    prefix: 'T',
+                    dots: 3,
+                    bgColor: cs.surfaceContainer,
+                    textColor: cs.onSurfaceVariant,
+                    dotColor: cs.primaryFixed.withValues(alpha: 0.7),
+                    onTap: onSegmentTapped,
+                    enabled: enabled,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        // Special buttons row
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 48,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Miss
-              Expanded(
-                flex: 2,
-                child: Semantics(
-                  label: 'Miss',
-                  child: InkWell(
-                    onTap: enabled ? () => onSegmentTapped('MISS') : null,
-                    splashColor: AppTheme.kineticSplashColor,
-                    highlightColor: AppTheme.kineticSplashColor,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: cs.surfaceContainerLowest,
-                        border: Border.all(
-                          color: cs.outlineVariant.withValues(alpha: 0.2),
+          // Special buttons row
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 48,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Miss
+                Expanded(
+                  flex: 2,
+                  child: Semantics(
+                    label: 'Miss',
+                    child: InkWell(
+                      onTap: enabled ? () => onSegmentTapped('MISS') : null,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                      splashColor: AppTheme.kineticSplashColor,
+                      highlightColor: AppTheme.kineticSplashColor,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerLowest,
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusSmall),
                         ),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'MISS',
-                        style: AppTextStyles.segmentButton
-                            .copyWith(color: cs.onSurfaceVariant),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'MISS',
+                          style: AppTextStyles.segmentButton
+                              .copyWith(color: cs.onSurface),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              // Single Bull (25)
-              Expanded(
-                flex: 3,
-                child: Semantics(
-                  label: 'Single Bull',
-                  child: InkWell(
-                    onTap: enabled ? () => onSegmentTapped('SB') : null,
-                    splashColor: AppTheme.kineticSplashColor,
-                    highlightColor: AppTheme.kineticSplashColor,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: cs.surfaceContainerHighest,
-                        border: Border.all(
-                          color: cs.outlineVariant.withValues(alpha: 0.1),
+                const SizedBox(width: 4),
+                // Single Bull (25)
+                Expanded(
+                  flex: 3,
+                  child: Semantics(
+                    label: 'Single Bull',
+                    child: InkWell(
+                      onTap: enabled ? () => onSegmentTapped('SB') : null,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                      splashColor: AppTheme.kineticSplashColor,
+                      highlightColor: AppTheme.kineticSplashColor,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHighest,
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusSmall),
                         ),
-                      ),
-                      alignment: Alignment.center,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '25',
-                            style: AppTextStyles.segmentButton
-                                .copyWith(color: cs.onSurface),
-                          ),
-                          Text(
-                            'BULL',
-                            style: AppTextStyles.multiplierLabel
-                                .copyWith(color: cs.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              // Double Bull (50)
-              Expanded(
-                flex: 3,
-                child: Semantics(
-                  label: 'Double Bull',
-                  child: InkWell(
-                    onTap: enabled ? () => onSegmentTapped('DB') : null,
-                    splashColor: AppTheme.kineticSplashColor,
-                    highlightColor: AppTheme.kineticSplashColor,
-                    child: Container(
-                      color: cs.primaryFixed,
-                      alignment: Alignment.center,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '50',
-                            style: AppTextStyles.segmentButton
-                                .copyWith(color: cs.onPrimaryContainer),
-                          ),
-                          Text(
-                            'D-BULL',
-                            style: AppTextStyles.multiplierLabel.copyWith(
-                              color: cs.onPrimaryContainer,
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '25',
+                              style: AppTextStyles.segmentButton
+                                  .copyWith(color: cs.onSurface),
                             ),
-                          ),
-                        ],
+                            Text(
+                              'BULL',
+                              style: AppTextStyles.multiplierLabel.copyWith(
+                                color: cs.primaryFixed.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 4),
+                // Double Bull (50)
+                Expanded(
+                  flex: 3,
+                  child: Semantics(
+                    label: 'Double Bull',
+                    child: InkWell(
+                      onTap: enabled ? () => onSegmentTapped('DB') : null,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                      splashColor: AppTheme.kineticSplashColor,
+                      highlightColor: AppTheme.kineticSplashColor,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: cs.primaryFixed,
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusSmall),
+                        ),
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '50',
+                              style: AppTextStyles.segmentButton
+                                  .copyWith(color: AppColors.onPrimaryFixed),
+                            ),
+                            Text(
+                              'BULL',
+                              style: AppTextStyles.multiplierLabel.copyWith(
+                                color: AppColors.onPrimaryFixed,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -239,18 +256,23 @@ class _NumberRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final n in numbers)
-          _GridCell(
-            label: '$prefix$n',
-            segment: '$prefix$n',
-            semanticLabel: '${prefix.isEmpty ? 'Single' : prefix == 'D' ? 'Double' : 'Triple'} $n',
-            bgColor: bgColor,
-            textColor: textColor,
-            dots: dots,
-            dotColor: dotColor ?? textColor,
-            onTap: onTap,
-            enabled: enabled,
+        for (int i = 0; i < numbers.length; i++) ...[
+          if (i > 0) const SizedBox(width: 4),
+          Expanded(
+            child: _GridCell(
+              label: '${numbers[i]}',
+              segment: '$prefix${numbers[i]}',
+              semanticLabel:
+                  '${prefix.isEmpty ? 'Single' : prefix == 'D' ? 'Double' : 'Triple'} ${numbers[i]}',
+              bgColor: bgColor,
+              textColor: textColor,
+              dots: dots,
+              dotColor: dotColor ?? textColor,
+              onTap: onTap,
+              enabled: enabled,
+            ),
           ),
+        ],
       ],
     );
   }
@@ -281,40 +303,31 @@ class _GridCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Expanded(
-      child: Semantics(
-        label: semanticLabel,
-        child: InkWell(
-          onTap: enabled ? () => onTap(segment) : null,
-          splashColor: AppTheme.kineticSplashColor,
-          highlightColor: AppTheme.kineticSplashColor,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 48),
-            decoration: BoxDecoration(
-              color: bgColor,
-              border: Border(
-                right: BorderSide(
-                  color: cs.outlineVariant.withValues(alpha: 0.15),
-                ),
-                bottom: BorderSide(
-                  color: cs.outlineVariant.withValues(alpha: 0.15),
-                ),
+    return Semantics(
+      label: semanticLabel,
+      child: InkWell(
+        onTap: enabled ? () => onTap(segment) : null,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+        splashColor: AppTheme.kineticSplashColor,
+        highlightColor: AppTheme.kineticSplashColor,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: AppTextStyles.segmentButton.copyWith(color: textColor),
               ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  label,
-                  style: AppTextStyles.segmentButton.copyWith(color: textColor),
-                ),
-                if (dots > 0) ...[
-                  const SizedBox(height: 2),
-                  _DotRow(count: dots, color: dotColor),
-                ],
+              if (dots > 0) ...[
+                const SizedBox(height: 4),
+                _DotRow(count: dots, color: dotColor),
               ],
-            ),
+            ],
           ),
         ),
       ),

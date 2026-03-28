@@ -371,9 +371,9 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    // Status bar shows game meta but no dart chip/count when no darts thrown
+    // Status bar shows game meta and dart placeholder icons when no darts thrown
     expect(find.text('501'), findsWidgets); // variant label in status bar
-    expect(find.byIcon(Icons.navigation), findsNothing); // no dart direction icon
+    expect(find.byIcon(Icons.navigation), findsNWidgets(3)); // dart placeholder icons
   });
 
   // ── 10. Dart indicator — chips for thrown darts ──────────────────────────────
@@ -411,26 +411,32 @@ void main() {
 
   // ── 12. Checkout banner hidden for score > 170 ───────────────────────────────
 
-  testWidgets('12. Checkout banner hidden when score is 171', (tester) async {
+  testWidgets('12. Checkout banner dimmed when score is 171', (tester) async {
     _setPhoneViewport(tester);
     final gs = _gameState(competitors: [_competitor(score: 171)]);
     final notifier = _FakeActiveGameNotifier(_activeState(gameState: gs));
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.text('CHECKOUT'), findsNothing);
+    // Checkout banner is now always visible but dimmed when not in range
+    final checkoutText = tester.widget<Text>(find.text('CHECKOUT'));
+    final color = checkoutText.style?.color as Color?;
+    expect(color?.alpha, lessThan(255)); // Check that it's dimmed (alpha < 1.0)
   });
 
   // ── 13. Checkout banner hidden for score == 1 ────────────────────────────────
 
-  testWidgets('13. Checkout banner hidden when score is 1', (tester) async {
+  testWidgets('13. Checkout banner dimmed when score is 1', (tester) async {
     _setPhoneViewport(tester);
     final gs = _gameState(competitors: [_competitor(score: 1)]);
     final notifier = _FakeActiveGameNotifier(_activeState(gameState: gs));
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.text('CHECKOUT'), findsNothing);
+    // Checkout banner is now always visible but dimmed when not in range
+    final checkoutText = tester.widget<Text>(find.text('CHECKOUT'));
+    final color = checkoutText.style?.color as Color?;
+    expect(color?.alpha, lessThan(255)); // Check that it's dimmed (alpha < 1.0)
   });
 
   // ── 14. Grid row 0: MISS, SB, DB ──────────────────────────────────────────
@@ -441,12 +447,12 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    // Special buttons in new design: MISS, 25/BULL, 50/D-BULL
+    // Special buttons in new design: MISS, 25/BULL, 50/BULL
     expect(find.text('MISS'), findsOneWidget);
     expect(find.text('25'), findsOneWidget);   // Bull button label
-    expect(find.text('BULL'), findsOneWidget); // Bull subtext
+    expect(find.text('BULL'), findsNWidgets(2)); // Bull subtext (appears twice)
     expect(find.text('50'), findsOneWidget);   // D-Bull button label
-    expect(find.text('D-BULL'), findsOneWidget); // D-Bull subtext
+    // Note: Both bulls show "BULL" subtext, not "D-BULL"
   });
 
   // ── 15. Doubles rows show D-prefixed numbers ─────────────────────────────────
@@ -458,9 +464,9 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    // Doubles grid cells use surfaceContainerLow background and show D-prefixed labels
-    expect(find.text('D20'), findsOneWidget);
-    expect(find.text('D1'), findsOneWidget);
+    // Doubles grid cells use surfaceContainerLow background and show numbers with 2 dots
+    expect(find.text('20'), findsWidgets); // Numbers appear in multiple rows
+    expect(find.text('1'), findsWidgets);  // Numbers appear in multiple rows
     final containers = tester.widgetList<Container>(find.byType(Container));
     final surfaceContainerLowBg = containers.where((c) {
       final d = c.decoration;
@@ -468,6 +474,26 @@ void main() {
       return false;
     });
     expect(surfaceContainerLowBg, isNotEmpty);
+    
+    // Check that doubles row has cells with 2 dots (indicating doubles)
+    // Find containers that represent dots (4x4 circles)
+    final dotContainers = tester.widgetList<Container>(find.byWidgetPredicate(
+      (widget) => widget is Container &&
+          widget.decoration is BoxDecoration &&
+          (widget.decoration as BoxDecoration).shape == BoxShape.circle &&
+          widget.constraints?.maxWidth == 4 &&
+          widget.constraints?.maxHeight == 4,
+    ));
+    
+    // Group dots by their parent row to find rows with exactly 2 dots
+    final dotGroups = <Widget, List<Container>>{};
+    for (final dot in dotContainers) {
+      final parent = tester.widget<Row>(find.ancestor(of: find.byWidget(dot), matching: find.byType(Row)).first);
+      dotGroups.putIfAbsent(parent, () => []).add(dot);
+    }
+    
+    final doubleDotGroups = dotGroups.values.where((dots) => dots.length == 2);
+    expect(doubleDotGroups, isNotEmpty);
   });
 
   // ── 16. Triples rows show T-prefixed numbers ──────────────────────────────────
@@ -478,15 +504,35 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    // Triples grid cells use surfaceContainer background and show T-prefixed labels
-    expect(find.text('T20'), findsOneWidget);
-    expect(find.text('T1'), findsOneWidget);
+    // Triples grid cells use surfaceContainer background and show numbers with 3 dots
+    expect(find.text('20'), findsWidgets); // Numbers appear in multiple rows
+    expect(find.text('1'), findsWidgets);  // Numbers appear in multiple rows
     final containers = tester.widgetList<Container>(find.byType(Container));
     final surfaceContainerBg = containers.where((c) {
       final d = c.decoration;
       if (d is BoxDecoration) return d.color == AppColors.surfaceContainer;
       return false;
     });
+    
+    // Check that triples row has cells with 3 dots (indicating triples)
+    // Find containers that represent dots (4x4 circles)
+    final dotContainers = tester.widgetList<Container>(find.byWidgetPredicate(
+      (widget) => widget is Container &&
+          widget.decoration is BoxDecoration &&
+          (widget.decoration as BoxDecoration).shape == BoxShape.circle &&
+          widget.constraints?.maxWidth == 4 &&
+          widget.constraints?.maxHeight == 4,
+    ));
+    
+    // Group dots by their parent row to find rows with exactly 3 dots
+    final dotGroups = <Widget, List<Container>>{};
+    for (final dot in dotContainers) {
+      final parent = tester.widget<Row>(find.ancestor(of: find.byWidget(dot), matching: find.byType(Row)).first);
+      dotGroups.putIfAbsent(parent, () => []).add(dot);
+    }
+    
+    final tripleDotGroups = dotGroups.values.where((dots) => dots.length == 3);
+    expect(tripleDotGroups, isNotEmpty);
     expect(surfaceContainerBg, isNotEmpty);
   });
 
@@ -504,6 +550,7 @@ void main() {
         .map((s) => s.properties.label)
         .whereType<String>()
         .toSet();
+    
     expect(labels, contains('Triple 20'));
     expect(labels, contains('Double Bull'));
   });
@@ -522,8 +569,24 @@ void main() {
     await tester.pumpWidget(_buildAppWithContainer(container));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('T20'));
-    await tester.pump();
+    // Find the Triple 20 cell by finding text "20" in a triples row (3 dots)
+    // First find all text widgets with "20"
+    final text20Widgets = tester.widgetList<Text>(find.text('20'));
+    
+    // Find the one that's in a cell with 3 dots (triple)
+    for (final textWidget in text20Widgets) {
+      final ancestor = find.ancestor(of: find.byWidget(textWidget), matching: find.byType(InkWell)).first;
+      final inkWell = tester.widget<InkWell>(ancestor);
+      
+      // Check if this InkWell has a semantic label of "Triple 20"
+      final semantics = find.ancestor(of: ancestor, matching: find.byType(Semantics)).first;
+      final semanticsWidget = tester.widget<Semantics>(semantics);
+      if (semanticsWidget.properties.label == 'Triple 20') {
+        await tester.tap(ancestor);
+        break;
+      }
+    }
+    await tester.pumpAndSettle();
 
     final notifier = container.read(activeGameProvider('game-1').notifier)
         as _FakeActiveGameNotifier;
@@ -532,7 +595,7 @@ void main() {
 
   // ── 19. NEXT ROUND disabled when < 3 darts ───────────────────────────────────
 
-  testWidgets('19. NEXT ROUND disabled when turnActive (mid-turn)',
+  testWidgets('19. NEXT ROUND enabled even mid-turn (new design)',
       (tester) async {
     _setPhoneViewport(tester);
     final gs = _gameState(dartsThrownInTurn: 2, turnActive: true);
@@ -540,13 +603,14 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final gd = tester.widget<GestureDetector>(
+    // New design allows ending turn early - button is enabled as long as game is not complete
+    final button = tester.widget<FilledButton>(
       find.ancestor(
         of: find.text('NEXT ROUND'),
-        matching: find.byType(GestureDetector),
+        matching: find.byType(FilledButton),
       ).first,
     );
-    expect(gd.onTap, isNull);
+    expect(button.onPressed, isNotNull);
   });
 
   // ── 20. NEXT ROUND enabled when 3 darts thrown ───────────────────────────────
