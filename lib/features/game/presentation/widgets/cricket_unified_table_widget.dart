@@ -1,7 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
-import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/utils/app_theme.dart';
 import '../../domain/models/game_state.dart';
 
 // ── File-private helpers ──────────────────────────────────────────────────────
@@ -46,8 +48,8 @@ class CricketUnifiedTableWidget extends StatelessWidget {
             child: _CricketNumberRow(
               target: n,
               competitors: gameState.competitors,
+              currentTurnIndex: gameState.currentTurnIndex,
               isRowClosed: _isRowClosed(n, gameState),
-              dartsThrownInTurn: gameState.dartsThrownInTurn,
               onSegmentTapped: onSegmentTapped,
             ),
           ),
@@ -72,7 +74,9 @@ class _CricketHeaderRow extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: cs.outline, width: 1)),
+        border: Border(
+          bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.15)),
+        ),
       ),
       child: IntrinsicHeight(
         child: Row(
@@ -80,16 +84,16 @@ class _CricketHeaderRow extends StatelessWidget {
           children: [
             for (var i = 0; i < gameState.competitors.length; i++)
               Expanded(
+                flex: 3,
                 child: _PlayerHeaderCell(
                   competitor: gameState.competitors[i],
                   isActive: i == gameState.currentTurnIndex,
+                  currentRoundInLeg: gameState.currentRoundInLeg,
                 ),
               ),
-            _ControlCell(
-              label: 'MISS',
-              width: 112,
-              height: null,
-              onTap: onMiss,
+            Expanded(
+              flex: 3,
+              child: _MissCell(onTap: onMiss),
             ),
           ],
         ),
@@ -102,31 +106,122 @@ class _PlayerHeaderCell extends StatelessWidget {
   const _PlayerHeaderCell({
     required this.competitor,
     required this.isActive,
+    required this.currentRoundInLeg,
   });
 
   final CompetitorState competitor;
   final bool isActive;
+  final int currentRoundInLeg;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Container(
-      color: isActive ? cs.primary.withValues(alpha: 0.10) : null,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+
+    final totalMarks = competitor.marksPerNumber.values
+        .map((v) => v.clamp(0, 3))
+        .fold(0, (a, b) => a + b);
+    final mpr =
+        currentRoundInLeg > 0 ? totalMarks / currentRoundInLeg : 0.0;
+
+    final cell = Container(
+      decoration: BoxDecoration(
+        color: isActive ? cs.primaryContainer.withValues(alpha: 0.10) : null,
+        border: Border(
+          right: BorderSide(
+            color: isActive
+                ? cs.primary
+                : cs.outlineVariant.withValues(alpha: 0.15),
+            width: isActive ? 4.0 : 1.0,
+          ),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             '${competitor.score}',
-            style: AppTextStyles.scoreSmall(context).copyWith(
-              color: isActive ? cs.onSurface : AppColors.inactiveScore,
+            style: AppTextStyles.scoreMedium(context).copyWith(
+              color: isActive ? cs.primary : cs.onSurfaceVariant,
             ),
           ),
+          const SizedBox(height: 4),
           Text(
             competitor.name.toUpperCase(),
-            style: AppTextStyles.labelSmall,
+            style: AppTextStyles.labelSmall.copyWith(
+              letterSpacing: 2.0,
+              fontWeight: FontWeight.w800,
+              color: isActive ? cs.primary : cs.onSurfaceVariant,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'MPR',
+                style: AppTextStyles.labelSmall.copyWith(
+                  fontSize: 8,
+                  color: isActive
+                      ? cs.primary.withValues(alpha: 0.60)
+                      : cs.onSurfaceVariant.withValues(alpha: 0.60),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                mpr.toStringAsFixed(1),
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: isActive ? cs.primary : cs.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+
+    if (!isActive) return Opacity(opacity: 0.60, child: cell);
+    return cell;
+  }
+}
+
+class _MissCell extends StatelessWidget {
+  const _MissCell({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      splashColor: AppTheme.kineticSplashColor,
+      highlightColor: AppTheme.kineticSplashColor,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.block,
+              color: cs.error,
+              size: 18,
+              semanticLabel: '',
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'MISS',
+              style: AppTextStyles.labelLarge.copyWith(
+                color: cs.error,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -138,72 +233,121 @@ class _CricketNumberRow extends StatelessWidget {
   const _CricketNumberRow({
     required this.target,
     required this.competitors,
+    required this.currentTurnIndex,
     required this.isRowClosed,
-    required this.dartsThrownInTurn,
     required this.onSegmentTapped,
   });
 
   final int target;
   final List<CompetitorState> competitors;
+  final int currentTurnIndex;
   final bool isRowClosed;
-  final int dartsThrownInTurn;
   final ValueChanged<String> onSegmentTapped;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      color: isRowClosed
-          ? cs.surfaceContainerHighest.withValues(alpha: 0.38)
-          : null,
+      decoration: BoxDecoration(
+        color: isRowClosed
+            ? cs.surfaceContainerHighest.withValues(alpha: 0.38)
+            : null,
+        border: Border(
+          bottom: BorderSide(
+            color: cs.outlineVariant.withValues(alpha: 0.10),
+          ),
+        ),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final c in competitors)
+          // Player mark columns
+          for (var i = 0; i < competitors.length; i++)
             Expanded(
-              child: _MarkCell(
-                marks: _marksForPlayer(c, target),
+              flex: 3,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: i == currentTurnIndex
+                      ? cs.primaryContainer.withValues(alpha: 0.05)
+                      : null,
+                  border: Border(
+                    right: BorderSide(
+                      color: cs.outlineVariant.withValues(alpha: 0.15),
+                    ),
+                  ),
+                ),
+                child: _MarkCell(
+                  marks: _marksForPlayer(competitors[i], target),
+                  isActivePlayer: i == currentTurnIndex,
+                ),
               ),
             ),
-          _InputCell(
-            label: _singleSegment(target),
-            bg: null,
-            textColor: cs.onSurface,
-            dotCount: 1,
-            width: target == 25 ? 84 : 56,
-            semanticLabel:
-                'Single ${target == 25 ? "Bull" : "$target"}',
-            onTap: isRowClosed
-                ? null
-                : () => onSegmentTapped(_singleSegment(target)),
-            isRowClosed: isRowClosed,
-          ),
-          _InputCell(
-            label: _doubleSegment(target),
-            bg: cs.primaryContainer,
-            textColor: cs.onPrimaryContainer,
-            dotCount: 2,
-            width: target == 25 ? 84 : 56,
-            semanticLabel:
-                'Double ${target == 25 ? "Bull" : "$target"}',
-            onTap: isRowClosed
-                ? null
-                : () => onSegmentTapped(_doubleSegment(target)),
-            isRowClosed: isRowClosed,
-          ),
-          if (target != 25)
-            _InputCell(
-              label: _tripleSegment(target),
-              bg: cs.primary,
-              textColor: cs.onPrimary,
-              dotCount: 3,
-              width: 56,
-              semanticLabel: 'Triple $target',
-              onTap: isRowClosed
-                  ? null
-                  : () => onSegmentTapped(_tripleSegment(target)),
-              isRowClosed: isRowClosed,
+          // Input cells
+          if (target != 25) ...[
+            Expanded(
+              flex: 1,
+              child: _InputCell(
+                displayLabel: '$target',
+                dotCount: 1,
+                semanticLabel: 'Single $target',
+                onTap: isRowClosed
+                    ? null
+                    : () => onSegmentTapped(_singleSegment(target)),
+                isRowClosed: isRowClosed,
+                hasBorderRight: true,
+              ),
             ),
+            Expanded(
+              flex: 1,
+              child: _InputCell(
+                displayLabel: '$target',
+                dotCount: 2,
+                semanticLabel: 'Double $target',
+                onTap: isRowClosed
+                    ? null
+                    : () => onSegmentTapped(_doubleSegment(target)),
+                isRowClosed: isRowClosed,
+                hasBorderRight: true,
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: _InputCell(
+                displayLabel: '$target',
+                dotCount: 3,
+                semanticLabel: 'Triple $target',
+                onTap: isRowClosed
+                    ? null
+                    : () => onSegmentTapped(_tripleSegment(target)),
+                isRowClosed: isRowClosed,
+                hasBorderRight: false,
+              ),
+            ),
+          ] else ...[
+            // Bull row: SB (flex 1) + DB (flex 2)
+            Expanded(
+              flex: 1,
+              child: _InputCell(
+                displayLabel: 'SB',
+                dotCount: 1,
+                semanticLabel: 'Single Bull',
+                onTap: isRowClosed ? null : () => onSegmentTapped('SB'),
+                isRowClosed: isRowClosed,
+                hasBorderRight: true,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: _InputCell(
+                displayLabel: 'DB',
+                dotCount: 2,
+                semanticLabel: 'Double Bull',
+                onTap: isRowClosed ? null : () => onSegmentTapped('DB'),
+                isRowClosed: isRowClosed,
+                hasBorderRight: false,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -213,137 +357,166 @@ class _CricketNumberRow extends StatelessWidget {
 // ── Mark cell ─────────────────────────────────────────────────────────────────
 
 class _MarkCell extends StatelessWidget {
-  const _MarkCell({required this.marks});
+  const _MarkCell({required this.marks, required this.isActivePlayer});
+
   final int marks;
+  final bool isActivePlayer;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final (symbol, color) = switch (marks) {
-      0 => ('─', cs.onSurfaceVariant),
-      1 => ('/', cs.onSurface),
-      2 => ('X', cs.onSurface),
-      _ => ('⊗', AppColors.cricketClosed),
-    };
+
+    final Color color;
+    if (marks == 0) {
+      color = cs.onSurfaceVariant.withValues(alpha: 0.20);
+    } else if (marks >= 3) {
+      color = cs.primaryFixed;
+    } else {
+      // 1–2 marks
+      color = isActivePlayer
+          ? cs.primary
+          : cs.onSurface.withValues(alpha: 0.30);
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Text(
-          symbol,
-          style: AppTextStyles.headingMedium.copyWith(color: color),
+        child: SizedBox(
+          width: 28,
+          height: 28,
+          child: CustomPaint(
+            painter: _MarkPainter(marks: marks, color: color),
+          ),
         ),
       ),
     );
   }
+}
+
+class _MarkPainter extends CustomPainter {
+  const _MarkPainter({required this.marks, required this.color});
+
+  final int marks;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final arm = size.width * 0.38;
+
+    if (marks == 0) {
+      canvas.drawLine(
+        Offset(cx - arm, cy),
+        Offset(cx + arm, cy),
+        paint..strokeWidth = 2.0,
+      );
+      return;
+    }
+
+    // Diagonal arm length for slash/X marks (same for all mark counts)
+    final armDiag = arm / sqrt(2) * 1.15;
+
+    if (marks >= 3) {
+      canvas.drawCircle(Offset(cx, cy), size.width * 0.44, paint);
+    }
+
+    if (marks >= 2) {
+      canvas.drawLine(
+          Offset(cx - armDiag, cy + armDiag), Offset(cx + armDiag, cy - armDiag), paint);
+      canvas.drawLine(
+          Offset(cx - armDiag, cy - armDiag), Offset(cx + armDiag, cy + armDiag), paint);
+    } else {
+      canvas.drawLine(
+          Offset(cx - armDiag, cy + armDiag), Offset(cx + armDiag, cy - armDiag), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MarkPainter old) =>
+      old.marks != marks || old.color != color;
 }
 
 // ── Input cell ────────────────────────────────────────────────────────────────
 
 class _InputCell extends StatelessWidget {
   const _InputCell({
-    required this.label,
-    required this.bg,
-    required this.textColor,
+    required this.displayLabel,
     required this.dotCount,
     required this.semanticLabel,
     required this.onTap,
     required this.isRowClosed,
-    this.width = 56,
+    required this.hasBorderRight,
   });
 
-  final String label;
-  final Color? bg;
-  final Color textColor;
+  final String displayLabel;
   final int dotCount;
   final String semanticLabel;
   final VoidCallback? onTap;
   final bool isRowClosed;
-  final double width;
+  final bool hasBorderRight;
 
   @override
   Widget build(BuildContext context) {
-    final cell = Tooltip(
-      message: isRowClosed ? 'Number already closed' : '',
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          color: bg,
-          width: width,
-          constraints: const BoxConstraints(minHeight: 36),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Text(
-                label,
-                style:
-                    AppTextStyles.segmentButton.copyWith(color: textColor),
-              ),
-              if (dotCount > 0)
+    final cs = Theme.of(context).colorScheme;
+
+    return Semantics(
+      label: semanticLabel,
+      child: Tooltip(
+        message: isRowClosed ? 'Number already closed' : '',
+        child: InkWell(
+          onTap: onTap,
+          splashColor: AppTheme.kineticSplashColor,
+          highlightColor: AppTheme.kineticSplashColor,
+          child: Container(
+            decoration: hasBorderRight
+                ? BoxDecoration(
+                    border: Border(
+                      right: BorderSide(
+                        color: cs.outlineVariant.withValues(alpha: 0.10),
+                      ),
+                    ),
+                  )
+                : null,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  displayLabel,
+                  style: AppTextStyles.segmentButton.copyWith(
+                    color: cs.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: List.generate(
                     dotCount,
                     (_) => Container(
-                      width: 4,
-                      height: 4,
+                      width: 5,
+                      height: 5,
                       margin: const EdgeInsets.symmetric(horizontal: 1),
                       decoration: BoxDecoration(
-                        color: textColor,
+                        color: cs.primary.withValues(alpha: 0.40),
                         shape: BoxShape.circle,
                       ),
                     ),
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
-    return Semantics(label: semanticLabel, child: cell);
   }
 }
-
-// ── Control cell ──────────────────────────────────────────────────────────────
-
-class _ControlCell extends StatelessWidget {
-  const _ControlCell({
-    required this.label,
-    required this.width,
-    required this.onTap,
-    this.enabled = true,
-    this.height = 56,
-  });
-
-  final String label;
-  final double width;
-  final VoidCallback? onTap;
-  final bool enabled;
-  final double? height;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final cell = GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        width: width,
-        height: height ?? double.infinity,
-        decoration: BoxDecoration(
-          color: cs.surface,
-          border: Border(
-            right: BorderSide(color: cs.outline, width: 1),
-            bottom: BorderSide(color: cs.outline, width: 1),
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: AppTextStyles.labelLarge.copyWith(color: cs.onSurface),
-        ),
-      ),
-    );
-    return enabled ? cell : Opacity(opacity: 0.38, child: cell);
-  }
-}
-

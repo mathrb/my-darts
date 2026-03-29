@@ -177,32 +177,11 @@ class ProcessCricketDartUseCase {
         eventsToStore.add(turnStartedEvent);
         finalState = _engine.apply(finalState, turnStartedEvent).state;
 
-      } else {
-        // Normal 3-dart turn end — TurnStarted for next player
-        final nextIndex = (finalState.currentTurnIndex + 1) % finalState.competitors.length;
-        final nextCompetitor = finalState.competitors[nextIndex];
-        final nextPlayerId = nextCompetitor.playerIds.isNotEmpty
-            ? nextCompetitor.playerIds.first
-            : 'system';
-        final turnStartedEvent = GameEvent(
-          eventId: const Uuid().v4(),
-          gameId: currentState.gameId,
-          eventType: 'TurnStarted',
-          localSequence: nextSeq++,
-          occurredAt: DateTime.now(),
-          payload: {
-            'competitor_id': nextCompetitor.competitorId,
-            'player_id': nextPlayerId,
-            'turn_index': nextIndex,
-            'leg_index': finalState.currentLegIndex,
-          },
-          synced: false,
-          actorId: 'system',
-          source: EventSource.client,
-        );
-        eventsToStore.add(turnStartedEvent);
-        finalState = _engine.apply(finalState, turnStartedEvent).state;
       }
+      // Normal 3-dart turn end: only DartThrown is persisted here.
+      // TurnEnded + TurnStarted are appended when the player taps NEXT PLAYER
+      // (via ActiveCricketGameNotifier.nextPlayer). finalState remains result.state
+      // with turnActive=false, dartsThrownInTurn=3.
     }
 
     // 8. Persist: dart first, then events

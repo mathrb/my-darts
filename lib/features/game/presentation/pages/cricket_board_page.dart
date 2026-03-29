@@ -25,6 +25,7 @@ class CricketBoardPage extends ConsumerStatefulWidget {
 class _CricketBoardPageState extends ConsumerState<CricketBoardPage> {
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final asyncState = ref.watch(activeCricketGameProvider(widget.gameId));
 
     return asyncState.when(
@@ -133,12 +134,43 @@ class _CricketBoardPageState extends ConsumerState<CricketBoardPage> {
                 currentTurnDarts: currentTurnDarts,
               ),
               Expanded(
-                child: CricketUnifiedTableWidget(
-                  gameState: gameState,
-                  onSegmentTapped: gameState.isComplete
-                      ? (_) {}
-                      : (segment) => notifier.processDart(segment),
-                  onMiss: () => notifier.processDart('MISS'),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 4),
+                  child: ClipRRect(
+                    borderRadius:
+                        BorderRadius.circular(AppTheme.radiusLarge),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerLow,
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusLarge),
+                        border: Border.all(
+                          color:
+                              cs.outlineVariant.withValues(alpha: 0.15),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.40),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: CricketUnifiedTableWidget(
+                        gameState: gameState,
+                        onSegmentTapped:
+                            (gameState.isComplete || !gameState.turnActive)
+                                ? (_) {}
+                                : (segment) =>
+                                    notifier.processDart(segment),
+                        onMiss:
+                            (gameState.isComplete || !gameState.turnActive)
+                                ? () {}
+                                : () => notifier.processDart('MISS'),
+                      ),
+                    ),
+                  ),
                 ),
               ),
               _BottomActionBar(
