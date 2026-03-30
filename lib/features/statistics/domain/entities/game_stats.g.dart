@@ -29,6 +29,11 @@ _CompetitorStats _$CompetitorStatsFromJson(Map<String, dynamic> json) =>
       threeDartAverage: (json['threeDartAverage'] as num).toDouble(),
       legsWon: (json['legsWon'] as num).toInt(),
       totalDartsThrown: (json['totalDartsThrown'] as num).toInt(),
+      checkoutPercentage: (json['checkoutPercentage'] as num?)?.toDouble(),
+      oneEightyTurns: (json['oneEightyTurns'] as num?)?.toInt() ?? 0,
+      sixtyPlusTurns: (json['sixtyPlusTurns'] as num?)?.toInt() ?? 0,
+      oneHundredPlusTurns: (json['oneHundredPlusTurns'] as num?)?.toInt() ?? 0,
+      oneFortyPlusTurns: (json['oneFortyPlusTurns'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$CompetitorStatsToJson(_CompetitorStats instance) =>
@@ -39,6 +44,11 @@ Map<String, dynamic> _$CompetitorStatsToJson(_CompetitorStats instance) =>
       'threeDartAverage': instance.threeDartAverage,
       'legsWon': instance.legsWon,
       'totalDartsThrown': instance.totalDartsThrown,
+      'checkoutPercentage': instance.checkoutPercentage,
+      'oneEightyTurns': instance.oneEightyTurns,
+      'sixtyPlusTurns': instance.sixtyPlusTurns,
+      'oneHundredPlusTurns': instance.oneHundredPlusTurns,
+      'oneFortyPlusTurns': instance.oneFortyPlusTurns,
     };
 
 _PlayerTurnStats _$PlayerTurnStatsFromJson(Map<String, dynamic> json) =>

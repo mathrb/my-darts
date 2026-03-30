@@ -68,6 +68,9 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         throw GameNotFoundException(gameId);
       }
 
+      final gameTypeStr = gameResult.first['game_type'] as String?;
+      final isX01 = gameTypeStr == GameType.x01.name;
+
       // Get all dart throws for this game
       final dartThrows = await _db.query(
         'dart_throws',
@@ -88,6 +91,18 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
       for (final throwData in dartThrows) {
         final competitorId = throwData['competitor_id'] as String;
         byCompetitor.putIfAbsent(competitorId, () => []).add(throwData);
+      }
+
+      // Query game events once for X01 projection-based stats
+      List<GameEvent> gameEvents = [];
+      if (isX01) {
+        final eventsResult = await _db.query(
+          'game_events',
+          where: 'game_id = ?',
+          whereArgs: [gameId],
+          orderBy: 'local_sequence ASC',
+        );
+        gameEvents = eventsResult.map((r) => GameEvent.fromJson(r)).toList();
       }
 
       // Build competitor stats
@@ -140,6 +155,43 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         // Get legs won from game events
         final legsWon = await _getLegsWonForCompetitor(competitorId, gameId);
 
+        // Compute X01-specific stats via projection engine
+        int totalOneEighty = 0, totalSixtyPlus = 0, totalHundredPlus = 0, totalFortyPlus = 0;
+        int totalCheckoutAttempts = 0, totalSuccessfulCheckouts = 0;
+
+        if (isX01) {
+          final playerIds = byPlayer.keys.toList();
+          for (final playerId in playerIds) {
+            final runner = ProjectionRunner([
+              X01CheckoutProjection(),
+              X01HighScoreBucketsProjection(),
+            ]);
+            runner.init(ProjectionContext(
+              playerId: playerId,
+              gameType: GameType.x01,
+              inStrategy: 'straight',
+              outStrategy: 'double',
+              playerIds: playerIds,
+            ));
+            runner.run(gameEvents);
+            final snap = runner.snapshot();
+
+            final buckets = snap['x01.highScoreBuckets'] ?? {};
+            totalOneEighty += (buckets['oneEightyTurns'] as int? ?? 0);
+            totalFortyPlus += (buckets['oneFortyPlusTurns'] as int? ?? 0);
+            totalHundredPlus += (buckets['oneHundredPlusTurns'] as int? ?? 0);
+            totalSixtyPlus += (buckets['sixtyPlusTurns'] as int? ?? 0);
+
+            final checkout = snap['x01_checkout'] ?? {};
+            totalCheckoutAttempts += (checkout['checkoutAttempts'] as int? ?? 0);
+            totalSuccessfulCheckouts += (checkout['successfulCheckouts'] as int? ?? 0);
+          }
+        }
+
+        final checkoutPercentage = totalCheckoutAttempts > 0
+            ? (totalSuccessfulCheckouts / totalCheckoutAttempts) * 100
+            : null;
+
         competitorStats.add(CompetitorStats(
           competitorId: competitorId,
           competitorName: competitorName,
@@ -147,6 +199,11 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
           threeDartAverage: threeDartAverage,
           legsWon: legsWon,
           totalDartsThrown: totalDarts,
+          checkoutPercentage: checkoutPercentage,
+          oneEightyTurns: totalOneEighty,
+          sixtyPlusTurns: totalSixtyPlus,
+          oneHundredPlusTurns: totalHundredPlus,
+          oneFortyPlusTurns: totalFortyPlus,
         ));
       }
 
@@ -166,14 +223,20 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
   }
 
   @override
-  Stream<GameStats> watchGameStats(String gameId) {
-    return Stream.periodic(const Duration(seconds: 5), (_) {})
-      .asyncMap((_) async => getGameStats(gameId))
-      .distinct()
-      .handleError((error) {
-        if (error is RepositoryException) throw error;
-        throw StatisticsException('Failed to watch game statistics: ${error.toString()}');
-      });
+  Stream<GameStats> watchGameStats(String gameId) async* {
+    try {
+      yield await getGameStats(gameId);
+    } catch (error) {
+      if (error is RepositoryException) rethrow;
+      throw StatisticsException('Failed to watch game statistics: ${error.toString()}');
+    }
+    yield* Stream.periodic(const Duration(seconds: 5))
+        .asyncMap((_) async => getGameStats(gameId))
+        .distinct()
+        .handleError((error) {
+          if (error is RepositoryException) throw error;
+          throw StatisticsException('Failed to watch game statistics: ${error.toString()}');
+        });
   }
 
   @override

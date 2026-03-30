@@ -326,6 +326,9 @@ flutter test
 
 # Run a specific test file
 flutter test test/features/players/data/player_repository_impl_test.dart
+
+# Run all tests and display only errors:
+flutter test -r failures-only
 ```
 
 Always regenerate after any change to a `@freezed` class or `@riverpod` provider before running or testing.

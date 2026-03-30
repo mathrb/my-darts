@@ -721,9 +721,9 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  // ── 25. Win banner visible on pendingGameWinnerId set ────────────────────────
+  // ── 25. Win state auto-navigates to post-game page ──────────────────────────
 
-  testWidgets('25. Win banner shows winner name and action buttons',
+  testWidgets('25. Win state auto-navigates to post-game page',
       (tester) async {
     _setPhoneViewport(tester);
     final gs = _gameState(
@@ -736,51 +736,8 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    // Win banner shows winner name uppercased; player section also shows it.
-    expect(find.text('ALICE'), findsWidgets);
-    expect(find.text('Post-Game Summary'), findsOneWidget);
-    expect(find.text('Play Again'), findsOneWidget);
-  });
-
-  // ── 26. Post-Game Summary navigates ─────────────────────────────────────────
-
-  testWidgets('26. Post-Game Summary navigates to /post-game/:gameId',
-      (tester) async {
-    _setPhoneViewport(tester);
-    final gs = _gameState(
-      competitors: [_competitor(id: 'c1', name: 'Alice')],
-      isComplete: true,
-    );
-    final notifier = _FakeActiveGameNotifier(
-      _activeState(gameState: gs, pendingGameWinnerId: 'c1'),
-    );
-    await tester.pumpWidget(_buildApp(notifier));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Post-Game Summary'));
-    await tester.pumpAndSettle();
-
+    // Board auto-navigates to /post-game/:gameId when a winner is set.
     expect(find.text('post-game'), findsOneWidget);
-  });
-
-  // ── 27. Play Again navigates to home ─────────────────────────────────────────
-
-  testWidgets('27. Play Again navigates to home', (tester) async {
-    _setPhoneViewport(tester);
-    final gs = _gameState(
-      competitors: [_competitor(id: 'c1', name: 'Alice')],
-      isComplete: true,
-    );
-    final notifier = _FakeActiveGameNotifier(
-      _activeState(gameState: gs, pendingGameWinnerId: 'c1'),
-    );
-    await tester.pumpWidget(_buildApp(notifier));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Play Again'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('home'), findsOneWidget);
   });
 
   // ── 28. Settings icon is present in custom header ────────────────────────────

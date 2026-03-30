@@ -22,6 +22,12 @@ Stream<GameStats> liveGameStats(Ref ref, String gameId) {
 }
 
 @riverpod
+Future<GameStats> gameStats(Ref ref, String gameId) {
+  final repository = ref.watch(statisticsRepositoryProvider);
+  return repository.getGameStats(gameId);
+}
+
+@riverpod
 class Leaderboard extends _$Leaderboard {
   GameType _gameType = GameType.x01;
   int _minGames = 5;

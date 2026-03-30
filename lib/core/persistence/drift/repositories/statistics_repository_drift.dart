@@ -5,10 +5,15 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:my_darts/core/utils/constants.dart';
 import 'package:my_darts/core/error/repository_exception.dart';
+import 'package:my_darts/features/game/domain/entities/game_event.dart' as domain;
 import 'package:my_darts/features/statistics/domain/repositories/statistics_repository.dart';
 import 'package:my_darts/features/statistics/domain/entities/player_stats.dart';
 import 'package:my_darts/features/statistics/domain/entities/player_leg_snapshot.dart';
 import 'package:my_darts/features/statistics/domain/entities/game_stats.dart';
+import 'package:my_darts/features/statistics/domain/engines/projection_engine.dart';
+import 'package:my_darts/features/statistics/domain/engines/projection_runner.dart';
+import 'package:my_darts/features/statistics/domain/engines/x01/x01_checkout_projection.dart';
+import 'package:my_darts/features/statistics/domain/engines/x01/x01_high_score_buckets_projection.dart';
 import '../database.dart' as drift_db;
 
 class StatisticsRepositoryDrift implements StatisticsRepository {
@@ -36,6 +41,34 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
 
       if (!gameExists) {
         throw GameNotFoundException(gameId);
+      }
+
+      // Determine game type for X01-specific projection logic
+      final gameRow = await (_db.select(_db.games)
+            ..where((g) => g.gameId.equals(gameId))
+            ..limit(1))
+          .getSingleOrNull();
+      final isX01 = gameRow?.gameType == GameType.x01.name;
+
+      // Pre-fetch game events once for X01 projections
+      List<domain.GameEvent> gameEvents = [];
+      if (isX01) {
+        final eventRows = await (_db.select(_db.gameEvents)
+              ..where((e) => e.gameId.equals(gameId))
+              ..orderBy([(e) => OrderingTerm.asc(e.localSequence)]))
+            .get();
+        gameEvents = eventRows.map((row) => domain.GameEvent(
+          eventId: row.eventId,
+          gameId: row.gameId,
+          eventType: row.eventType,
+          localSequence: row.localSequence,
+          occurredAt: DateTime.parse(row.occurredAt),
+          payload: jsonDecode(row.payloadJson) as Map<String, dynamic>,
+          synced: row.synced == 1,
+          actorId: row.actorId,
+          globalSequence: row.globalSequence,
+          source: EventSource.client,
+        )).toList();
       }
 
       // Get all dart throws for this game ordered by turn/dart number
@@ -104,6 +137,43 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
 
         final legsWon = await _getLegsWonForCompetitor(competitorId, gameId);
 
+        // X01-specific stats via projection engine
+        int totalOneEighty = 0, totalSixtyPlus = 0, totalHundredPlus = 0, totalFortyPlus = 0;
+        int totalCheckoutAttempts = 0, totalSuccessfulCheckouts = 0;
+
+        if (isX01) {
+          final playerIds = byPlayer.keys.toList();
+          for (final playerId in playerIds) {
+            final runner = ProjectionRunner([
+              X01CheckoutProjection(),
+              X01HighScoreBucketsProjection(),
+            ]);
+            runner.init(ProjectionContext(
+              playerId: playerId,
+              gameType: GameType.x01,
+              inStrategy: 'straight',
+              outStrategy: 'double',
+              playerIds: playerIds,
+            ));
+            runner.run(gameEvents);
+            final snap = runner.snapshot();
+
+            final buckets = snap['x01.highScoreBuckets'] ?? {};
+            totalOneEighty += (buckets['oneEightyTurns'] as int? ?? 0);
+            totalFortyPlus += (buckets['oneFortyPlusTurns'] as int? ?? 0);
+            totalHundredPlus += (buckets['oneHundredPlusTurns'] as int? ?? 0);
+            totalSixtyPlus += (buckets['sixtyPlusTurns'] as int? ?? 0);
+
+            final checkout = snap['x01_checkout'] ?? {};
+            totalCheckoutAttempts += (checkout['checkoutAttempts'] as int? ?? 0);
+            totalSuccessfulCheckouts += (checkout['successfulCheckouts'] as int? ?? 0);
+          }
+        }
+
+        final checkoutPercentage = totalCheckoutAttempts > 0
+            ? (totalSuccessfulCheckouts / totalCheckoutAttempts) * 100
+            : null;
+
         competitorStats.add(CompetitorStats(
           competitorId: competitorId,
           competitorName: competitor.name,
@@ -111,6 +181,11 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
           threeDartAverage: threeDartAverage,
           legsWon: legsWon,
           totalDartsThrown: totalDarts,
+          checkoutPercentage: checkoutPercentage,
+          oneEightyTurns: totalOneEighty,
+          sixtyPlusTurns: totalSixtyPlus,
+          oneHundredPlusTurns: totalHundredPlus,
+          oneFortyPlusTurns: totalFortyPlus,
         ));
       }
 

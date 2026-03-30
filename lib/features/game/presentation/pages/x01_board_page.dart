@@ -89,6 +89,18 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
       }
     });
 
+    // Game complete listener — navigate to post-game summary
+    ref.listen(activeGameProvider(widget.gameId), (prev, next) {
+      final prevWinner = prev?.value?.pendingGameWinnerId;
+      final nextWinner = next.value?.pendingGameWinnerId;
+      if (prevWinner == null && nextWinner != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          context.go('/post-game/${widget.gameId}');
+        });
+      }
+    });
+
     // Leg complete listener
     ref.listen(activeGameProvider(widget.gameId), (prev, next) {
       final prevLeg = prev?.value?.pendingLegWinnerId;
@@ -165,15 +177,6 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
 
         final roundInLeg = gameState.currentRoundInLeg;
 
-        // Winner name for win banner
-        final pendingGameWinnerId = activeGameState.pendingGameWinnerId;
-        String? winnerName;
-        if (pendingGameWinnerId != null) {
-          winnerName = gameState.competitors
-              .firstWhere((c) => c.competitorId == pendingGameWinnerId)
-              .name;
-        }
-
         return Scaffold(
           appBar: AppHeader(
             boardMode: true,
@@ -195,11 +198,8 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
               ),
             ),
           ),
-          body: Stack(
-            fit: StackFit.expand,
+          body: Column(
             children: [
-              Column(
-                children: [
                   GameStatusBarWidget(
                     configLabel: '${gameState.startingScore}',
                     currentLegIndex: gameState.currentLegIndex,
@@ -233,26 +233,6 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
                         .advanceTurn(),
                   ),
                 ],
-              ),
-              // Win banner (always in stack; slides in when winner set)
-              IgnorePointer(
-                ignoring: pendingGameWinnerId == null,
-                child: _WinBannerWidget(
-                  visible: pendingGameWinnerId != null,
-                  winnerName: winnerName ?? '',
-                  lastDart: gameState.competitors
-                      .expand((c) => [
-                            if (c.competitorId == pendingGameWinnerId &&
-                                c.dartThrows.isNotEmpty)
-                              c.dartThrows.last,
-                          ])
-                      .firstOrNull,
-                  onPostGame: () =>
-                      context.go('/post-game/${widget.gameId}'),
-                  onPlayAgain: () => context.go(GameRoutes.home),
-                ),
-              ),
-            ],
           ),
         );
       },
@@ -426,66 +406,5 @@ class _BottomActionBar extends StatelessWidget {
   }
 }
 
-class _WinBannerWidget extends StatelessWidget {
-  const _WinBannerWidget({
-    required this.visible,
-    required this.winnerName,
-    required this.lastDart,
-    required this.onPostGame,
-    required this.onPlayAgain,
-  });
-
-  final bool visible;
-  final String winnerName;
-  final String? lastDart;
-  final VoidCallback onPostGame;
-  final VoidCallback onPlayAgain;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return AnimatedSlide(
-      offset: visible ? Offset.zero : const Offset(0, 1),
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeOut,
-      child: ColoredBox(
-        color: cs.surfaceContainerLow,
-        child: SizedBox.expand(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                winnerName.toUpperCase(),
-                style: AppTextStyles.displayLarge.copyWith(
-                  color: cs.primary,
-                ),
-              ),
-              if (lastDart != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Final Score: 0  ·  Checkout: $lastDart',
-                  style: AppTextStyles.headlineMedium.copyWith(
-                    color: cs.primary,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: onPostGame,
-                child: const Text('Post-Game Summary'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: onPlayAgain,
-                child: const Text('Play Again'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 

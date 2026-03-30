@@ -154,6 +154,80 @@ final class LiveGameStatsFamily extends $Family
   String toString() => r'liveGameStatsProvider';
 }
 
+@ProviderFor(gameStats)
+final gameStatsProvider = GameStatsFamily._();
+
+final class GameStatsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<GameStats>,
+          GameStats,
+          FutureOr<GameStats>
+        >
+    with $FutureModifier<GameStats>, $FutureProvider<GameStats> {
+  GameStatsProvider._({
+    required GameStatsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'gameStatsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$gameStatsHash();
+
+  @override
+  String toString() {
+    return r'gameStatsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<GameStats> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<GameStats> create(Ref ref) {
+    final argument = this.argument as String;
+    return gameStats(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is GameStatsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$gameStatsHash() => r'67c77fee5a39c46022dc6e595efdf608b5239ecf';
+
+final class GameStatsFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<GameStats>, String> {
+  GameStatsFamily._()
+    : super(
+        retry: null,
+        name: r'gameStatsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  GameStatsProvider call(String gameId) =>
+      GameStatsProvider._(argument: gameId, from: this);
+
+  @override
+  String toString() => r'gameStatsProvider';
+}
+
 @ProviderFor(Leaderboard)
 final leaderboardProvider = LeaderboardProvider._();
 

@@ -26,6 +26,11 @@ abstract class CompetitorStats with _$CompetitorStats {
     required double threeDartAverage,
     required int legsWon,
     required int totalDartsThrown,
+    double? checkoutPercentage,
+    @Default(0) int oneEightyTurns,
+    @Default(0) int sixtyPlusTurns,
+    @Default(0) int oneHundredPlusTurns,
+    @Default(0) int oneFortyPlusTurns,
   }) = _CompetitorStats;
 
   factory CompetitorStats.fromJson(Map<String, dynamic> json) =>
