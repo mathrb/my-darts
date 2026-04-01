@@ -268,7 +268,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Around the Clock'), findsOneWidget);
-    expect(find.text('Number: 3 / 20'), findsOneWidget);
+    expect(find.text('Number 3 of 20'), findsOneWidget);
   });
 
   // ── 6. AppBar overflow menu shows Reset/End Drill ─────────────────────────
@@ -338,10 +338,13 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final missBtn = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, 'MISS'),
+    final missBtn = tester.widget<InkWell>(
+      find.ancestor(
+        of: find.byIcon(Icons.close),
+        matching: find.byType(InkWell),
+      ).first,
     );
-    expect(missBtn.onPressed, isNotNull);
+    expect(missBtn.onTap, isNotNull);
   });
 
   // ── 10. MISS button disabled when game complete ────────────────────────────
@@ -352,10 +355,13 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final missBtn = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, 'MISS'),
+    final missBtn = tester.widget<InkWell>(
+      find.ancestor(
+        of: find.byIcon(Icons.close),
+        matching: find.byType(InkWell),
+      ).first,
     );
-    expect(missBtn.onPressed, isNull);
+    expect(missBtn.onTap, isNull);
   });
 
   // ── 11. Undo disabled when dartsThrownInTurn=0 and no dart throws ─────────
@@ -369,10 +375,13 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final undoBtn = tester.widget<TextButton>(
-      find.widgetWithIcon(TextButton, Icons.undo),
+    final undoBtn = tester.widget<InkWell>(
+      find.ancestor(
+        of: find.byIcon(Icons.undo),
+        matching: find.byType(InkWell),
+      ).first,
     );
-    expect(undoBtn.onPressed, isNull);
+    expect(undoBtn.onTap, isNull);
   });
 
   // ── 12. Undo enabled when dartsThrownInTurn=1 ─────────────────────────────
@@ -383,10 +392,13 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final undoBtn = tester.widget<TextButton>(
-      find.widgetWithIcon(TextButton, Icons.undo),
+    final undoBtn = tester.widget<InkWell>(
+      find.ancestor(
+        of: find.byIcon(Icons.undo),
+        matching: find.byType(InkWell),
+      ).first,
     );
-    expect(undoBtn.onPressed, isNotNull);
+    expect(undoBtn.onTap, isNotNull);
   });
 
   // ── 13. NEXT ROUND shown + enabled after 3 darts, not complete ────────────
@@ -425,7 +437,7 @@ void main() {
 
   // ── 15. NEXT ROUND disabled when < 3 darts ────────────────────────────────
 
-  testWidgets('15. NEXT ROUND disabled when dartsThrownInTurn < 3',
+  testWidgets('15. NEXT ROUND enabled when dartsThrownInTurn < 3 (fills remaining as MISS)',
       (tester) async {
     final gs = _practiceState(dartsThrownInTurn: 1, isComplete: false);
     final notifier = _FakeActivePracticeNotifier(_activeState(gameState: gs));
@@ -435,7 +447,7 @@ void main() {
     final nextRoundBtn = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'NEXT ROUND'),
     );
-    expect(nextRoundBtn.onPressed, isNull);
+    expect(nextRoundBtn.onPressed, isNotNull);
   });
 
   // ── 16. Completion dialog shown when pendingGameWinnerId set ──────────────
@@ -478,7 +490,7 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(BackButton));
+    await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
 
     expect(find.text('home'), findsOneWidget);

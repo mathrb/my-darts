@@ -170,7 +170,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('standard · 1 legs'), findsOneWidget);
+    expect(find.text('standard · ∞ Rounds · 1 leg'), findsOneWidget);
   });
 
   // ── 3. Config chip ATC ───────────────────────────────────────────────────
