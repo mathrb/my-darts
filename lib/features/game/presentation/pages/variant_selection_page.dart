@@ -348,16 +348,21 @@ class _MetadataRow extends StatelessWidget {
           label: 'LEGS',
           value: c.legsToWin == 1 ? '1' : 'Bo${c.legsToWin}',
         ),
-      ],
-      cricket: (c) => [
-        _MetaChip(
-          label: 'LEGS',
-          value: c.legsToWin == 1 ? '1' : 'Bo${c.legsToWin}',
-        ),
         if (c.totalRounds != null) ...[
           const SizedBox(width: 16),
           _MetaChip(label: 'MAX ROUNDS', value: '${c.totalRounds}'),
         ],
+      ],
+      cricket: (c) => [
+        _MetaChip(
+          label: 'MAX ROUNDS',
+          value: c.totalRounds == null ? '∞' : '${c.totalRounds}',
+        ),
+        const SizedBox(width: 16),
+        _MetaChip(
+          label: 'LEGS',
+          value: c.legsToWin == 1 ? '1' : 'Bo${c.legsToWin}',
+        ),
       ],
       orElse: () => <Widget>[],
     );
