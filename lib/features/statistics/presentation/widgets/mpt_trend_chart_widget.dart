@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/utils/app_theme.dart';
+import '../../../../core/widgets/trend_chart_shell_widget.dart';
 import '../../domain/entities/player_leg_snapshot.dart';
 import '../providers/statistics_provider.dart';
 
@@ -25,27 +25,9 @@ class MptTrendChartWidget extends ConsumerWidget {
         height: 200,
         child: Center(child: Text('Failed to load chart: $e')),
       ),
-      data: (history) => Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-        ),
-        child: history.length < 2
-            ? Center(
-                child: Text(
-                  'Not enough data yet',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant,
-                      ),
-                ),
-              )
-            : Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
-                child: _buildChart(context, history),
-              ),
+      data: (history) => TrendChartShellWidget(
+        hasEnoughData: history.length >= 2,
+        child: _buildChart(context, history),
       ),
     );
   }

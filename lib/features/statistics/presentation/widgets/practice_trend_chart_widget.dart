@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/utils/app_theme.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../core/widgets/trend_chart_shell_widget.dart';
 import '../../domain/entities/player_leg_snapshot.dart';
 import '../providers/statistics_provider.dart';
 
@@ -41,30 +41,14 @@ class PracticeTrendChartWidget extends ConsumerWidget {
             .map((e) => FlSpot(e.key.toDouble(), e.value.practiceScore!))
             .toList();
 
-        return Container(
-          height: 200,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        return TrendChartShellWidget(
+          hasEnoughData: spots.length >= 2,
+          child: _buildChart(
+            context,
+            spots,
+            history,
+            pageState.selectedPracticeGameType,
           ),
-          child: spots.length < 2
-              ? Center(
-                  child: Text(
-                    'Not enough data yet',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
-                  child: _buildChart(
-                    context,
-                    spots,
-                    history,
-                    pageState.selectedPracticeGameType,
-                  ),
-                ),
         );
       },
     );
