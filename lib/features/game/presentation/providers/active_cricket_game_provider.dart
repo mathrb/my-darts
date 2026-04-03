@@ -4,6 +4,7 @@ import '../../domain/entities/dart_throw.dart';
 import '../../domain/entities/game_event.dart';
 import '../../domain/models/game_config.dart';
 import '../../domain/models/game_state.dart';
+import '../../domain/usecases/game_use_case_helpers.dart';
 import '../state/active_cricket_game_state.dart';
 import '../../../../core/persistence/database_provider.dart';
 import '../../../../core/utils/constants.dart';
@@ -123,20 +124,12 @@ class ActiveCricketGameNotifier extends _$ActiveCricketGameNotifier {
           ? currentCompetitor.playerIds.first
           : 'system';
 
-      final turnEndedEvent = GameEvent(
-        eventId: const Uuid().v4(),
+      final turnEndedEvent = buildTurnEndedEvent(
         gameId: updated.gameId,
-        eventType: 'TurnEnded',
+        competitorId: currentCompetitor.competitorId,
+        playerId: actorId,
         localSequence: nextSeq++,
-        occurredAt: DateTime.now(),
-        payload: {
-          'competitor_id': currentCompetitor.competitorId,
-          'player_id': actorId,
-          'reason': 'normal',
-        },
-        synced: false,
-        actorId: 'system',
-        source: EventSource.client,
+        actorId: actorId,
       );
 
       final engine = ref.read(cricketEngineProvider);
@@ -147,21 +140,14 @@ class ActiveCricketGameNotifier extends _$ActiveCricketGameNotifier {
           ? nextCompetitor.playerIds.first
           : 'system';
 
-      final turnStartedEvent = GameEvent(
-        eventId: const Uuid().v4(),
+      final turnStartedEvent = buildTurnStartedEvent(
         gameId: updated.gameId,
-        eventType: 'TurnStarted',
+        competitorId: nextCompetitor.competitorId,
+        playerId: nextActorId,
         localSequence: nextSeq++,
-        occurredAt: DateTime.now(),
-        payload: {
-          'competitor_id': nextCompetitor.competitorId,
-          'player_id': nextActorId,
-          'turn_index': updated.currentTurnIndex,
-          'leg_index': updated.currentLegIndex,
-        },
-        synced: false,
-        actorId: 'system',
-        source: EventSource.client,
+        actorId: nextActorId,
+        turnIndex: updated.currentTurnIndex,
+        legIndex: updated.currentLegIndex,
       );
 
       updated = engine.apply(updated, turnStartedEvent).state;

@@ -5,6 +5,7 @@ import '../../domain/entities/game_event.dart';
 import '../../domain/models/game_config.dart';
 import '../../../../core/utils/constants.dart';
 import '../../domain/models/game_state.dart';
+import '../../domain/usecases/game_use_case_helpers.dart';
 import '../state/active_game_state.dart';
 import '../../../../core/persistence/database_provider.dart';
 import 'game_replay_provider.dart';
@@ -87,20 +88,13 @@ class ActiveGameNotifier extends _$ActiveGameNotifier {
           ? currentCompetitor.playerIds.first
           : 'system';
 
-      final turnEndedEvent = GameEvent(
-        eventId: const Uuid().v4(),
+      final turnEndedEvent = buildTurnEndedEvent(
         gameId: gs.gameId,
-        eventType: 'TurnEnded',
+        competitorId: currentCompetitor.competitorId,
+        playerId: actorId,
         localSequence: nextSeq++,
-        occurredAt: DateTime.now(),
-        payload: {
-          'competitor_id': currentCompetitor.competitorId,
-          'player_id': actorId,
-          'reason': current.showBust ? 'bust' : 'normal',
-        },
-        synced: false,
         actorId: actorId,
-        source: EventSource.client,
+        reason: current.showBust ? 'bust' : 'normal',
       );
 
       final engine = ref.read(x01EngineProvider);
@@ -111,22 +105,15 @@ class ActiveGameNotifier extends _$ActiveGameNotifier {
           ? nextCompetitor.playerIds.first
           : 'system';
 
-      final turnStartedEvent = GameEvent(
-        eventId: const Uuid().v4(),
+      final turnStartedEvent = buildTurnStartedEvent(
         gameId: gs.gameId,
-        eventType: 'TurnStarted',
+        competitorId: nextCompetitor.competitorId,
+        playerId: nextActorId,
         localSequence: nextSeq++,
-        occurredAt: DateTime.now(),
-        payload: {
-          'competitor_id': nextCompetitor.competitorId,
-          'player_id': nextActorId,
-          'starting_score': nextCompetitor.score,
-          'turn_index': newGs.currentTurnIndex,
-          'leg_index': newGs.currentLegIndex,
-        },
-        synced: false,
         actorId: nextActorId,
-        source: EventSource.client,
+        turnIndex: newGs.currentTurnIndex,
+        legIndex: newGs.currentLegIndex,
+        startingScore: nextCompetitor.score,
       );
 
       newGs = engine.apply(newGs, turnStartedEvent).state;

@@ -61,6 +61,8 @@ GameEvent buildTurnEndedEvent({
   required String competitorId,
   required String playerId,
   required int localSequence,
+  String actorId = 'system',
+  String reason = 'normal',
 }) {
   return GameEvent(
     eventId: const Uuid().v4(),
@@ -71,10 +73,10 @@ GameEvent buildTurnEndedEvent({
     payload: {
       'competitor_id': competitorId,
       'player_id': playerId,
-      'reason': 'normal',
+      'reason': reason,
     },
     synced: false,
-    actorId: 'system',
+    actorId: actorId,
     source: EventSource.client,
   );
 }
@@ -131,6 +133,7 @@ GameEvent buildTurnStartedEvent({
   required int turnIndex,
   required int legIndex,
   int? startingScore,
+  String actorId = 'system',
 }) {
   return GameEvent(
     eventId: const Uuid().v4(),
@@ -146,7 +149,7 @@ GameEvent buildTurnStartedEvent({
       'leg_index': legIndex,
     },
     synced: false,
-    actorId: 'system',
+    actorId: actorId,
     source: EventSource.client,
   );
 }
