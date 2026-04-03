@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:my_darts/core/utils/app_colors.dart';
 import 'package:my_darts/core/utils/app_spacing.dart';
+import 'package:my_darts/core/utils/app_theme.dart';
 import 'package:my_darts/features/game/domain/models/game_config.dart';
 import 'package:my_darts/features/game/presentation/widgets/config_stepper_widget.dart';
 
@@ -22,21 +25,43 @@ class GameConfigPanel extends StatefulWidget {
 class _GameConfigPanelState extends State<GameConfigPanel> {
   late GameConfig _draftConfig;
 
+  /// Remembered custom starting score for X01 (persists while sheet is open).
+  late int _customScore;
+  late TextEditingController _customScoreController;
+
+  static bool _isCustomScore(int s) => s != 301 && s != 501 && s != 701;
+
   @override
   void initState() {
     super.initState();
     _draftConfig = widget.initialConfig;
+    final x01Score = widget.initialConfig.maybeMap(
+      x01: (c) => c.startingScore,
+      orElse: () => null,
+    );
+    _customScore =
+        (x01Score != null && _isCustomScore(x01Score)) ? x01Score : 1001;
+    _customScoreController =
+        TextEditingController(text: '$_customScore');
+  }
+
+  @override
+  void dispose() {
+    _customScoreController.dispose();
+    super.dispose();
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────────
 
-  void _apply() => Navigator.pop(context, _draftConfig);
-  void _discard() => Navigator.pop(context, null);
+  void _discard() => Navigator.pop(context, _draftConfig);
 
   // ── Build ─────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -57,11 +82,13 @@ class _GameConfigPanelState extends State<GameConfigPanel> {
                     height: 48,
                     child: Center(
                       child: Container(
-                        width: 32,
-                        height: 4,
+                        width: 48,
+                        height: 6,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.outline,
-                          borderRadius: BorderRadius.circular(2),
+                          color: cs.outlineVariant
+                              .withValues(alpha: 0.4),
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusFull),
                         ),
                       ),
                     ),
@@ -69,28 +96,22 @@ class _GameConfigPanelState extends State<GameConfigPanel> {
                 ),
               ),
               Text(
-                'Game Settings',
-                style: Theme.of(context).textTheme.titleLarge,
+                'GAME CONFIG',
+                style: tt.headlineMedium?.copyWith(
+                  color: cs.onSurface,
+                  letterSpacing: -0.5,
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.space4),
               Flexible(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       ..._buildConfigFields(),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: AppSpacing.space6),
                     ],
                   ),
-                ),
-              ),
-              FilledButton(
-                onPressed: _apply,
-                child: Text(
-                  'APPLY SETTINGS',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
                 ),
               ),
             ],
@@ -123,14 +144,170 @@ class _GameConfigPanelState extends State<GameConfigPanel> {
     );
   }
 
+  List<Widget> _buildX01Fields(X01GameConfig c) {
+    return [
+      _FieldSection(
+        label: 'TYPE',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _SegmentedOptionGroup<int>(
+              values: const [301, 501, 701, -1],
+              labels: const ['301', '501', '701', 'SET'],
+              selected: _isCustomScore(c.startingScore) ? -1 : c.startingScore,
+              onSelected: (v) {
+                if (v == -1) {
+                  // Restore the last custom score and sync the text field.
+                  _customScoreController.text = '$_customScore';
+                  setState(
+                    () => _draftConfig =
+                        c.copyWith(startingScore: _customScore),
+                  );
+                } else {
+                  setState(
+                    () => _draftConfig = c.copyWith(startingScore: v),
+                  );
+                }
+              },
+            ),
+            if (_isCustomScore(c.startingScore)) ...[
+              const SizedBox(height: AppSpacing.space2),
+              _CustomScoreField(
+                controller: _customScoreController,
+                onChanged: (v) {
+                  _customScore = v;
+                  setState(
+                    () => _draftConfig = c.copyWith(startingScore: v),
+                  );
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+      const SizedBox(height: AppSpacing.space4),
+      _FieldSection(
+        label: 'IN STRATEGY',
+        child: _SegmentedOptionGroup<String>(
+          values: const ['straight', 'double', 'master'],
+          labels: const ['STRAIGHT', 'DOUBLE', 'MASTER'],
+          selected: c.inStrategy,
+          onSelected: (v) =>
+              setState(() => _draftConfig = c.copyWith(inStrategy: v)),
+        ),
+      ),
+      const SizedBox(height: AppSpacing.space4),
+      _FieldSection(
+        label: 'OUT STRATEGY',
+        child: _SegmentedOptionGroup<String>(
+          values: const ['straight', 'double', 'master'],
+          labels: const ['STRAIGHT', 'DOUBLE', 'MASTER'],
+          selected: c.outStrategy,
+          onSelected: (v) =>
+              setState(() => _draftConfig = c.copyWith(outStrategy: v)),
+        ),
+      ),
+      const SizedBox(height: AppSpacing.space4),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _FieldSection(
+              label: 'ROUNDS',
+              child: _RoundsDropdown(
+                value: c.totalRounds,
+                items: const [null, 10, 15, 20, 25, 50],
+                onChanged: (v) =>
+                    setState(() => _draftConfig = c.copyWith(totalRounds: v)),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.space4),
+          Expanded(
+            child: _FieldSection(
+              label: 'LEGS TO WIN',
+              child: _StepperContainer(
+                child: ConfigStepperWidget(
+                  value: c.legsToWin,
+                  min: 1,
+                  max: 9,
+                  onDecrement: () => setState(
+                    () =>
+                        _draftConfig = c.copyWith(legsToWin: c.legsToWin - 1),
+                  ),
+                  onIncrement: () => setState(
+                    () =>
+                        _draftConfig = c.copyWith(legsToWin: c.legsToWin + 1),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  List<Widget> _buildCricketFields(CricketGameConfig c) {
+    return [
+      _FieldSection(
+        label: 'VARIANT',
+        child: _SegmentedOptionGroup<String>(
+          values: const ['standard', 'cut-throat', 'no-score', 'tactics'],
+          labels: const ['STANDARD', 'CUT-THROAT', 'NO SCORE', 'TACTICS'],
+          selected: c.variant,
+          onSelected: (v) =>
+              setState(() => _draftConfig = c.copyWith(variant: v)),
+        ),
+      ),
+      const SizedBox(height: AppSpacing.space4),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _FieldSection(
+              label: 'ROUNDS',
+              child: _RoundsDropdown(
+                value: c.totalRounds,
+                items: const [null, 10, 15, 20, 25, 50],
+                onChanged: (v) =>
+                    setState(() => _draftConfig = c.copyWith(totalRounds: v)),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.space4),
+          Expanded(
+            child: _FieldSection(
+              label: 'LEGS TO WIN',
+              child: _StepperContainer(
+                child: ConfigStepperWidget(
+                  value: c.legsToWin,
+                  min: 1,
+                  max: 9,
+                  onDecrement: () => setState(
+                    () => _draftConfig =
+                        c.copyWith(legsToWin: c.legsToWin - 1),
+                  ),
+                  onIncrement: () => setState(
+                    () => _draftConfig =
+                        c.copyWith(legsToWin: c.legsToWin + 1),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
   List<Widget> _buildShanghaiFields(ShanghaiGameConfig c) {
     return [
-      _FieldColumn(
-        label: 'Rounds',
-        child: _StyledDropdown<int>(
+      _FieldSection(
+        label: 'ROUNDS',
+        child: _RoundsDropdown(
           value: c.totalRounds,
-          items: const [7, 10, 15, 20],
-          labelBuilder: (v) => '$v',
+          items: const [10, 15, 20, 25, 50],
           onChanged: (v) {
             if (v == null) return;
             setState(() => _draftConfig = c.copyWith(totalRounds: v));
@@ -139,164 +316,215 @@ class _GameConfigPanelState extends State<GameConfigPanel> {
       ),
     ];
   }
-
-  List<Widget> _buildX01Fields(X01GameConfig c) {
-    return [
-      _FieldColumn(
-        label: 'Starting Score',
-        child: _StyledDropdown<int>(
-          value: c.startingScore,
-          items: const [101, 170, 201, 301, 401, 501, 701, 1001],
-          labelBuilder: (v) => '$v',
-          onChanged: (v) {
-            if (v == null) return;
-            setState(() => _draftConfig = c.copyWith(startingScore: v));
-          },
-        ),
-      ),
-      const SizedBox(height: AppSpacing.space4),
-      _FieldColumn(
-        label: 'In Strategy',
-        child: _StyledDropdown<String>(
-          value: c.inStrategy,
-          items: const ['straight', 'double', 'master'],
-          labelBuilder: _strategyLabel,
-          onChanged: (v) {
-            if (v == null) return;
-            setState(() => _draftConfig = c.copyWith(inStrategy: v));
-          },
-        ),
-      ),
-      const SizedBox(height: AppSpacing.space4),
-      _FieldColumn(
-        label: 'Out Strategy',
-        child: _StyledDropdown<String>(
-          value: c.outStrategy,
-          items: const ['straight', 'double', 'master'],
-          labelBuilder: _strategyLabel,
-          onChanged: (v) {
-            if (v == null) return;
-            setState(() => _draftConfig = c.copyWith(outStrategy: v));
-          },
-        ),
-      ),
-      const SizedBox(height: AppSpacing.space4),
-      _FieldColumn(
-        label: 'Legs to Win',
-        child: ConfigStepperWidget(
-          value: c.legsToWin,
-          min: 1,
-          max: 9,
-          onDecrement: () =>
-              setState(() => _draftConfig = c.copyWith(legsToWin: c.legsToWin - 1)),
-          onIncrement: () =>
-              setState(() => _draftConfig = c.copyWith(legsToWin: c.legsToWin + 1)),
-        ),
-      ),
-    ];
-  }
-
-  List<Widget> _buildCricketFields(CricketGameConfig c) {
-    return [
-      _FieldColumn(
-        label: 'Variant',
-        child: _StyledDropdown<String>(
-          value: c.variant,
-          items: const ['standard', 'cut-throat'],
-          labelBuilder: (v) => v == 'cut-throat' ? 'Cut-throat' : 'Standard',
-          onChanged: (v) {
-            if (v == null) return;
-            setState(() => _draftConfig = c.copyWith(variant: v));
-          },
-        ),
-      ),
-      const SizedBox(height: AppSpacing.space4),
-      _FieldColumn(
-        label: 'Points to Win',
-        child: ConfigStepperWidget(
-          value: c.pointsToWin,
-          min: 1,
-          max: 9,
-          onDecrement: () => setState(
-              () => _draftConfig = c.copyWith(pointsToWin: c.pointsToWin - 1)),
-          onIncrement: () => setState(
-              () => _draftConfig = c.copyWith(pointsToWin: c.pointsToWin + 1)),
-        ),
-      ),
-    ];
-  }
-
-  static String _strategyLabel(String strategy) => switch (strategy) {
-        'straight' => 'Any',
-        'double' => 'Double',
-        'master' => 'Master',
-        _ => strategy,
-      };
 }
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
-class _FieldColumn extends StatelessWidget {
-  const _FieldColumn({required this.label, required this.child});
+class _FieldSection extends StatelessWidget {
+  const _FieldSection({required this.label, required this.child});
 
   final String label;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+          style: tt.labelSmall?.copyWith(
+            color: cs.onSurfaceVariant,
+            letterSpacing: 0.2,
+          ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.space2),
         child,
       ],
     );
   }
 }
 
-class _StyledDropdown<T> extends StatelessWidget {
-  const _StyledDropdown({
+class _SegmentedOptionGroup<T> extends StatelessWidget {
+  const _SegmentedOptionGroup({
     super.key,
-    required this.value,
-    required this.items,
-    required this.labelBuilder,
-    required this.onChanged,
+    required this.values,
+    required this.labels,
+    required this.selected,
+    required this.onSelected,
   });
 
-  final T value;
-  final List<T> items;
-  final String Function(T) labelBuilder;
-  final ValueChanged<T?> onChanged;
+  final List<T> values;
+  final List<String> labels;
+  final T selected;
+  final ValueChanged<T> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+      ),
+      child: Row(
+        children: [
+          for (int i = 0; i < values.length; i++)
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                child: Material(
+                  color: values[i] == selected
+                      ? cs.primaryFixed
+                      : Colors.transparent,
+                  child: InkWell(
+                    onTap: () => onSelected(values[i]),
+                    splashColor: cs.primaryFixed.withValues(alpha: 0.12),
+                    highlightColor: cs.primaryFixed.withValues(alpha: 0.08),
+                    child: SizedBox(
+                      height: 48,
+                      child: Center(
+                        child: Text(
+                          labels[i],
+                          style: tt.labelMedium?.copyWith(
+                            color: values[i] == selected
+                                ? AppColors.onPrimaryFixed
+                                : cs.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepperContainer extends StatelessWidget {
+  const _StepperContainer({required this.child});
+
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space3),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.1),
+        ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: DropdownButton<T>(
-        value: value,
-        isExpanded: true,
-        underline: const SizedBox.shrink(),
-        icon: const Icon(Icons.expand_more),
-        items: items
-            .map(
-              (item) => DropdownMenuItem<T>(
-                value: item,
-                child: Text(labelBuilder(item)),
-              ),
-            )
-            .toList(),
-        onChanged: onChanged,
+      child: Center(child: child),
+    );
+  }
+}
+
+class _CustomScoreField extends StatelessWidget {
+  const _CustomScoreField({
+    required this.controller,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.space4,
+        vertical: AppSpacing.space2,
+      ),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.1),
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        style: tt.bodyLarge?.copyWith(color: cs.onSurface),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: 'Custom score',
+          hintStyle: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant),
+          isDense: true,
+        ),
+        onChanged: (text) {
+          final v = int.tryParse(text);
+          if (v != null && v > 0) onChanged(v);
+        },
+      ),
+    );
+  }
+}
+
+class _RoundsDropdown extends StatelessWidget {
+  const _RoundsDropdown({
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final int? value;
+  final List<int?> items;
+  final ValueChanged<int?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space3),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.1),
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int?>(
+          value: value,
+          isExpanded: true,
+          icon: Icon(
+            Icons.expand_more,
+            color: cs.primaryFixed,
+            semanticLabel: 'Expand rounds',
+          ),
+          dropdownColor: cs.surfaceContainerLow,
+          style: tt.bodyLarge?.copyWith(color: cs.onSurface),
+          items: items
+              .map(
+                (item) => DropdownMenuItem<int?>(
+                  value: item,
+                  child: Text(item == null ? '∞' : '$item'),
+                ),
+              )
+              .toList(),
+          onChanged: onChanged,
+        ),
       ),
     );
   }

@@ -36,6 +36,7 @@ import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_legs
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_win_rate_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_best_leg_mpt_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_best_game_hit_rate_projection.dart';
+import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_first_nine_mpr_projection.dart';
 import 'package:my_darts/features/statistics/domain/engines/cricket/cricket_segment_utils.dart';
 import 'package:my_darts/features/statistics/domain/entities/player_leg_snapshot.dart';
 
@@ -68,6 +69,10 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         throw GameNotFoundException(gameId);
       }
 
+      final gameTypeStr = gameResult.first['game_type'] as String?;
+      final isX01 = gameTypeStr == GameType.x01.name;
+      final isGameCricket = gameTypeStr == GameType.cricket.name;
+
       // Get all dart throws for this game
       final dartThrows = await _db.query(
         'dart_throws',
@@ -88,6 +93,18 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
       for (final throwData in dartThrows) {
         final competitorId = throwData['competitor_id'] as String;
         byCompetitor.putIfAbsent(competitorId, () => []).add(throwData);
+      }
+
+      // Query game events once for projection-based stats (X01 and cricket)
+      List<GameEvent> gameEvents = [];
+      if (isX01 || isGameCricket) {
+        final eventsResult = await _db.query(
+          'game_events',
+          where: 'game_id = ?',
+          whereArgs: [gameId],
+          orderBy: 'local_sequence ASC',
+        );
+        gameEvents = eventsResult.map((r) => GameEvent.fromJson(r)).toList();
       }
 
       // Build competitor stats
@@ -140,6 +157,102 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         // Get legs won from game events
         final legsWon = await _getLegsWonForCompetitor(competitorId, gameId);
 
+        // Compute X01-specific stats via projection engine
+        int totalOneEighty = 0, totalSixtyPlus = 0, totalHundredPlus = 0, totalFortyPlus = 0;
+        int totalCheckoutAttempts = 0, totalSuccessfulCheckouts = 0;
+        int? competitorHighestCheckout;
+
+        if (isX01) {
+          final playerIds = byPlayer.keys.toList();
+          for (final playerId in playerIds) {
+            final runner = ProjectionRunner([
+              X01CheckoutProjection(),
+              X01HighScoreBucketsProjection(),
+              X01HighestCheckoutProjection(),
+            ]);
+            runner.init(ProjectionContext(
+              playerId: playerId,
+              gameType: GameType.x01,
+              inStrategy: 'straight',
+              outStrategy: 'double',
+              playerIds: playerIds,
+            ));
+            runner.run(gameEvents);
+            final snap = runner.snapshot();
+
+            final buckets = snap['x01.highScoreBuckets'] ?? {};
+            totalOneEighty += (buckets['oneEightyTurns'] as int? ?? 0);
+            totalFortyPlus += (buckets['oneFortyPlusTurns'] as int? ?? 0);
+            totalHundredPlus += (buckets['oneHundredPlusTurns'] as int? ?? 0);
+            totalSixtyPlus += (buckets['sixtyPlusTurns'] as int? ?? 0);
+
+            final checkout = snap['x01_checkout'] ?? {};
+            totalCheckoutAttempts += (checkout['checkoutAttempts'] as int? ?? 0);
+            totalSuccessfulCheckouts += (checkout['successfulCheckouts'] as int? ?? 0);
+
+            final hcSnap = snap['x01_highest_checkout'] ?? {};
+            final hc = hcSnap['highestCheckout'] as int?;
+            if (hc != null && (competitorHighestCheckout == null || hc > competitorHighestCheckout!)) {
+              competitorHighestCheckout = hc;
+            }
+          }
+        }
+
+        final checkoutPercentage = totalCheckoutAttempts > 0
+            ? (totalSuccessfulCheckouts / totalCheckoutAttempts) * 100
+            : null;
+
+        // Compute cricket-specific stats via projection engine
+        double? cricketMpr;
+        double? cricketFirstNineMpr;
+        int cricketFiveMark = 0, cricketSixMark = 0, cricketSevenMark = 0,
+            cricketEightMark = 0, cricketNineMark = 0;
+
+        if (isGameCricket) {
+          final playerIds = byPlayer.keys.toList();
+          int totalMarks = 0;
+          int totalTurns = 0;
+          int firstNineMarksTotal = 0;
+          int firstNineLegsTotal = 0;
+
+          for (final playerId in playerIds) {
+            final runner = ProjectionRunner([
+              CricketMarksPerTurnProjection(),
+              CricketMarkBucketsProjection(),
+              CricketFirstNineMprProjection(),
+            ]);
+            runner.init(ProjectionContext(
+              playerId: playerId,
+              gameType: GameType.cricket,
+              inStrategy: 'straight',
+              outStrategy: 'straight',
+              playerIds: playerIds,
+            ));
+            runner.run(gameEvents);
+            final snap = runner.snapshot();
+
+            final mptSnap = snap['cricket.mpt'] ?? {};
+            totalMarks += (mptSnap['totalMarks'] as int? ?? 0);
+            totalTurns += (mptSnap['totalTurns'] as int? ?? 0);
+
+            final bucketsSnap = snap['cricket.markBuckets'] ?? {};
+            cricketFiveMark += (bucketsSnap['fiveMarkExact'] as int? ?? 0);
+            cricketSixMark += (bucketsSnap['sixMarkExact'] as int? ?? 0);
+            cricketSevenMark += (bucketsSnap['sevenMarkExact'] as int? ?? 0);
+            cricketEightMark += (bucketsSnap['eightMarkExact'] as int? ?? 0);
+            cricketNineMark += (bucketsSnap['nineMarkExact'] as int? ?? 0);
+
+            final fn9Snap = snap['cricket.firstNineMpr'] ?? {};
+            firstNineMarksTotal += (fn9Snap['totalFirstNineMarks'] as int? ?? 0);
+            firstNineLegsTotal += (fn9Snap['totalFirstNineLegs'] as int? ?? 0);
+          }
+
+          cricketMpr = totalTurns > 0 ? totalMarks / totalTurns : null;
+          cricketFirstNineMpr = firstNineLegsTotal > 0
+              ? firstNineMarksTotal / (firstNineLegsTotal * 3)
+              : null;
+        }
+
         competitorStats.add(CompetitorStats(
           competitorId: competitorId,
           competitorName: competitorName,
@@ -147,12 +260,26 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
           threeDartAverage: threeDartAverage,
           legsWon: legsWon,
           totalDartsThrown: totalDarts,
+          checkoutPercentage: checkoutPercentage,
+          highestCheckout: competitorHighestCheckout,
+          oneEightyTurns: totalOneEighty,
+          sixtyPlusTurns: totalSixtyPlus,
+          oneHundredPlusTurns: totalHundredPlus,
+          oneFortyPlusTurns: totalFortyPlus,
+          marksPerRound: cricketMpr,
+          firstNineMarksPerRound: cricketFirstNineMpr,
+          fiveMarkTurns: cricketFiveMark,
+          sixMarkTurns: cricketSixMark,
+          sevenMarkTurns: cricketSevenMark,
+          eightMarkTurns: cricketEightMark,
+          nineMarkTurns: cricketNineMark,
         ));
       }
 
       return GameStats(
         gameId: gameId,
         byCompetitor: competitorStats,
+        gameType: gameTypeStr ?? '',
       );
     } on RepositoryException {
       rethrow;
@@ -166,14 +293,20 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
   }
 
   @override
-  Stream<GameStats> watchGameStats(String gameId) {
-    return Stream.periodic(const Duration(seconds: 5), (_) {})
-      .asyncMap((_) async => getGameStats(gameId))
-      .distinct()
-      .handleError((error) {
-        if (error is RepositoryException) throw error;
-        throw StatisticsException('Failed to watch game statistics: ${error.toString()}');
-      });
+  Stream<GameStats> watchGameStats(String gameId) async* {
+    try {
+      yield await getGameStats(gameId);
+    } catch (error) {
+      if (error is RepositoryException) rethrow;
+      throw StatisticsException('Failed to watch game statistics: ${error.toString()}');
+    }
+    yield* Stream.periodic(const Duration(seconds: 5))
+        .asyncMap((_) async => getGameStats(gameId))
+        .distinct()
+        .handleError((error) {
+          if (error is RepositoryException) throw error;
+          throw StatisticsException('Failed to watch game statistics: ${error.toString()}');
+        });
   }
 
   @override

@@ -106,11 +106,19 @@ class StatelessX01Engine implements GameEngine {
       isIn: isIn,
     );
     
+    // Increment round when cycling back to the first competitor after darts
+    // have been thrown — i.e. a full visit cycle just completed.
+    final newRound = competitorIndex == 0 &&
+            state.competitors[0].dartThrows.isNotEmpty
+        ? state.currentRoundInLeg + 1
+        : state.currentRoundInLeg;
+
     return state.copyWith(
       currentTurnIndex: competitorIndex,
       dartsThrownInTurn: 0,
       turnActive: true,
       competitors: updatedCompetitors,
+      currentRoundInLeg: newRound,
     );
   }
 
@@ -377,9 +385,10 @@ class StatelessX01Engine implements GameEngine {
     
     return state.copyWith(
       competitors: resetCompetitors,
-      currentTurnIndex: 0, // Start with first player
+      currentTurnIndex: 0,
       dartsThrownInTurn: 0,
-      winnerCompetitorId: null, // Clear winner for new leg
+      winnerCompetitorId: null,
+      currentRoundInLeg: 1,
     );
   }
 

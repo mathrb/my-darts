@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/utils/app_theme.dart';
 import '../../domain/models/game_config.dart';
 
 class DartIndicatorWidget extends StatelessWidget {
@@ -19,19 +19,38 @@ class DartIndicatorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final sum = _roundSum;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _RoundSumLabel(sum: _roundSum),
-          const SizedBox(width: 12),
+          SizedBox(
+            width: 48,
+            child: sum > 0
+                ? Text(
+                    '$sum',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.headlineSmall.copyWith(
+                      color: cs.primaryFixed,
+                      shadows: [
+                        Shadow(
+                          color: cs.primaryFixed.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          const SizedBox(width: 8),
           ...List.generate(
             3,
-            (i) => i < currentTurnDarts.length
-                ? _DartChip(segment: currentTurnDarts[i])
-                : const _EmptySlot(),
+            (i) => _DartSlot(
+              segment: i < currentTurnDarts.length ? currentTurnDarts[i] : null,
+            ),
           ),
         ],
       ),
@@ -39,52 +58,36 @@ class DartIndicatorWidget extends StatelessWidget {
   }
 }
 
-class _RoundSumLabel extends StatelessWidget {
-  const _RoundSumLabel({required this.sum});
+class _DartSlot extends StatelessWidget {
+  const _DartSlot({required this.segment});
 
-  final int sum;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Text(
-      '$sum',
-      style: AppTextStyles.headingSmall.copyWith(fontSize: 24, color: cs.primary),
-    );
-  }
-}
-
-class _DartChip extends StatelessWidget {
-  const _DartChip({required this.segment});
-
-  final String segment;
+  /// Null = empty slot; non-null = thrown dart segment string.
+  final String? segment;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Text(
-        segment,
-        style: AppTextStyles.segmentButton.copyWith(color: cs.onSurface),
+    final isFilled = segment != null;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: isFilled
+            ? cs.surfaceContainerHighest
+            : cs.outlineVariant.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+        border: isFilled
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
       ),
-    );
-  }
-}
-
-class _EmptySlot extends StatelessWidget {
-  const _EmptySlot();
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: SvgPicture.asset(
-        'assets/icons/dart_placeholder.svg',
-        width: 36,
-        height: 36,
-        colorFilter: ColorFilter.mode(cs.outline, BlendMode.srcIn),
+      child: Text(
+        segment ?? '—',
+        style: AppTextStyles.segmentButton.copyWith(
+          color: isFilled
+              ? cs.primaryFixed
+              : cs.outlineVariant.withValues(alpha: 0.4),
+        ),
       ),
     );
   }

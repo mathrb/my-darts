@@ -8,10 +8,8 @@ import 'package:my_darts/features/game/domain/models/game_config.dart';
 import 'package:my_darts/features/game/presentation/pages/variant_selection_page.dart';
 import 'package:my_darts/features/game/presentation/providers/game_setup_provider.dart';
 import 'package:my_darts/features/game/presentation/state/game_setup_state.dart';
-import 'package:my_darts/features/game/presentation/widgets/variant_card_widget.dart';
 import 'package:my_darts/features/players/domain/entities/player.dart';
 import 'package:my_darts/features/players/domain/repositories/player_repository.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 // ── Fakes ────────────────────────────────────────────────────────────────────
 
@@ -85,177 +83,108 @@ Widget _buildApp(
 
 void main() {
   group('VariantSelectionPage — X01', () {
-    testWidgets('renders 4 enabled cards and 1 disabled Custom card',
+    testWidgets('renders 4 enabled rows and 1 disabled Custom row',
         (tester) async {
       await tester.pumpWidget(_buildApp('x01'));
       await tester.pumpAndSettle();
 
-      expect(find.text('501 — Double Out'), findsOneWidget);
-      expect(find.text('301 — Double Out'), findsOneWidget);
-      expect(find.text('701 — Double Out'), findsOneWidget);
-      expect(find.text('901 — Double Out'), findsOneWidget);
-      expect(find.text('Custom'), findsOneWidget);
+      expect(find.text('501'), findsOneWidget);
+      expect(find.text('301'), findsOneWidget);
+      expect(find.text('701'), findsOneWidget);
+      expect(find.text('901'), findsOneWidget);
+      expect(find.text('CUSTOM', skipOffstage: false), findsOneWidget);
 
-      // Custom card wrapped in Opacity(0.38)
-      final opacityWidgets = tester.widgetList<Opacity>(find.byType(Opacity));
+      // Custom row wrapped in Opacity(0.38)
+      final opacityWidgets = tester.widgetList<Opacity>(find.byType(Opacity, skipOffstage: false));
       expect(opacityWidgets.any((o) => o.opacity == 0.38), isTrue);
     });
 
-    testWidgets('each numeric card shows correct subtitle', (tester) async {
+    testWidgets('page title "X01" is displayed', (tester) async {
       await tester.pumpWidget(_buildApp('x01'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Double Out · 1 Leg'), findsNWidgets(4));
+      expect(find.text('X01'), findsOneWidget);
     });
 
-    testWidgets('Custom card has no subtitle', (tester) async {
-      await tester.pumpWidget(_buildApp('x01'));
-      await tester.pumpAndSettle();
-
-      // Find the VariantCardWidget whose title is 'Custom'
-      final customCard = find.byWidgetPredicate(
-        (w) => w is VariantCardWidget && w.title == 'Custom',
-      );
-      expect(customCard, findsOneWidget);
-      final widget = tester.widget<VariantCardWidget>(customCard);
-      expect(widget.subtitle, isNull);
-    });
-
-    testWidgets('501 card shows selected styling when config matches',
-        (tester) async {
-      const selected = GameConfig.x01(
-        startingScore: 501,
-        inStrategy: 'straight',
-        outStrategy: 'double',
-        legsToWin: 1,
-      );
-      await tester.pumpWidget(_buildApp(
-        'x01',
-        setupState: const GameSetupState.configuringGame(
-          gameType: GameType.x01,
-          config: selected,
-        ),
-      ));
-      await tester.pumpAndSettle();
-
-      final card = tester.widget<VariantCardWidget>(
-        find.byWidgetPredicate(
-          (w) => w is VariantCardWidget && w.title == '501 — Double Out',
-        ),
-      );
-      expect(card.isSelected, isTrue);
-    });
-
-    testWidgets('tapping 501 card navigates to /game/player-selection',
+    testWidgets('tapping 501 row navigates to /game/player-selection',
         (tester) async {
       final pushed = <String>[];
       await tester.pumpWidget(_buildApp('x01', pushedRoutes: pushed));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('501 — Double Out'));
+      await tester.tap(find.text('501'));
       await tester.pumpAndSettle();
 
       expect(find.text('player-selection'), findsOneWidget);
     });
 
-    testWidgets('Custom card shows Tooltip "Custom configuration coming soon"',
+    testWidgets('Custom row shows Tooltip "Custom configuration coming soon"',
         (tester) async {
       await tester.pumpWidget(_buildApp('x01'));
       await tester.pumpAndSettle();
 
       final tooltip = find.byWidgetPredicate(
         (w) => w is Tooltip && w.message == 'Custom configuration coming soon',
+        skipOffstage: false,
       );
       expect(tooltip, findsOneWidget);
     });
 
-    testWidgets('disabled card has 38% opacity', (tester) async {
+    testWidgets('disabled row has 38% opacity', (tester) async {
       await tester.pumpWidget(_buildApp('x01'));
       await tester.pumpAndSettle();
 
-      final opacities = tester.widgetList<Opacity>(find.byType(Opacity));
+      final opacities = tester.widgetList<Opacity>(find.byType(Opacity, skipOffstage: false));
       expect(opacities.where((o) => o.opacity == 0.38), hasLength(1));
     });
 
-    testWidgets('tapping disabled Custom card does not navigate',
-        (tester) async {
+    testWidgets('tapping disabled Custom row does not navigate', (tester) async {
+      // Use a physically tall window so CUSTOM is on screen and tappable.
+      tester.view.physicalSize = const Size(2400, 6000);
+      addTearDown(tester.view.resetPhysicalSize);
       await tester.pumpWidget(_buildApp('x01'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Custom'));
+      await tester.tap(find.text('CUSTOM'));
       await tester.pumpAndSettle();
 
       expect(find.text('player-selection'), findsNothing);
     });
-
-    testWidgets('AppBar title is "X01"', (tester) async {
-      await tester.pumpWidget(_buildApp('x01'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('X01'), findsOneWidget);
-    });
   });
 
   group('VariantSelectionPage — Cricket', () {
-    testWidgets('renders 4 enabled cards and 1 disabled Custom', (tester) async {
+    testWidgets('renders 4 enabled rows and 1 disabled Custom', (tester) async {
       await tester.pumpWidget(_buildApp('cricket'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Standard'), findsOneWidget);
-      expect(find.text('No Score'), findsOneWidget);
-      expect(find.text('Cut Throat'), findsOneWidget);
-      expect(find.text('Tactics'), findsOneWidget);
-      expect(find.text('Custom'), findsOneWidget);
+      expect(find.text('STANDARD'), findsOneWidget);
+      expect(find.text('NO SCORE'), findsOneWidget);
+      expect(find.text('CUT THROAT', skipOffstage: false), findsOneWidget);
+      expect(find.text('TACTICS', skipOffstage: false), findsOneWidget);
+      expect(find.text('CUSTOM', skipOffstage: false), findsOneWidget);
     });
 
-    testWidgets('each card shows correct subtitle', (tester) async {
+    testWidgets('page title "Cricket" is displayed', (tester) async {
       await tester.pumpWidget(_buildApp('cricket'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Close 15–20 & Bull · Standard'), findsOneWidget);
-      expect(find.text('Close only · No points'), findsOneWidget);
-      expect(find.text('Cut-Throat · Score on opponent'), findsOneWidget);
-      expect(find.text('Strategy variant · No points'), findsOneWidget);
-    });
-
-    testWidgets('AppBar title is "Cricket"', (tester) async {
-      await tester.pumpWidget(_buildApp('cricket'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Cricket'), findsOneWidget);
+      expect(find.text('CRICKET'), findsOneWidget);
     });
   });
 
   group('VariantSelectionPage — Practice', () {
-    testWidgets('renders 5 enabled cards', (tester) async {
+    testWidgets('renders 5 enabled rows', (tester) async {
       await tester.pumpWidget(_buildApp('practice'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Around the Clock'), findsOneWidget);
-      expect(find.text('Catch 40'), findsOneWidget);
-      expect(find.text("Bob's 27"), findsOneWidget);
-      expect(find.text('Shanghai'), findsOneWidget);
-      expect(find.text('170 Checkout'), findsOneWidget);
+      expect(find.text('AROUND THE CLOCK'), findsOneWidget);
+      expect(find.text('CATCH 40', skipOffstage: false), findsOneWidget);
+      expect(find.text("BOB'S 27", skipOffstage: false), findsOneWidget);
+      expect(find.text('SHANGHAI', skipOffstage: false), findsOneWidget);
+      expect(find.text('170 CHECKOUT', skipOffstage: false), findsOneWidget);
     });
 
-    testWidgets('only Shanghai practice card has a subtitle', (tester) async {
-      await tester.pumpWidget(_buildApp('practice'));
-      await tester.pumpAndSettle();
-
-      final cards =
-          tester.widgetList<VariantCardWidget>(find.byType(VariantCardWidget));
-      for (final card in cards) {
-        if (card.title == 'Shanghai') {
-          expect(card.subtitle, isNotNull,
-              reason: 'Shanghai practice card should have a subtitle (rounds)');
-        } else {
-          expect(card.subtitle, isNull,
-              reason: 'Practice card "${card.title}" should have no subtitle');
-        }
-      }
-    });
-
-    testWidgets('no disabled cards in practice', (tester) async {
+    testWidgets('no disabled rows in practice', (tester) async {
       await tester.pumpWidget(_buildApp('practice'));
       await tester.pumpAndSettle();
 
@@ -263,28 +192,27 @@ void main() {
       expect(opacities.where((o) => o.opacity == 0.38), isEmpty);
     });
 
-    testWidgets('AppBar title is "Practice"', (tester) async {
+    testWidgets('page title "Practice" is displayed', (tester) async {
       await tester.pumpWidget(_buildApp('practice'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Practice'), findsOneWidget);
+      expect(find.text('PRACTICE'), findsOneWidget);
     });
   });
 
-  group('VariantSelectionPage — Hint line', () {
-    testWidgets('hint line is always rendered below the variant list',
-        (tester) async {
+  group('VariantSelectionPage — page header', () {
+    testWidgets('shows "GAME SELECTION" overline', (tester) async {
       await tester.pumpWidget(_buildApp('x01'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Select a preset'), findsOneWidget);
+      expect(find.text('GAME SELECTION'), findsOneWidget);
     });
 
-    testWidgets('hint line shown for cricket category too', (tester) async {
-      await tester.pumpWidget(_buildApp('cricket'));
+    testWidgets('shows subtitle text', (tester) async {
+      await tester.pumpWidget(_buildApp('x01'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Select a preset'), findsOneWidget);
+      expect(find.text('Select your match variation to begin'), findsOneWidget);
     });
   });
 }

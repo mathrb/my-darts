@@ -5,11 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/app_router.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/app_text_styles.dart';
+import '../../../../core/utils/app_theme.dart';
 import '../../../../core/utils/checkout_table.dart';
+import '../../../../core/widgets/app_header.dart';
 import '../providers/active_game_provider.dart';
-import '../widgets/dart_indicator_widget.dart';
 import '../widgets/dart_input_grid_widget.dart';
 import '../widgets/end_game_dialog_widget.dart';
+import '../widgets/game_status_bar_widget.dart';
 import '../widgets/leg_complete_modal_widget.dart';
 import '../widgets/player_score_section_widget.dart';
 
@@ -59,7 +61,6 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
 
     // Bust listener — fires on showBust false→true transition
     ref.listen(activeGameProvider(widget.gameId), (prev, next) {
@@ -72,7 +73,7 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
             duration: const Duration(seconds: 2),
             content: Text(
               'BUST',
-              style: AppTextStyles.headingSmall
+              style: AppTextStyles.headlineSmall
                   .copyWith(color: cs.onErrorContainer),
             ),
           ),
@@ -84,6 +85,18 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
                 .read(activeGameProvider(widget.gameId).notifier)
                 .dismissBust();
           }
+        });
+      }
+    });
+
+    // Game complete listener — navigate to post-game summary
+    ref.listen(activeGameProvider(widget.gameId), (prev, next) {
+      final prevWinner = prev?.value?.pendingGameWinnerId;
+      final nextWinner = next.value?.pendingGameWinnerId;
+      if (prevWinner == null && nextWinner != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          context.go('/post-game/${widget.gameId}');
         });
       }
     });
@@ -151,64 +164,50 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
         final dartsThrownInTurn = gameState.dartsThrownInTurn;
         final canUndo = dartsThrownInTurn > 0 ||
             gameState.competitors.any((c) => c.dartThrows.isNotEmpty);
-        final canNext = !gameState.turnActive && !gameState.isComplete;
+        final canNext = !gameState.isComplete;
         final currentScore = activeCompetitor.score;
 
         // Current turn darts: last dartsThrownInTurn items from active
         // competitor's dartThrows list
         final allDarts = activeCompetitor.dartThrows;
-        final currentTurnDarts = dartsThrownInTurn == 0 || allDarts.length < dartsThrownInTurn
-            ? <String>[]
-            : allDarts.sublist(allDarts.length - dartsThrownInTurn);
+        final currentTurnDarts =
+            dartsThrownInTurn == 0 || allDarts.length < dartsThrownInTurn
+                ? <String>[]
+                : allDarts.sublist(allDarts.length - dartsThrownInTurn);
 
-        // Winner name for win banner
-        final pendingGameWinnerId = activeGameState.pendingGameWinnerId;
-        String? winnerName;
-        if (pendingGameWinnerId != null) {
-          winnerName = gameState.competitors
-              .firstWhere((c) => c.competitorId == pendingGameWinnerId)
-              .name;
-        }
+        final roundInLeg = gameState.currentRoundInLeg;
 
         return Scaffold(
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            centerTitle: true,
-            title: Column(
-              children: [
-                Text(
-                  '${gameState.startingScore}',
-                  style: AppTextStyles.headingSmall
-                      .copyWith(color: cs.onBackground),
+          appBar: AppHeader(
+            boardMode: true,
+            showBack: true,
+            onBack: () => context.go(GameRoutes.home),
+            trailing: InkWell(
+              onTap: () => _showEndGameDialog(context),
+              borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+              splashColor: AppTheme.kineticSplashColor,
+              highlightColor: AppTheme.kineticSplashColor,
+              child: const SizedBox(
+                width: 40,
+                height: 40,
+                child: Icon(
+                  Icons.settings_outlined,
+                  color: Colors.white,
+                  semanticLabel: 'Game options',
                 ),
-                Text(
-                  'Leg ${gameState.currentLegIndex + 1} of ${gameState.legsToWin}',
-                  style: AppTextStyles.bodySmall
-                      .copyWith(color: cs.onSurfaceVariant),
-                ),
-              ],
-            ),
-            actions: [
-              PopupMenuButton<String>(
-                onSelected: (v) {
-                  if (v == 'end') _showEndGameDialog(context);
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(
-                    value: 'end',
-                    child: Text('End Game'),
-                  ),
-                ],
               ),
-            ],
+            ),
           ),
-          body: Stack(
-            fit: StackFit.expand,
+          body: Column(
             children: [
-              // Game board body
-              Column(
-                children: [
-                  DartIndicatorWidget(currentTurnDarts: currentTurnDarts),
+                  GameStatusBarWidget(
+                    configLabel: '${gameState.startingScore}',
+                    currentLegIndex: gameState.currentLegIndex,
+                    legsToWin: gameState.legsToWin,
+                    roundInLeg: roundInLeg,
+                    totalRounds: gameState.x01TotalRounds,
+                    currentTurnDarts: currentTurnDarts,
+                  ),
                   PlayerScoreSectionWidget(
                     gameState: gameState,
                     bustFlashAnim: _bustFlashAnim,
@@ -229,31 +228,11 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
                     onUndo: () => ref
                         .read(activeGameProvider(widget.gameId).notifier)
                         .undoDart(),
-                    onNextRound: () {
-                      final notifier = ref
-                          .read(activeGameProvider(widget.gameId).notifier);
-                      notifier.dismissBust();
-                      notifier.dismissLegModal();
-                      notifier.startNextTurn();
-                    },
+                    onNextRound: () => ref
+                        .read(activeGameProvider(widget.gameId).notifier)
+                        .advanceTurn(),
                   ),
                 ],
-              ),
-              // Win banner (always in stack; slides in when winner set)
-              IgnorePointer(
-                ignoring: pendingGameWinnerId == null,
-                child: _WinBannerWidget(
-                  visible: pendingGameWinnerId != null,
-                  winnerName: winnerName ?? '',
-                  lastDart: gameState.competitors
-                      .expand((c) => [if (c.competitorId == pendingGameWinnerId && c.dartThrows.isNotEmpty) c.dartThrows.last])
-                      .firstOrNull,
-                  onPostGame: () =>
-                      context.go('/post-game/${widget.gameId}'),
-                  onPlayAgain: () => context.go(GameRoutes.home),
-                ),
-              ),
-            ],
           ),
         );
       },
@@ -284,27 +263,52 @@ class _CheckoutBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final visible = score >= 2 && score <= 170;
+    final inRange = score >= 2 && score <= 170;
+    final suggestion = inRange ? checkoutSuggestion(score) : null;
 
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 200),
-      child: Visibility(
-        visible: visible,
-        child: Container(
-          decoration: BoxDecoration(
-            color: cs.surfaceVariant,
-            border: Border(
-              left: BorderSide(color: cs.primary, width: 2),
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surfaceContainer,
+          borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
           child: Row(
             children: [
-              Icon(Icons.lightbulb_outline, color: cs.primary, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                checkoutSuggestion(score) ?? '',
-                style: AppTextStyles.bodyMedium.copyWith(color: cs.onBackground),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: inRange ? 2 : 0,
+                color: cs.primaryFixed,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'CHECKOUT',
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: inRange
+                              ? cs.onSurfaceVariant
+                              : cs.onSurfaceVariant.withValues(alpha: 0.35),
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      Text(
+                        suggestion ?? 'Suggestions appear in checkout range',
+                        style: AppTextStyles.labelLarge.copyWith(
+                          color: inRange
+                              ? cs.primaryFixed
+                              : cs.onSurfaceVariant.withValues(alpha: 0.25),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -332,139 +336,75 @@ class _BottomActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
     return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Divider(height: 1, thickness: 1, color: cs.outlineVariant),
-          SizedBox(
-            height: 48,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: _ControlTile(
-                    label: 'UNDO',
-                    enabled: canUndo,
-                    onTap: onUndo,
-                    hasBorderRight: true,
-                  ),
-                ),
-                Expanded(
-                  flex: 7,
-                  child: _ControlTile(
-                    label: isMultiplayer ? 'NEXT PLAYER' : 'NEXT ROUND',
-                    enabled: canNext,
-                    onTap: onNextRound,
-                    hasBorderRight: false,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ControlTile extends StatelessWidget {
-  const _ControlTile({
-    required this.label,
-    required this.enabled,
-    required this.onTap,
-    required this.hasBorderRight,
-  });
-
-  final String label;
-  final bool enabled;
-  final VoidCallback onTap;
-  final bool hasBorderRight;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tile = GestureDetector(
-      onTap: enabled ? onTap : null,
       child: Container(
         decoration: BoxDecoration(
-          color: cs.surface,
+          color: cs.surfaceContainerHighest.withValues(alpha: 0.6),
           border: Border(
-            right: hasBorderRight
-                ? BorderSide(color: cs.outline, width: 1)
-                : BorderSide.none,
-            bottom: BorderSide(color: cs.outline, width: 1),
+            top: BorderSide(
+              color: cs.surfaceContainer.withValues(alpha: 0.3),
+            ),
           ),
         ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: AppTextStyles.labelLarge.copyWith(color: cs.onSurface),
-        ),
-      ),
-    );
-    return enabled ? tile : Opacity(opacity: 0.38, child: tile);
-  }
-}
-
-class _WinBannerWidget extends StatelessWidget {
-  const _WinBannerWidget({
-    required this.visible,
-    required this.winnerName,
-    required this.lastDart,
-    required this.onPostGame,
-    required this.onPlayAgain,
-  });
-
-  final bool visible;
-  final String winnerName;
-  final String? lastDart;
-  final VoidCallback onPostGame;
-  final VoidCallback onPlayAgain;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor =
-        isDark ? AppColorsDark.winContainer : AppColors.winContainer;
-
-    return AnimatedSlide(
-      offset: visible ? Offset.zero : const Offset(0, 1),
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeOut,
-      child: ColoredBox(
-        color: bgColor,
-        child: SizedBox.expand(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                winnerName.toUpperCase(),
-                style: AppTextStyles.displayLarge.copyWith(color: AppColors.win),
-              ),
-              if (lastDart != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Final Score: 0  ·  Checkout: $lastDart',
-                  style: AppTextStyles.headingMedium.copyWith(color: AppColors.win),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+        child: Row(
+          children: [
+            // Undo — square button
+            Opacity(
+              opacity: canUndo ? 1.0 : 0.38,
+              child: InkWell(
+                onTap: canUndo ? onUndo : null,
+                borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                splashColor: AppTheme.kineticSplashColor,
+                highlightColor: AppTheme.kineticSplashColor,
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius:
+                        BorderRadius.circular(AppTheme.radiusLarge),
+                    border: Border.all(
+                      color: cs.outlineVariant.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.undo,
+                    color: cs.onSurface,
+                    semanticLabel: 'Undo last dart',
+                  ),
                 ),
-              ],
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: onPostGame,
-                child: const Text('Post-Game Summary'),
               ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: onPlayAgain,
-                child: const Text('Play Again'),
+            ),
+            const SizedBox(width: 10),
+            // Next player / round — primary neon button
+            Expanded(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: cs.primaryFixed,
+                  foregroundColor: AppColors.onPrimaryFixed,
+                  disabledBackgroundColor:
+                      cs.primaryFixed.withValues(alpha: 0.38),
+                  disabledForegroundColor:
+                      AppColors.onPrimaryFixed.withValues(alpha: 0.38),
+                  minimumSize: const Size.fromHeight(56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppTheme.radiusMedium),
+                  ),
+                ),
+                onPressed: canNext ? onNextRound : null,
+                icon: const Icon(Icons.arrow_forward, semanticLabel: ''),
+                label: Text(isMultiplayer ? 'NEXT PLAYER' : 'NEXT ROUND'),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
+
 

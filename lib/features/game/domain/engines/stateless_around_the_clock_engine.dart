@@ -195,7 +195,12 @@ class StatelessAroundTheClockEngine implements GameEngine {
   // Table I — TurnEnded: advance to next competitor
   GameState _applyTurnEnded(GameState state, GameEvent event) {
     final nextIndex = (state.currentTurnIndex + 1) % state.competitors.length;
+    final updatedCompetitors = List<CompetitorState>.from(state.competitors);
+    final current = updatedCompetitors[state.currentTurnIndex];
+    updatedCompetitors[state.currentTurnIndex] =
+        current.copyWith(practiceRound: current.practiceRound + 1);
     return state.copyWith(
+      competitors: updatedCompetitors,
       dartsThrownInTurn: 0,
       turnActive: false,
       currentTurnIndex: nextIndex,
