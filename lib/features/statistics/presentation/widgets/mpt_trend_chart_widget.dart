@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/utils/app_theme.dart';
 import '../../../../core/widgets/error_retry_widget.dart';
 import '../../../../core/widgets/loading_spinner_widget.dart';
 import '../../../../core/widgets/trend_chart_shell_widget.dart';
@@ -93,7 +94,7 @@ class MptTrendChartWidget extends ConsumerWidget {
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: primaryContainer.withAlpha(76),
+              color: primaryContainer.withValues(alpha: AppTheme.opacityChartAreaFill),
             ),
           ),
         ],

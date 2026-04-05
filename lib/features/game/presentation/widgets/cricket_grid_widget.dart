@@ -93,7 +93,7 @@ class CricketGridWidget extends StatelessWidget {
           ? Colors.grey.shade700
           : Colors.grey.shade300;
     } else if (opponentOpen) {
-      rowBackground = Colors.orange.withOpacity(0.08);
+      rowBackground = Colors.orange.withValues(alpha: 0.08); // TODO: replace Colors.orange with a design token
     } else {
       rowBackground = Colors.transparent;
     }
@@ -110,7 +110,7 @@ class CricketGridWidget extends StatelessWidget {
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: currentClosed
-                      ? colorScheme.onSurface.withOpacity(0.4)
+                      ? colorScheme.onSurface.withValues(alpha: 0.4)
                       : colorScheme.onSurface,
                 ),
               ),
@@ -163,7 +163,7 @@ class CricketGridWidget extends StatelessWidget {
           height: 56,
           decoration: BoxDecoration(
             border: Border.all(
-              color: colorScheme.outlineVariant.withOpacity(0.5),
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
               width: 0.5,
             ),
             borderRadius: BorderRadius.circular(6),
@@ -179,7 +179,7 @@ class CricketGridWidget extends StatelessWidget {
                 Text(
                   '= DB',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurface.withOpacity(0.5),
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
                         fontSize: 9,
                       ),
                 ),

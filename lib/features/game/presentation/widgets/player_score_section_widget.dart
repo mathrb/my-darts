@@ -109,13 +109,13 @@ class _PlayerCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         border: Border.all(
           color: isActive
-              ? cs.primaryFixed.withValues(alpha: 0.2)
-              : cs.outlineVariant.withValues(alpha: 0.1),
+              ? cs.primaryFixed.withValues(alpha: AppTheme.opacityGhostBorderStrong)
+              : cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderLight),
         ),
         boxShadow: isActive
             ? [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.5),
+                  color: Colors.black.withValues(alpha: AppTheme.opacityActiveCardShadow),
                   blurRadius: 24,
                   offset: const Offset(0, 4),
                   spreadRadius: -4,
@@ -181,7 +181,7 @@ class _PlayerCard extends StatelessWidget {
                     shadows: isActive
                         ? [
                             Shadow(
-                              color: cs.primaryFixed.withValues(alpha: 0.3),
+                              color: cs.primaryFixed.withValues(alpha: AppTheme.opacityScoreNumeralShadow),
                               blurRadius: 10,
                             ),
                           ]

@@ -384,7 +384,7 @@ class _SegmentedOptionGroup<T> extends StatelessWidget {
                       : Colors.transparent,
                   child: InkWell(
                     onTap: () => onSelected(values[i]),
-                    splashColor: cs.primaryFixed.withValues(alpha: 0.12),
+                    splashColor: cs.primaryFixed.withValues(alpha: AppTheme.opacityKineticIconBackground),
                     highlightColor: cs.primaryFixed.withValues(alpha: 0.08),
                     child: SizedBox(
                       height: 48,
@@ -426,7 +426,7 @@ class _StepperContainer extends StatelessWidget {
         color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
         border: Border.all(
-          color: cs.outlineVariant.withValues(alpha: 0.1),
+          color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderLight),
         ),
       ),
       child: Center(child: child),
@@ -456,7 +456,7 @@ class _CustomScoreField extends StatelessWidget {
         color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         border: Border.all(
-          color: cs.outlineVariant.withValues(alpha: 0.1),
+          color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderLight),
         ),
       ),
       child: TextField(
@@ -501,7 +501,7 @@ class _RoundsDropdown extends StatelessWidget {
         color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
         border: Border.all(
-          color: cs.outlineVariant.withValues(alpha: 0.1),
+          color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderLight),
         ),
       ),
       child: DropdownButtonHideUnderline(

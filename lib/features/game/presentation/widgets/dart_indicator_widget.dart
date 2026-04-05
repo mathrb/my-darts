@@ -37,7 +37,7 @@ class DartIndicatorWidget extends StatelessWidget {
                       color: cs.primaryFixed,
                       shadows: [
                         Shadow(
-                          color: cs.primaryFixed.withValues(alpha: 0.3),
+                          color: cs.primaryFixed.withValues(alpha: AppTheme.opacityScoreNumeralShadow),
                           blurRadius: 8,
                         ),
                       ],
@@ -79,7 +79,7 @@ class _DartSlot extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppTheme.radiusFull),
         border: isFilled
             ? null
-            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
+            : Border.all(color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderStrong)),
       ),
       child: Text(
         segment ?? '—',

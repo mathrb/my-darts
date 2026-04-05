@@ -14,6 +14,36 @@ abstract final class AppTheme {
   static const double radiusXLarge  = 24.0;
   static const double radiusFull    = 9999.0;
 
+  // Opacity tokens — use with .withValues(alpha: AppTheme.opacityXxx).
+  // Names map to DESIGN_SYSTEM.md semantic roles; values may coincide but
+  // represent independent design decisions that can diverge.
+
+  // Disabled state — WCAG AA / Material Design default (DESIGN_SYSTEM §10.3)
+  static const double opacityDisabled = 0.38;
+
+  // Ghost borders — "No-Line Rule" boundary markers (DESIGN_SYSTEM §2.4–2.5)
+  static const double opacityGhostBorderLight  = 0.10; // subtle card/panel boundary
+  static const double opacityGhostBorderStrong = 0.20; // standard boundary, dart badge border
+
+  // Game status bar (DESIGN_SYSTEM §7.1)
+  static const double opacityStatusBarBackground = 0.50; // surfaceContainerLow fill
+  static const double opacityStatusBarSeparator  = 0.30; // separator dots between labels
+
+  // Bottom action bar (DESIGN_SYSTEM §7.1)
+  static const double opacityBottomBarBackground = 0.60; // surfaceContainerHighest fill
+  static const double opacityBottomBarTopEdge    = 0.30; // surfaceContainer top edge divider
+
+  // Kinetic card icon accents (DESIGN_SYSTEM §7.2)
+  static const double opacityKineticIconBackground = 0.12; // icon container fill
+  static const double opacityKineticIconBorder     = 0.25; // icon container border
+
+  // Active player card depth (DESIGN_SYSTEM §5)
+  static const double opacityActiveCardShadow   = 0.50; // Colors.black drop shadow
+  static const double opacityScoreNumeralShadow = 0.30; // score numeral text shadow blur (DESIGN_SYSTEM §7.1)
+
+  // Chart area fill (data visualisation)
+  static const double opacityChartAreaFill = 0.30; // trend chart background area
+
   static ThemeData light() => _build(Brightness.light);
   static ThemeData dark()  => _build(Brightness.dark);
 

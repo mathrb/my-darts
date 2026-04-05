@@ -280,9 +280,9 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
                       backgroundColor: cs.primaryFixed,
                       foregroundColor: AppColors.onPrimaryFixed,
                       disabledBackgroundColor:
-                          cs.primaryFixed.withValues(alpha: 0.38),
+                          cs.primaryFixed.withValues(alpha: AppTheme.opacityDisabled),
                       disabledForegroundColor:
-                          AppColors.onPrimaryFixed.withValues(alpha: 0.38),
+                          AppColors.onPrimaryFixed.withValues(alpha: AppTheme.opacityDisabled),
                       minimumSize: const Size.fromHeight(56),
                       textStyle: tt.labelLarge?.copyWith(
                         fontSize: 16,
@@ -943,9 +943,9 @@ class _CreatePlayerSheetState extends ConsumerState<_CreatePlayerSheet> {
                 backgroundColor: cs.primaryFixed,
                 foregroundColor: AppColors.onPrimaryFixed,
                 disabledBackgroundColor:
-                    cs.primaryFixed.withValues(alpha: 0.38),
+                    cs.primaryFixed.withValues(alpha: AppTheme.opacityDisabled),
                 disabledForegroundColor:
-                    AppColors.onPrimaryFixed.withValues(alpha: 0.38),
+                    AppColors.onPrimaryFixed.withValues(alpha: AppTheme.opacityDisabled),
                 minimumSize: const Size.fromHeight(56),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),

@@ -52,7 +52,7 @@ class GameStatusBarWidget extends StatelessWidget {
         height: 4,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: cs.outlineVariant.withValues(alpha: 0.3),
+          color: cs.outlineVariant.withValues(alpha: AppTheme.opacityStatusBarSeparator),
         ),
       ),
     );
@@ -62,10 +62,10 @@ class GameStatusBarWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerLow.withValues(alpha: 0.5),
+        color: cs.surfaceContainerLow.withValues(alpha: AppTheme.opacityStatusBarBackground),
         border: Border(
           bottom: BorderSide(
-            color: cs.outlineVariant.withValues(alpha: 0.1),
+            color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderLight),
           ),
         ),
       ),
@@ -89,7 +89,7 @@ class GameStatusBarWidget extends StatelessWidget {
               width: 1,
               height: 16,
               child: ColoredBox(
-                color: cs.outlineVariant.withValues(alpha: 0.2),
+                color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderStrong),
               ),
             ),
           ),
@@ -135,10 +135,10 @@ class _DartBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: cs.primaryFixed.withValues(alpha: 0.1),
+        color: cs.primaryFixed.withValues(alpha: AppTheme.opacityGhostBorderLight),
         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         border: Border.all(
-          color: cs.primaryFixed.withValues(alpha: 0.2),
+          color: cs.primaryFixed.withValues(alpha: AppTheme.opacityGhostBorderStrong),
         ),
       ),
       child: Text(

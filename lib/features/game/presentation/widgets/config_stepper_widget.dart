@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/app_theme.dart';
+
 class ConfigStepperWidget extends StatelessWidget {
   const ConfigStepperWidget({
     super.key,
@@ -30,7 +32,7 @@ class ConfigStepperWidget extends StatelessWidget {
           BorderSide(color: enabled ? cs.primary : cs.outlineVariant),
         ),
         foregroundColor: WidgetStateProperty.all(
-          enabled ? cs.primary : cs.onSurface.withValues(alpha: 0.38),
+          enabled ? cs.primary : cs.onSurface.withValues(alpha: AppTheme.opacityDisabled),
         ),
       );
     }

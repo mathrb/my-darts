@@ -224,7 +224,7 @@ class _WinnerCard extends StatelessWidget {
                   Container(
                     height: 1,
                     width: 48,
-                    color: cs.outlineVariant.withValues(alpha: 0.2),
+                    color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderStrong),
                   ),
                   const SizedBox(height: 16),
                   _BigStat(
@@ -425,7 +425,7 @@ class _StatsBreakdownSection extends StatelessWidget {
             color: cs.surfaceContainer,
             borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
             border: Border.all(
-              color: cs.outlineVariant.withValues(alpha: 0.1),
+              color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderLight),
             ),
           ),
           child: SingleChildScrollView(
@@ -697,7 +697,7 @@ class _StickyFooter extends StatelessWidget {
             color: cs.surfaceContainerHighest.withValues(alpha: 0.8),
             border: Border(
               top: BorderSide(
-                color: cs.surfaceContainer.withValues(alpha: 0.3),
+                color: cs.surfaceContainer.withValues(alpha: AppTheme.opacityBottomBarTopEdge),
               ),
             ),
           ),
@@ -764,7 +764,7 @@ class _FooterButton extends StatelessWidget {
             border: isPrimary
                 ? null
                 : Border.all(
-                    color: cs.outlineVariant.withValues(alpha: 0.2),
+                    color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderStrong),
                   ),
           ),
           child: Row(

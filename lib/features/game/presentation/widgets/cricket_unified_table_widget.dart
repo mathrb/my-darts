@@ -250,11 +250,11 @@ class _CricketNumberRow extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: isRowClosed
-            ? cs.surfaceContainerHighest.withValues(alpha: 0.38)
+            ? cs.surfaceContainerHighest.withValues(alpha: AppTheme.opacityDisabled)
             : null,
         border: Border(
           bottom: BorderSide(
-            color: cs.outlineVariant.withValues(alpha: 0.10),
+            color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderLight),
           ),
         ),
       ),
@@ -479,7 +479,7 @@ class _InputCell extends StatelessWidget {
                 ? BoxDecoration(
                     border: Border(
                       right: BorderSide(
-                        color: cs.outlineVariant.withValues(alpha: 0.10),
+                        color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderLight),
                       ),
                     ),
                   )

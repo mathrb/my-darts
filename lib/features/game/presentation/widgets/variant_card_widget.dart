@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/app_theme.dart';
+
 class VariantCardWidget extends StatelessWidget {
   const VariantCardWidget({
     super.key,
@@ -33,7 +35,7 @@ class VariantCardWidget extends StatelessWidget {
       child: InkWell(
         onTap: isEnabled ? onTap : null,
         borderRadius: BorderRadius.circular(12),
-        splashColor: cs.onSurface.withOpacity(0.12),
+        splashColor: cs.onSurface.withValues(alpha: AppTheme.opacityKineticIconBackground),
         child: Container(
           constraints: const BoxConstraints(minHeight: 64),
           decoration: _buildDecoration(cs),

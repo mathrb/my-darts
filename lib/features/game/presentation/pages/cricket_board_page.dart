@@ -250,10 +250,10 @@ class _BottomActionBar extends StatelessWidget {
     return SafeArea(
       child: Container(
         decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest.withValues(alpha: 0.6),
+          color: cs.surfaceContainerHighest.withValues(alpha: AppTheme.opacityBottomBarBackground),
           border: Border(
             top: BorderSide(
-              color: cs.surfaceContainer.withValues(alpha: 0.3),
+              color: cs.surfaceContainer.withValues(alpha: AppTheme.opacityBottomBarTopEdge),
             ),
           ),
         ),
@@ -276,7 +276,7 @@ class _BottomActionBar extends StatelessWidget {
                     borderRadius:
                         BorderRadius.circular(AppTheme.radiusLarge),
                     border: Border.all(
-                      color: cs.outlineVariant.withValues(alpha: 0.2),
+                      color: cs.outlineVariant.withValues(alpha: AppTheme.opacityGhostBorderStrong),
                     ),
                   ),
                   child: Icon(
@@ -295,9 +295,9 @@ class _BottomActionBar extends StatelessWidget {
                   backgroundColor: cs.primaryFixed,
                   foregroundColor: AppColors.onPrimaryFixed,
                   disabledBackgroundColor:
-                      cs.primaryFixed.withValues(alpha: 0.38),
+                      cs.primaryFixed.withValues(alpha: AppTheme.opacityDisabled),
                   disabledForegroundColor:
-                      AppColors.onPrimaryFixed.withValues(alpha: 0.38),
+                      AppColors.onPrimaryFixed.withValues(alpha: AppTheme.opacityDisabled),
                   minimumSize: const Size.fromHeight(56),
                   shape: RoundedRectangleBorder(
                     borderRadius:

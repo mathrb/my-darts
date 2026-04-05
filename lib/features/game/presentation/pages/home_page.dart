@@ -125,10 +125,10 @@ class _KineticGameCard extends StatelessWidget {
                   height: 44,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: cs.primaryFixed.withValues(alpha: 0.12),
+                    color: cs.primaryFixed.withValues(alpha: AppTheme.opacityKineticIconBackground),
                     borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
                     border: Border.all(
-                      color: cs.primaryFixed.withValues(alpha: 0.25),
+                      color: cs.primaryFixed.withValues(alpha: AppTheme.opacityKineticIconBorder),
                       width: 1,
                     ),
                   ),

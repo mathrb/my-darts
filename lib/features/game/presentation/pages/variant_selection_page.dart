@@ -263,7 +263,7 @@ class _LastPlayedCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         border: Border.all(
-          color: cs.primaryFixed.withValues(alpha: 0.20),
+          color: cs.primaryFixed.withValues(alpha: AppTheme.opacityGhostBorderStrong),
           width: 1,
         ),
       );
