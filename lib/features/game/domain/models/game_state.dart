@@ -1,7 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../../../core/utils/constants.dart';
 import '../engines/base_game_engine.dart';
-import '../engines/checkout_table.dart';
 import '../entities/game.dart';
 import '../entities/competitor.dart';
 import '../models/game_config.dart';
@@ -34,7 +33,7 @@ abstract class GameState with _$GameState {
     @Default(7) int shanghaiTotalRounds,
     @Default(0) int catch40TargetRemaining,
     @Default(0) int catch40DartsOnTarget,
-    @Default([]) List<int> checkoutPracticeOrder,
+    int? checkoutTargetSuccesses,
   }) = _GameState;
 
   factory GameState.fromJson(Map<String, dynamic> json) => _$GameStateFromJson(json);
@@ -52,7 +51,7 @@ abstract class GameState with _$GameState {
     String aroundTheClockVariant = 'standard';
     int shanghaiTotalRounds = 7;
     int catch40TargetRemaining = 0;
-    List<int> checkoutPracticeOrder = [];
+    int? checkoutTargetSuccesses;
 
     if (game.config is X01GameConfig) {
       final x01Config = game.config as X01GameConfig;
@@ -75,10 +74,7 @@ abstract class GameState with _$GameState {
     } else if (game.config is Bobs27GameConfig) {
       startingScore = 27;
     } else if (game.config is CheckoutPracticeGameConfig) {
-      startingScore = 0;
-      final config = game.config as CheckoutPracticeGameConfig;
-      final order = kCheckoutTable.map((e) => e['finish'] as int).toList();
-      checkoutPracticeOrder = config.randomOrder ? (order..shuffle()) : order;
+      startingScore = 170;
     } else {
       startingScore = 0;
     }
@@ -87,8 +83,6 @@ abstract class GameState with _$GameState {
     int? initialTarget;
     if (game.config is AroundTheClockGameConfig) {
       initialTarget = aroundTheClockVariant == 'reverse' ? 20 : 1;
-    } else if (game.config is CheckoutPracticeGameConfig) {
-      initialTarget = checkoutPracticeOrder.isNotEmpty ? checkoutPracticeOrder[0] : 170;
     }
 
     // Convert competitors to competitor states
@@ -136,7 +130,7 @@ abstract class GameState with _$GameState {
       shanghaiTotalRounds: shanghaiTotalRounds,
       catch40TargetRemaining: catch40TargetRemaining,
       catch40DartsOnTarget: 0,
-      checkoutPracticeOrder: checkoutPracticeOrder,
+      checkoutTargetSuccesses: checkoutTargetSuccesses,
     );
   }
 }

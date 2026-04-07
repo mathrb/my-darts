@@ -44,15 +44,13 @@ class PracticeTargetDisplayWidget extends StatelessWidget {
         'Score: $score | Round $practiceRound/$totalRounds',
       GameType.catch40 =>
         'Score: $score | Max: 120',
-      GameType.checkoutPractice => _checkoutRate(),
+      GameType.checkoutPractice => _checkoutDartsThrown(),
       _ => '',
     };
   }
 
-  String _checkoutRate() {
-    if (practiceAttempts == 0) return '$practiceSuccesses/$practiceAttempts — —';
-    final rate = (practiceSuccesses / practiceAttempts * 100).round();
-    return '$practiceSuccesses/$practiceAttempts — $rate%';
+  String _checkoutDartsThrown() {
+    return '$practiceAttempts darts thrown';
   }
 
   @override

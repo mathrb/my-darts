@@ -36,6 +36,13 @@ class PracticeInputButtonsWidget extends StatelessWidget {
       );
     }
 
+    if (gameType == GameType.checkoutPractice) {
+      return DartInputGridWidget(
+        onSegmentTapped: onDartThrown,
+        enabled: enabled,
+      );
+    }
+
     if (gameType == GameType.aroundTheClock || gameType == GameType.shanghai) {
       return _AroundTheClockInputBar(
         n: currentTarget,

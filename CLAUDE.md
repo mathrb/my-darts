@@ -36,6 +36,7 @@ Check the relevant spec before implementing. These are the source of truth.
 | X01 scoring rules and transitions | `docs/games/x01.transitions.md` |
 | Cricket scoring rules and transitions | `docs/games/cricket.transitions.md` |
 | Around the Clock transitions | `docs/games/around-the-clock.md` |
+| 170 Checkout Practice rules and transitions | `docs/games/checkout-practice.md` |
 | Statistics definitions and projections | `docs/statistics/x01.projections.md`, `docs/statistics/statistics.architecture.md` |
 | Riverpod providers, state patterns | `docs/STATE_MANAGEMENT.md` |
 | Navigation flows and screen index | `docs/UI_SCREEN_FLOWS_V3_FINAL.md` |

@@ -67,10 +67,13 @@ class PracticeBoardPage extends ConsumerWidget {
         final isBobs27 = gs.gameType == GameType.bobs27;
         final isCatch40 = gs.gameType == GameType.catch40;
         final isShanghai = gs.gameType == GameType.shanghai;
+        final isCheckout = gs.gameType == GameType.checkoutPractice;
         final doublesOnly = isAtc && gs.aroundTheClockVariant == 'doublesOnly';
         final effectiveTarget = (isBobs27 || isShanghai)
             ? competitor.practiceRound
-            : competitor.currentTarget;
+            : isCheckout
+                ? competitor.score
+                : competitor.currentTarget;
         final roundScore = isCatch40
             ? _computeRoundScore(competitor.dartThrows, gs.dartsThrownInTurn)
             : 0;
@@ -158,6 +161,19 @@ class PracticeBoardPage extends ConsumerWidget {
                     ),
                   ],
                 ),
+              );
+            } else if (isCheckout) {
+              _showCheckoutModal(
+                context,
+                'Checkout!',
+                competitor.dartThrows.length,
+                competitor.turnStartScore,
+                0,
+                () {
+                  Navigator.of(context).pop();
+                  context.go(GameRoutes.home);
+                  notifier.dismissGameModal();
+                },
               );
             } else {
               final winner = gs.competitors.firstWhere(
@@ -269,36 +285,18 @@ class PracticeBoardPage extends ConsumerWidget {
                   ],
                 ),
               );
-            } else {
-              showDialog<void>(
-                context: context,
-                barrierDismissible: false,
-                builder: (_) => AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                  ),
-                  insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-                  title: Text(
-                    'Drill complete!',
-                    style: AppTextStyles.headingLarge.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  content: Text(
-                    'Attempts: ${competitor.practiceAttempts}\n'
-                    'Successes: ${competitor.practiceSuccesses}',
-                  ),
-                  actions: [
-                    FilledButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        context.go(GameRoutes.home);
-                        notifier.dismissGameModal();
-                      },
-                      child: const Text('NEW DRILL'),
-                    ),
-                  ],
-                ),
+            } else if (isCheckout) {
+              _showCheckoutModal(
+                context,
+                'Drill Ended',
+                competitor.dartThrows.length,
+                null,
+                competitor.score,
+                () {
+                  Navigator.of(context).pop();
+                  context.go(GameRoutes.home);
+                  notifier.dismissGameModal();
+                },
               );
             }
           });
@@ -348,7 +346,7 @@ class PracticeBoardPage extends ConsumerWidget {
                   currentTarget: effectiveTarget,
                   doublesOnly: doublesOnly,
                   bobs27: isBobs27,
-                  noHighlight: isCatch40,
+                  noHighlight: isCatch40 || isCheckout,
                 ),
               ),
               PracticeTargetDisplayWidget(
@@ -357,13 +355,15 @@ class PracticeBoardPage extends ConsumerWidget {
                 practiceRound: competitor.practiceRound,
                 totalRounds: _totalRounds(gs),
                 score: competitor.score,
-                practiceAttempts: competitor.practiceAttempts,
+                practiceAttempts: isCheckout
+                    ? competitor.dartThrows.length
+                    : competitor.practiceAttempts,
                 practiceSuccesses: competitor.practiceSuccesses,
                 roundScore: roundScore,
               ),
               if (isShanghai)
                 _ShanghaiBonus(show: practiceState.showShanghaiBonus),
-              if (isCatch40)
+              if (isCatch40 || isCheckout)
                 Expanded(
                   flex: 2,
                   child: PracticeInputButtonsWidget(
@@ -419,6 +419,44 @@ class PracticeBoardPage extends ConsumerWidget {
     );
   }
 
+  static void _showCheckoutModal(
+    BuildContext context,
+    String title,
+    int dartsThrown,
+    int? checkoutScore,
+    int remainingScore,
+    VoidCallback onDismiss,
+  ) {
+    final content = checkoutScore != null
+        ? 'Checked out from $checkoutScore\nDarts thrown: $dartsThrown'
+        : 'Score remaining: $remainingScore\nDarts thrown: $dartsThrown';
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        ),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        title: Text(
+          title,
+          style: AppTextStyles.headingLarge.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        content: Text(
+          content,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        actions: [
+          FilledButton(onPressed: onDismiss, child: const Text('NEW DRILL')),
+        ],
+      ),
+    );
+  }
+
   static int _computeRoundScore(List<String> dartThrows, int dartsThrownInTurn) {
     if (dartsThrownInTurn == 0) return 0;
     final current = dartThrows.sublist(dartThrows.length - dartsThrownInTurn);
@@ -448,7 +486,7 @@ class PracticeBoardPage extends ConsumerWidget {
         GameType.bobs27 => 20,
         GameType.shanghai => gs.shanghaiTotalRounds,
         GameType.catch40 => 40,
-        GameType.checkoutPractice => gs.checkoutPracticeOrder.length,
+        GameType.checkoutPractice => gs.checkoutTargetSuccesses,
         _ => null,
       };
 }
@@ -479,14 +517,8 @@ class _BottomBar extends StatelessWidget {
     final isCatch40 = gameType == GameType.catch40;
 
     final nextEnabled = isCatch40 ? showNextTarget : showNextRound;
-    final nextLabel = isCatch40
-        ? 'NEXT TARGET'
-        : isCheckout
-            ? 'END DRILL'
-            : 'NEXT ROUND';
-    final VoidCallback? onNext = nextEnabled
-        ? (isCheckout ? () => onEndDrill() : () => onNextRound())
-        : null;
+    final nextLabel = isCatch40 ? 'NEXT TARGET' : 'NEXT ROUND';
+    final VoidCallback? onNext = nextEnabled ? () => onNextRound() : null;
 
     return Container(
       decoration: BoxDecoration(

@@ -34,11 +34,7 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
   catch40TargetRemaining:
       (json['catch40TargetRemaining'] as num?)?.toInt() ?? 0,
   catch40DartsOnTarget: (json['catch40DartsOnTarget'] as num?)?.toInt() ?? 0,
-  checkoutPracticeOrder:
-      (json['checkoutPracticeOrder'] as List<dynamic>?)
-          ?.map((e) => (e as num).toInt())
-          .toList() ??
-      const [],
+  checkoutTargetSuccesses: (json['checkoutTargetSuccesses'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
@@ -65,7 +61,7 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'shanghaiTotalRounds': instance.shanghaiTotalRounds,
       'catch40TargetRemaining': instance.catch40TargetRemaining,
       'catch40DartsOnTarget': instance.catch40DartsOnTarget,
-      'checkoutPracticeOrder': instance.checkoutPracticeOrder,
+      'checkoutTargetSuccesses': instance.checkoutTargetSuccesses,
     };
 
 const _$GameTypeEnumMap = {

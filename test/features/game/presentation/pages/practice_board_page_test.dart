@@ -10,6 +10,7 @@ import 'package:my_darts/features/game/domain/models/game_state.dart';
 import 'package:my_darts/features/game/presentation/pages/practice_board_page.dart';
 import 'package:my_darts/features/game/presentation/providers/active_practice_provider.dart';
 import 'package:my_darts/features/game/presentation/state/active_practice_state.dart';
+import 'package:my_darts/features/game/presentation/widgets/dart_input_grid_widget.dart';
 import 'package:my_darts/features/game/presentation/widgets/practice_input_buttons_widget.dart';
 import 'package:my_darts/features/game/presentation/widgets/practice_target_display_widget.dart';
 
@@ -383,9 +384,9 @@ void main() {
     expect(nextRoundBtn.onPressed, isNotNull);
   });
 
-  // ── 14. END DRILL shown for checkoutPractice, NEXT ROUND absent ───────────
+  // ── 14. NEXT ROUND shown for checkoutPractice (same as other practice modes) ─
 
-  testWidgets('14. END DRILL shown for checkoutPractice, NEXT ROUND absent',
+  testWidgets('14. NEXT ROUND shown for checkoutPractice',
       (tester) async {
     final gs = _practiceState(
       gameType: GameType.checkoutPractice,
@@ -396,8 +397,8 @@ void main() {
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(FilledButton, 'END DRILL'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'NEXT ROUND'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'NEXT ROUND'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'END DRILL'), findsNothing);
   });
 
   // ── 15. NEXT ROUND disabled when < 3 darts ────────────────────────────────
@@ -506,17 +507,17 @@ void main() {
     expect(missInInputButtons, findsOneWidget);
   });
 
-  testWidgets('19c. PracticeInputButtonsWidget contains MISS for checkoutPractice',
+  testWidgets('19c. PracticeInputButtonsWidget uses DartInputGridWidget for checkoutPractice',
       (tester) async {
     final gs = _practiceState(gameType: GameType.checkoutPractice);
     final notifier = _FakeActivePracticeNotifier(_activeState(gameState: gs));
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
-    final missInInputButtons = find.descendant(
+    final gridInInputButtons = find.descendant(
       of: find.byType(PracticeInputButtonsWidget),
-      matching: find.text('MISS'),
+      matching: find.byType(DartInputGridWidget),
     );
-    expect(missInInputButtons, findsOneWidget);
+    expect(gridInInputButtons, findsOneWidget);
   });
 }
