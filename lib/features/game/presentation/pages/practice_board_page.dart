@@ -13,6 +13,7 @@ import '../../../../core/widgets/loading_spinner_widget.dart';
 import '../../domain/models/game_state.dart';
 import '../providers/active_practice_provider.dart';
 import '../widgets/dartboard_highlight_widget.dart';
+import '../widgets/end_game_dialog_widget.dart';
 import '../widgets/game_status_bar_widget.dart';
 import '../widgets/practice_input_buttons_widget.dart';
 import '../widgets/practice_target_display_widget.dart';
@@ -303,11 +304,14 @@ class PracticeBoardPage extends ConsumerWidget {
           });
         }
 
-        return Scaffold(
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (_, __) => _confirmBack(context),
+          child: Scaffold(
           appBar: AppHeader(
             boardMode: true,
             showBack: true,
-            onBack: () => context.go(GameRoutes.home),
+            onBack: () => _confirmBack(context),
             trailing: PopupMenuButton<_DrillAction>(
               icon: const Icon(Icons.more_vert, color: Colors.white),
               onSelected: (action) async {
@@ -396,8 +400,22 @@ class PracticeBoardPage extends ConsumerWidget {
               ),
             ],
           ),
+          ),
         );
       },
+    );
+  }
+
+  void _confirmBack(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => EndGameDialogWidget(
+        onConfirm: () {
+          Navigator.of(dialogContext).pop();
+          context.go(GameRoutes.home);
+        },
+        onCancel: () => Navigator.of(dialogContext).pop(),
+      ),
     );
   }
 

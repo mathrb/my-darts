@@ -450,12 +450,27 @@ void main() {
 
   // ── 18. Back button navigates to home ─────────────────────────────────────
 
-  testWidgets('18. Back button navigates to home route', (tester) async {
+  testWidgets('18. Back button shows confirmation dialog then navigates to home',
+      (tester) async {
     final notifier = _FakeActivePracticeNotifier(_activeState());
     await tester.pumpWidget(_buildApp(notifier));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+
+    // Confirmation dialog should appear
+    expect(find.text('End Game?'), findsOneWidget);
+
+    // Tapping Cancel keeps the game
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('End Game?'), findsNothing);
+
+    // Tapping back again and confirming navigates home
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('End Game'));
     await tester.pumpAndSettle();
 
     expect(find.text('home'), findsOneWidget);

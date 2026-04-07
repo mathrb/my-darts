@@ -168,11 +168,14 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
 
         final roundInLeg = gameState.currentRoundInLeg;
 
-        return Scaffold(
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (_, __) => _confirmBack(context),
+          child: Scaffold(
           appBar: AppHeader(
             boardMode: true,
             showBack: true,
-            onBack: () => context.go(GameRoutes.home),
+            onBack: () => _confirmBack(context),
             trailing: InkWell(
               onTap: () => _showEndGameDialog(context),
               borderRadius: BorderRadius.circular(AppTheme.radiusFull),
@@ -225,8 +228,22 @@ class _X01BoardPageState extends ConsumerState<X01BoardPage>
                   ),
                 ],
           ),
+          ),
         );
       },
+    );
+  }
+
+  void _confirmBack(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => EndGameDialogWidget(
+        onConfirm: () {
+          Navigator.of(dialogContext).pop();
+          context.go(GameRoutes.home);
+        },
+        onCancel: () => Navigator.of(dialogContext).pop(),
+      ),
     );
   }
 
