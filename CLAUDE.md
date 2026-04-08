@@ -24,6 +24,8 @@ flutter test -r failures-only  # errors only
 flutter analyze                 # static analysis
 ```
 
+**Mobile debugging:** No USB connection available. APK is built via GitHub Actions CI. To debug mobile-only issues, surface errors in the UI (e.g. timeouts with step labels) rather than relying on `flutter logs` or console output.
+
 ---
 
 ## Spec Document Index
@@ -197,6 +199,7 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 - Skip or comment out contract tests to make CI pass
 - Add database triggers — immutability of completed games is application logic only
 - Add packages without checking whether the existing stack already covers the need
+- Run `flutter create --platforms=android .` locally — Android platform is scaffolded in CI only
 - Build an Android APK without first scaffolding the platform: `android/` is not in the repo — run `flutter create --platforms=android .` before `flutter build apk`
 
 ---

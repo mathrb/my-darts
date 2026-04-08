@@ -50,6 +50,7 @@ void main() {
           name: 'Player 1',
           playerIds: ['p1'],
           score: 501,
+          startingScore: 501,
           isIn: false,
           legsWon: 0,
         ),
@@ -58,6 +59,7 @@ void main() {
           name: 'Player 2',
           playerIds: ['p2'],
           score: 501,
+          startingScore: 501,
           isIn: false,
           legsWon: 0,
         ),
@@ -1312,8 +1314,8 @@ void main() {
         legsToWin: 2, // Multi-leg game to test reset
         currentLegIndex: 0,
         competitors: [
-          initialState.competitors[0].copyWith(score: 40, isIn: true, legsWon: 0),
-          initialState.competitors[1].copyWith(score: 100, isIn: true, legsWon: 0),
+          initialState.competitors[0].copyWith(score: 40, startingScore: 301, isIn: true, legsWon: 0),
+          initialState.competitors[1].copyWith(score: 100, startingScore: 301, isIn: true, legsWon: 0),
         ],
       );
 
