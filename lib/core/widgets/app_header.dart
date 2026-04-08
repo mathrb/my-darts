@@ -26,7 +26,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   final bool boardMode;
 
   @override
-  Size get preferredSize => Size.fromHeight(boardMode ? 64.0 : 56.0);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
@@ -35,19 +35,19 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
 
   Widget _buildBoardBar(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Container(
-      height: 64,
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.white.withValues(alpha: 0.05),
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        height: kToolbarHeight,
+        decoration: BoxDecoration(
+          color: Colors.black,
+          border: Border(
+            bottom: BorderSide(
+              color: Colors.white.withValues(alpha: 0.05),
+            ),
           ),
         ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: SafeArea(
-        bottom: false,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Row(
           children: [
             if (showBack)
@@ -82,6 +82,8 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
       ),
     );
   }
+
+
 
   Widget _buildContentHeader(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
