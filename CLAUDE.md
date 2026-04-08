@@ -18,8 +18,10 @@ A local-first, open-source darts scoring app for Android and iOS built with Flut
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs  # after any @freezed or @riverpod change
 flutter run -d chrome
+flutter run -d web-server --web-port 8087 --web-hostname 0.0.0.0  # headless/remote server
 flutter test
 flutter test -r failures-only  # errors only
+flutter analyze                 # static analysis
 ```
 
 ---
@@ -43,6 +45,21 @@ Check the relevant spec before implementing. These are the source of truth.
 | Design tokens, colors, typography, spacing | `docs/design/DESIGN_SYSTEM.md` |
 | Data entities and field names | `docs/DATA.md` |
 | Backend REST endpoints (optional) | `docs/API_CONTRACT.md` |
+| Full architecture reference | `docs/ARCHITECTURE_COMPLETE.md` |
+
+### Web — one-time asset setup (required before first `flutter run`)
+
+```bash
+# 1. Compile the Drift web worker (only needed when drift version changes)
+dart compile js -O4 -o web/drift_worker.dart.js web/drift_worker.dart
+
+# 2. Download sqlite3.wasm matching pubspec.lock version
+grep -A7 "^  sqlite3:$" pubspec.lock | grep version   # check version
+curl -L -o web/sqlite3.wasm \
+  "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-v<VERSION>/sqlite3.wasm"
+```
+
+Missing either file causes a silent 404 that breaks the database provider. See `docs/BUILD.md` for full troubleshooting.
 
 ---
 
@@ -106,9 +123,11 @@ Platform selection (native SQLite vs WASM) happens once in the Drift factory. Ev
 
 ## Riverpod Conventions
 
-Follow `docs/STATE_MANAGEMENT.md` exactly. Two rules that are easiest to violate:
+Follow `docs/STATE_MANAGEMENT.md` exactly. Rules that are easiest to violate:
+- Provider names strip the `Notifier` suffix: `FooNotifier` → `fooProvider`; family variant `FooNotifier.build(String id)` → `fooProvider('id')`.
 - Use `ref.watch()` inside `build()`. Use `ref.read()` only in event handlers and notifier methods.
 - Handle all three `AsyncValue` states in every widget: `data`, `loading`, `error`. Never use `.value!` without fallbacks.
+- Use `AsyncValue.value` (returns `T?`) — not `valueOrNull` — in Riverpod 3.x.
 
 ---
 
@@ -144,6 +163,8 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 
 ## Key Rules
 
+**GameConfig dispatch:** Use `maybeMap` (not `maybeWhen`) — callbacks receive typed subclass instances: `config.maybeMap(x01: (c) => c.startingScore, orElse: () => '')`. Requires explicit `import 'game_config.dart'`; not available via transitive import.
+
 **Repository exceptions:** All exceptions extend `RepositoryException` (`lib/core/error/repository_exception.dart`). Never throw raw `Exception` from a repository implementation.
 
 **Contract tests:** Every repository implementation must pass the shared contract tests in `test/contracts/`. Never skip or comment out tests to make CI pass.
@@ -176,6 +197,7 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 - Skip or comment out contract tests to make CI pass
 - Add database triggers — immutability of completed games is application logic only
 - Add packages without checking whether the existing stack already covers the need
+- Build an Android APK without first scaffolding the platform: `android/` is not in the repo — run `flutter create --platforms=android .` before `flutter build apk`
 
 ---
 
