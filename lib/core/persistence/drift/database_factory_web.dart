@@ -12,11 +12,12 @@
 import 'package:drift/wasm.dart';
 import 'package:drift/drift.dart';
 import 'package:sqlite3/wasm.dart';
+import 'drift_web_constants.dart';
 
 Future<QueryExecutor> createDatabaseExecutor() async {
   final sqlite3 = await WasmSqlite3.loadFromUrl(Uri.parse('sqlite3.wasm'));
 
-  final fs = await IndexedDbFileSystem.open(dbName: 'darts_db');
+  final fs = await IndexedDbFileSystem.open(dbName: kDriftWebDbName);
 
   // Register the VFS with the sqlite3 module so it can open files stored in
   // IndexedDB. Without this, sqlite3.open('/darts.db') fails with
@@ -26,7 +27,7 @@ Future<QueryExecutor> createDatabaseExecutor() async {
 
   return WasmDatabase(
     sqlite3: sqlite3,
-    path: '/darts.db',
+    path: kDriftWebDbPath,
     fileSystem: fs,
   );
 }

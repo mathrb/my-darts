@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:my_darts/app/app_router.dart';
 import 'package:my_darts/core/persistence/database_provider.dart';
+import 'package:my_darts/core/persistence/drift/drift_helper.dart';
 import 'package:my_darts/features/players/presentation/providers/players_provider.dart';
 import '../providers/settings_provider.dart';
 
@@ -15,6 +16,21 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _erasing = false;
+  bool _downloading = false;
+
+  Future<void> _downloadDatabase() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _downloading = true);
+    try {
+      await DriftHelper.instance.downloadDatabase();
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
 
   Future<void> _confirmAndErase(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -97,6 +113,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               context: context,
               applicationName: 'Darts',
             ),
+          ),
+          const Divider(height: 1),
+          _SectionHeader(label: 'Debug', cs: cs, tt: tt),
+          ListTile(
+            leading: _downloading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.download_outlined),
+            title: const Text('Download Database'),
+            subtitle: const Text('Export SQLite file for debugging'),
+            enabled: !_downloading,
+            onTap: _downloadDatabase,
           ),
           const Divider(height: 1),
           _SectionHeader(label: 'Danger Zone', cs: cs, tt: tt),
