@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../domain/models/game_state.dart';
 import '../../../../core/persistence/database_provider.dart';
@@ -13,40 +12,34 @@ part 'game_replay_provider.g.dart';
 /// fetch → initial-state → replay sequence lives in exactly one place.
 @riverpod
 Future<GameState?> loadedGameState(Ref ref, String gameId) async {
-  var step = 'init';
-  try {
-    step = 'getGame';
-    final game = await ref.read(gameRepositoryProvider).getGame(gameId)
-        .timeout(const Duration(seconds: 5), onTimeout: () => throw TimeoutException('getGame hung'));
-    if (game == null) return null;
+  // Capture all provider references synchronously before any async gaps,
+  // so we don't call ref.read() after the provider has been disposed.
+  final gameRepo = ref.read(gameRepositoryProvider);
+  final eventRepo = ref.read(gameEventRepositoryProvider);
+  final engines = {
+    GameType.x01: ref.read(x01EngineProvider),
+    GameType.cricket: ref.read(cricketEngineProvider),
+    GameType.aroundTheClock: ref.read(aroundTheClockEngineProvider),
+    GameType.bobs27: ref.read(bobs27EngineProvider),
+    GameType.shanghai: ref.read(shanghaiEngineProvider),
+    GameType.catch40: ref.read(catch40EngineProvider),
+    GameType.checkoutPractice: ref.read(checkoutPracticeEngineProvider),
+  };
 
-    step = 'getCompetitors';
-    final competitors = await ref.read(gameRepositoryProvider).getCompetitors(gameId)
-        .timeout(const Duration(seconds: 5), onTimeout: () => throw TimeoutException('getCompetitors hung'));
+  final game = await gameRepo.getGame(gameId);
+  if (game == null) return null;
 
-    step = 'getEvents';
-    final events = await ref.read(gameEventRepositoryProvider).getEventsForGame(gameId)
-        .timeout(const Duration(seconds: 5), onTimeout: () => throw TimeoutException('getEventsForGame hung'));
-
-    step = 'selectEngine(${game.gameType})';
-    final engine = switch (game.gameType) {
-      GameType.x01 => ref.read(x01EngineProvider),
-      GameType.cricket => ref.read(cricketEngineProvider),
-      GameType.aroundTheClock => ref.read(aroundTheClockEngineProvider),
-      GameType.bobs27 => ref.read(bobs27EngineProvider),
-      GameType.shanghai => ref.read(shanghaiEngineProvider),
-      GameType.catch40 => ref.read(catch40EngineProvider),
-      GameType.checkoutPractice => ref.read(checkoutPracticeEngineProvider),
-      _ => throw UnsupportedError('No engine for: ${game.gameType}'),
-    };
-
-    step = 'replay(${events.length} events)';
-    var gs = GameState.initial(game, competitors);
-    for (final event in events) {
-      gs = engine.apply(gs, event).state;
-    }
-    return gs;
-  } catch (e) {
-    throw Exception('loadedGameState failed at step="$step": $e');
+  final engine = engines[game.gameType];
+  if (engine == null) {
+    throw UnsupportedError('No engine for: ${game.gameType}');
   }
+
+  final competitors = await gameRepo.getCompetitors(gameId);
+  final events = await eventRepo.getEventsForGame(gameId);
+
+  var gs = GameState.initial(game, competitors);
+  for (final event in events) {
+    gs = engine.apply(gs, event).state;
+  }
+  return gs;
 }
