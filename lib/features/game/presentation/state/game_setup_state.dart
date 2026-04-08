@@ -20,6 +20,7 @@ abstract class GameSetupState with _$GameSetupState {
     required GameType gameType,
     required GameConfig config,
     required List<String> selectedPlayerIds,
+    @Default(<String, int>{}) Map<String, int> playerHandicaps,
   }) = _SelectingPlayers;
 
   /// Team assignment step (UI not built in EPIC-004; included to avoid
@@ -35,6 +36,7 @@ abstract class GameSetupState with _$GameSetupState {
     required GameType gameType,
     required GameConfig config,
     required List<String> selectedPlayerIds,
+    @Default(<String, int>{}) Map<String, int> playerHandicaps,
   }) = _Ready;
 
   factory GameSetupState.initial() => const GameSetupState.selectingType();

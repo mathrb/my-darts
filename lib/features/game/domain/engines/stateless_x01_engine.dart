@@ -370,12 +370,9 @@ class StatelessX01Engine implements GameEngine {
   
   /// Reset leg state for next leg (Table K)
   GameState _resetLeg(GameState state) {
-    // Reset scores to starting score from game state
-    final startingScore = state.startingScore;
-    
     final resetCompetitors = state.competitors.map((competitor) {
       return competitor.copyWith(
-        score: startingScore,
+        score: competitor.startingScore,
         isIn: false, // Reset in-state
         turnStartScore: null, // Clear turn start score
         isComplete: false,

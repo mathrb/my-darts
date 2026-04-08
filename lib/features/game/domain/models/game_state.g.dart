@@ -120,6 +120,7 @@ _CompetitorState _$CompetitorStateFromJson(Map<String, dynamic> json) =>
       practiceAttempts: (json['practiceAttempts'] as num?)?.toInt() ?? 0,
       practiceSuccesses: (json['practiceSuccesses'] as num?)?.toInt() ?? 0,
       routeProgress: (json['routeProgress'] as num?)?.toInt() ?? 0,
+      startingScore: (json['startingScore'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$CompetitorStateToJson(_CompetitorState instance) =>
@@ -140,4 +141,5 @@ Map<String, dynamic> _$CompetitorStateToJson(_CompetitorState instance) =>
       'practiceAttempts': instance.practiceAttempts,
       'practiceSuccesses': instance.practiceSuccesses,
       'routeProgress': instance.routeProgress,
+      'startingScore': instance.startingScore,
     };

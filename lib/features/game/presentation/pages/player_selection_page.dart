@@ -112,6 +112,12 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
       orElse: () => null,
     );
 
+    final playerHandicaps = setupState.maybeMap(
+      selectingPlayers: (s) => s.playerHandicaps,
+      orElse: () => const <String, int>{},
+    );
+    final isX01 = config is X01GameConfig;
+
     final canStart = notifier.canStart;
     final maxPlayers = gameType != null ? _maxPlayersFor(gameType) : null;
 
@@ -184,6 +190,10 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
               players: players,
               onReorder: notifier.reorderPlayers,
               onRemove: (id) => notifier.togglePlayer(id),
+              playerHandicaps: playerHandicaps,
+              onHandicapChanged: isX01
+                  ? (id, h) => notifier.setPlayerHandicap(id, h)
+                  : null,
             ),
 
             // Roster section header + add button
@@ -480,12 +490,16 @@ class _ActiveLineup extends StatelessWidget {
     required this.players,
     required this.onReorder,
     required this.onRemove,
+    this.playerHandicaps = const {},
+    this.onHandicapChanged,
   });
 
   final List<String> selectedPlayerIds;
   final List<Player> players;
   final void Function(int oldIndex, int newIndex) onReorder;
   final void Function(String id) onRemove;
+  final Map<String, int> playerHandicaps;
+  final void Function(String playerId, int handicap)? onHandicapChanged;
 
   Player _playerById(String id) => players.firstWhere(
     (p) => p.playerId == id,
@@ -544,6 +558,10 @@ class _ActiveLineup extends StatelessWidget {
             index: index,
             player: player,
             onRemove: () => onRemove(id),
+            handicap: playerHandicaps[id] ?? 0,
+            onHandicapChanged: onHandicapChanged != null
+                ? (h) => onHandicapChanged!(id, h)
+                : null,
           );
         },
       ),
@@ -557,11 +575,15 @@ class _ActivePlayerCard extends ConsumerWidget {
     required this.index,
     required this.player,
     required this.onRemove,
+    this.handicap = 0,
+    this.onHandicapChanged,
   });
 
   final int index;
   final Player player;
   final VoidCallback onRemove;
+  final int handicap;
+  final ValueChanged<int>? onHandicapChanged;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -663,6 +685,14 @@ class _ActivePlayerCard extends ConsumerWidget {
               ),
             ),
 
+            if (onHandicapChanged != null) ...[
+              const SizedBox(width: AppSpacing.space1),
+              _HandicapChip(
+                handicap: handicap,
+                onChanged: onHandicapChanged!,
+              ),
+            ],
+
             // Remove button
             IconButton(
               onPressed: onRemove,
@@ -677,6 +707,74 @@ class _ActivePlayerCard extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Handicap chip ─────────────────────────────────────────────────────────────
+
+class _HandicapChip extends StatelessWidget {
+  const _HandicapChip({required this.handicap, required this.onChanged});
+
+  final int handicap;
+  final ValueChanged<int> onChanged;
+
+  static const _values = [0, -50, -100, -150, -200];
+
+  String _label(int value) => value == 0 ? '0' : '−${value.abs()}';
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final isActive = handicap != 0;
+
+    return PopupMenuButton<int>(
+      initialValue: handicap,
+      onSelected: onChanged,
+      tooltip: 'Set handicap',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isActive ? cs.primaryFixed : cs.outlineVariant,
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+          color: isActive
+              ? cs.primaryFixed.withValues(alpha: 0.12)
+              : Colors.transparent,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'HCP',
+              style: tt.labelSmall?.copyWith(
+                fontSize: 9,
+                color: isActive ? cs.primaryFixed : cs.onSurfaceVariant,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 3),
+            Text(
+              _label(handicap),
+              style: tt.labelSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: isActive ? cs.primaryFixed : cs.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => _values
+          .map(
+            (value) => PopupMenuItem<int>(
+              value: value,
+              child: Text(_label(value)),
+            ),
+          )
+          .toList(),
     );
   }
 }

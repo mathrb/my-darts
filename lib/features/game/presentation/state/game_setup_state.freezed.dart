@@ -131,14 +131,14 @@ return ready(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  selectingType,TResult Function( GameType gameType,  GameConfig config)?  configuringGame,TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)?  selectingPlayers,TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)?  formingTeams,TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)?  ready,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  selectingType,TResult Function( GameType gameType,  GameConfig config)?  configuringGame,TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds,  Map<String, int> playerHandicaps)?  selectingPlayers,TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)?  formingTeams,TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds,  Map<String, int> playerHandicaps)?  ready,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SelectingType() when selectingType != null:
 return selectingType();case _ConfiguringGame() when configuringGame != null:
 return configuringGame(_that.gameType,_that.config);case _SelectingPlayers() when selectingPlayers != null:
-return selectingPlayers(_that.gameType,_that.config,_that.selectedPlayerIds);case _FormingTeams() when formingTeams != null:
+return selectingPlayers(_that.gameType,_that.config,_that.selectedPlayerIds,_that.playerHandicaps);case _FormingTeams() when formingTeams != null:
 return formingTeams(_that.gameType,_that.config,_that.selectedPlayerIds);case _Ready() when ready != null:
-return ready(_that.gameType,_that.config,_that.selectedPlayerIds);case _:
+return ready(_that.gameType,_that.config,_that.selectedPlayerIds,_that.playerHandicaps);case _:
   return orElse();
 
 }
@@ -156,14 +156,14 @@ return ready(_that.gameType,_that.config,_that.selectedPlayerIds);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  selectingType,required TResult Function( GameType gameType,  GameConfig config)  configuringGame,required TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)  selectingPlayers,required TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)  formingTeams,required TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)  ready,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  selectingType,required TResult Function( GameType gameType,  GameConfig config)  configuringGame,required TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds,  Map<String, int> playerHandicaps)  selectingPlayers,required TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)  formingTeams,required TResult Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds,  Map<String, int> playerHandicaps)  ready,}) {final _that = this;
 switch (_that) {
 case _SelectingType():
 return selectingType();case _ConfiguringGame():
 return configuringGame(_that.gameType,_that.config);case _SelectingPlayers():
-return selectingPlayers(_that.gameType,_that.config,_that.selectedPlayerIds);case _FormingTeams():
+return selectingPlayers(_that.gameType,_that.config,_that.selectedPlayerIds,_that.playerHandicaps);case _FormingTeams():
 return formingTeams(_that.gameType,_that.config,_that.selectedPlayerIds);case _Ready():
-return ready(_that.gameType,_that.config,_that.selectedPlayerIds);case _:
+return ready(_that.gameType,_that.config,_that.selectedPlayerIds,_that.playerHandicaps);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -180,14 +180,14 @@ return ready(_that.gameType,_that.config,_that.selectedPlayerIds);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  selectingType,TResult? Function( GameType gameType,  GameConfig config)?  configuringGame,TResult? Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)?  selectingPlayers,TResult? Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)?  formingTeams,TResult? Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)?  ready,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  selectingType,TResult? Function( GameType gameType,  GameConfig config)?  configuringGame,TResult? Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds,  Map<String, int> playerHandicaps)?  selectingPlayers,TResult? Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds)?  formingTeams,TResult? Function( GameType gameType,  GameConfig config,  List<String> selectedPlayerIds,  Map<String, int> playerHandicaps)?  ready,}) {final _that = this;
 switch (_that) {
 case _SelectingType() when selectingType != null:
 return selectingType();case _ConfiguringGame() when configuringGame != null:
 return configuringGame(_that.gameType,_that.config);case _SelectingPlayers() when selectingPlayers != null:
-return selectingPlayers(_that.gameType,_that.config,_that.selectedPlayerIds);case _FormingTeams() when formingTeams != null:
+return selectingPlayers(_that.gameType,_that.config,_that.selectedPlayerIds,_that.playerHandicaps);case _FormingTeams() when formingTeams != null:
 return formingTeams(_that.gameType,_that.config,_that.selectedPlayerIds);case _Ready() when ready != null:
-return ready(_that.gameType,_that.config,_that.selectedPlayerIds);case _:
+return ready(_that.gameType,_that.config,_that.selectedPlayerIds,_that.playerHandicaps);case _:
   return null;
 
 }
@@ -308,7 +308,7 @@ $GameConfigCopyWith<$Res> get config {
 
 
 class _SelectingPlayers implements GameSetupState {
-  const _SelectingPlayers({required this.gameType, required this.config, required final  List<String> selectedPlayerIds}): _selectedPlayerIds = selectedPlayerIds;
+  const _SelectingPlayers({required this.gameType, required this.config, required final  List<String> selectedPlayerIds, final  Map<String, int> playerHandicaps = const <String, int>{}}): _selectedPlayerIds = selectedPlayerIds,_playerHandicaps = playerHandicaps;
   
 
  final  GameType gameType;
@@ -318,6 +318,13 @@ class _SelectingPlayers implements GameSetupState {
   if (_selectedPlayerIds is EqualUnmodifiableListView) return _selectedPlayerIds;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_selectedPlayerIds);
+}
+
+ final  Map<String, int> _playerHandicaps;
+@JsonKey() Map<String, int> get playerHandicaps {
+  if (_playerHandicaps is EqualUnmodifiableMapView) return _playerHandicaps;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_playerHandicaps);
 }
 
 
@@ -331,16 +338,16 @@ _$SelectingPlayersCopyWith<_SelectingPlayers> get copyWith => __$SelectingPlayer
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SelectingPlayers&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.config, config) || other.config == config)&&const DeepCollectionEquality().equals(other._selectedPlayerIds, _selectedPlayerIds));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SelectingPlayers&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.config, config) || other.config == config)&&const DeepCollectionEquality().equals(other._selectedPlayerIds, _selectedPlayerIds)&&const DeepCollectionEquality().equals(other._playerHandicaps, _playerHandicaps));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,gameType,config,const DeepCollectionEquality().hash(_selectedPlayerIds));
+int get hashCode => Object.hash(runtimeType,gameType,config,const DeepCollectionEquality().hash(_selectedPlayerIds),const DeepCollectionEquality().hash(_playerHandicaps));
 
 @override
 String toString() {
-  return 'GameSetupState.selectingPlayers(gameType: $gameType, config: $config, selectedPlayerIds: $selectedPlayerIds)';
+  return 'GameSetupState.selectingPlayers(gameType: $gameType, config: $config, selectedPlayerIds: $selectedPlayerIds, playerHandicaps: $playerHandicaps)';
 }
 
 
@@ -351,7 +358,7 @@ abstract mixin class _$SelectingPlayersCopyWith<$Res> implements $GameSetupState
   factory _$SelectingPlayersCopyWith(_SelectingPlayers value, $Res Function(_SelectingPlayers) _then) = __$SelectingPlayersCopyWithImpl;
 @useResult
 $Res call({
- GameType gameType, GameConfig config, List<String> selectedPlayerIds
+ GameType gameType, GameConfig config, List<String> selectedPlayerIds, Map<String, int> playerHandicaps
 });
 
 
@@ -368,12 +375,13 @@ class __$SelectingPlayersCopyWithImpl<$Res>
 
 /// Create a copy of GameSetupState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? gameType = null,Object? config = null,Object? selectedPlayerIds = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? gameType = null,Object? config = null,Object? selectedPlayerIds = null,Object? playerHandicaps = null,}) {
   return _then(_SelectingPlayers(
 gameType: null == gameType ? _self.gameType : gameType // ignore: cast_nullable_to_non_nullable
 as GameType,config: null == config ? _self.config : config // ignore: cast_nullable_to_non_nullable
 as GameConfig,selectedPlayerIds: null == selectedPlayerIds ? _self._selectedPlayerIds : selectedPlayerIds // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,playerHandicaps: null == playerHandicaps ? _self._playerHandicaps : playerHandicaps // ignore: cast_nullable_to_non_nullable
+as Map<String, int>,
   ));
 }
 
@@ -478,7 +486,7 @@ $GameConfigCopyWith<$Res> get config {
 
 
 class _Ready implements GameSetupState {
-  const _Ready({required this.gameType, required this.config, required final  List<String> selectedPlayerIds}): _selectedPlayerIds = selectedPlayerIds;
+  const _Ready({required this.gameType, required this.config, required final  List<String> selectedPlayerIds, final  Map<String, int> playerHandicaps = const <String, int>{}}): _selectedPlayerIds = selectedPlayerIds,_playerHandicaps = playerHandicaps;
   
 
  final  GameType gameType;
@@ -488,6 +496,13 @@ class _Ready implements GameSetupState {
   if (_selectedPlayerIds is EqualUnmodifiableListView) return _selectedPlayerIds;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_selectedPlayerIds);
+}
+
+ final  Map<String, int> _playerHandicaps;
+@JsonKey() Map<String, int> get playerHandicaps {
+  if (_playerHandicaps is EqualUnmodifiableMapView) return _playerHandicaps;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_playerHandicaps);
 }
 
 
@@ -501,16 +516,16 @@ _$ReadyCopyWith<_Ready> get copyWith => __$ReadyCopyWithImpl<_Ready>(this, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Ready&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.config, config) || other.config == config)&&const DeepCollectionEquality().equals(other._selectedPlayerIds, _selectedPlayerIds));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Ready&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.config, config) || other.config == config)&&const DeepCollectionEquality().equals(other._selectedPlayerIds, _selectedPlayerIds)&&const DeepCollectionEquality().equals(other._playerHandicaps, _playerHandicaps));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,gameType,config,const DeepCollectionEquality().hash(_selectedPlayerIds));
+int get hashCode => Object.hash(runtimeType,gameType,config,const DeepCollectionEquality().hash(_selectedPlayerIds),const DeepCollectionEquality().hash(_playerHandicaps));
 
 @override
 String toString() {
-  return 'GameSetupState.ready(gameType: $gameType, config: $config, selectedPlayerIds: $selectedPlayerIds)';
+  return 'GameSetupState.ready(gameType: $gameType, config: $config, selectedPlayerIds: $selectedPlayerIds, playerHandicaps: $playerHandicaps)';
 }
 
 
@@ -521,7 +536,7 @@ abstract mixin class _$ReadyCopyWith<$Res> implements $GameSetupStateCopyWith<$R
   factory _$ReadyCopyWith(_Ready value, $Res Function(_Ready) _then) = __$ReadyCopyWithImpl;
 @useResult
 $Res call({
- GameType gameType, GameConfig config, List<String> selectedPlayerIds
+ GameType gameType, GameConfig config, List<String> selectedPlayerIds, Map<String, int> playerHandicaps
 });
 
 
@@ -538,12 +553,13 @@ class __$ReadyCopyWithImpl<$Res>
 
 /// Create a copy of GameSetupState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? gameType = null,Object? config = null,Object? selectedPlayerIds = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? gameType = null,Object? config = null,Object? selectedPlayerIds = null,Object? playerHandicaps = null,}) {
   return _then(_Ready(
 gameType: null == gameType ? _self.gameType : gameType // ignore: cast_nullable_to_non_nullable
 as GameType,config: null == config ? _self.config : config // ignore: cast_nullable_to_non_nullable
 as GameConfig,selectedPlayerIds: null == selectedPlayerIds ? _self._selectedPlayerIds : selectedPlayerIds // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,playerHandicaps: null == playerHandicaps ? _self._playerHandicaps : playerHandicaps // ignore: cast_nullable_to_non_nullable
+as Map<String, int>,
   ));
 }
 

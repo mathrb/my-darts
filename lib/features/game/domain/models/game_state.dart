@@ -85,20 +85,28 @@ abstract class GameState with _$GameState {
       initialTarget = aroundTheClockVariant == 'reverse' ? 20 : 1;
     }
 
+    final Map<String, int> handicaps = game.config is X01GameConfig
+        ? (game.config as X01GameConfig).handicaps
+        : const {};
+
     // Convert competitors to competitor states
-    final competitorStates = competitors.map((competitor) => CompetitorState(
-      competitorId: competitor.competitorId,
-      name: competitor.name,
-      playerIds: competitor.players.map((player) => player.playerId).toList(),
-      score: startingScore,
-      isComplete: false,
-      dartThrows: const [],
-      isIn: false,
-      legsWon: 0,
-      turnStartScore: null,
-      currentTarget: initialTarget,
-      practiceRound: 1,
-    )).toList();
+    final competitorStates = competitors.map((competitor) {
+      final effectiveStart = startingScore + (handicaps[competitor.competitorId] ?? 0);
+      return CompetitorState(
+        competitorId: competitor.competitorId,
+        name: competitor.name,
+        playerIds: competitor.players.map((player) => player.playerId).toList(),
+        score: effectiveStart,
+        startingScore: effectiveStart,
+        isComplete: false,
+        dartThrows: const [],
+        isIn: false,
+        legsWon: 0,
+        turnStartScore: null,
+        currentTarget: initialTarget,
+        practiceRound: 1,
+      );
+    }).toList();
 
     return GameState(
       gameId: game.gameId,
@@ -154,6 +162,7 @@ abstract class CompetitorState with _$CompetitorState {
     @Default(0) int practiceAttempts,
     @Default(0) int practiceSuccesses,
     @Default(0) int routeProgress,
+    @Default(0) int startingScore,
   }) = _CompetitorState;
 
   factory CompetitorState.fromJson(Map<String, dynamic> json) => _$CompetitorStateFromJson(json);

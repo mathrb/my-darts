@@ -16,6 +16,7 @@ abstract class GameConfig with _$GameConfig {
     @Default(1) int legsToWin,
     @Default(null) int? totalRounds,
     @Default(null) String? startingPlayerId,
+    @Default(<String, int>{}) Map<String, int> handicaps,
   }) = X01GameConfig;
 
   const factory GameConfig.cricket({

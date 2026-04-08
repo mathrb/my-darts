@@ -135,7 +135,7 @@ A dart throw is the fundamental event used for scoring and statistics.
   "in_strategy": "straight" | "double" | "master",
   "out_strategy": "straight" | "double" | "master",
   "handicaps": {
-    "<competitor_id>": integer
+    "<competitor_id>": integer  // negative offset; e.g. -50 means start at startingScore−50
   }
 }
 ```

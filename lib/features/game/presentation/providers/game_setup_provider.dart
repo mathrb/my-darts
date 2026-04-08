@@ -114,6 +114,25 @@ class GameSetupNotifier extends _$GameSetupNotifier {
     );
   }
 
+  /// Sets a handicap offset for a specific player. Only valid in selectingPlayers.
+  /// Allowed values: 0, -50, -100, -150, -200.
+  void setPlayerHandicap(String playerId, int handicap) {
+    state.maybeMap(
+      selectingPlayers: (s) {
+        final current = s.playerHandicaps[playerId] ?? 0;
+        if (current == handicap) return;
+        final updated = Map<String, int>.from(s.playerHandicaps);
+        if (handicap == 0) {
+          updated.remove(playerId);
+        } else {
+          updated[playerId] = handicap;
+        }
+        state = s.copyWith(playerHandicaps: updated);
+      },
+      orElse: () {},
+    );
+  }
+
   /// Resets to initial and re-fetches the locked player.
   void reset() {
     _lockedPlayerId = null;
@@ -134,13 +153,8 @@ class GameSetupNotifier extends _$GameSetupNotifier {
 
     final gameId = const Uuid().v4();
 
-    final game = Game(
-      gameId: gameId,
-      gameType: s.gameType,
-      config: s.config,
-      startTime: DateTime.now(),
-    );
-
+    // Competitors are built before the game so their UUIDs can be referenced
+    // in the handicap map (which is keyed by competitorId, not playerId).
     final competitors = <Competitor>[];
     for (var i = 0; i < s.selectedPlayerIds.length; i++) {
       final playerId = s.selectedPlayerIds[i];
@@ -153,6 +167,30 @@ class GameSetupNotifier extends _$GameSetupNotifier {
         players: [CompetitorPlayer(playerId: playerId, rotationPosition: 0)],
       ));
     }
+
+    final GameConfig finalConfig = s.config.maybeMap(
+      x01: (x01) {
+        if (s.playerHandicaps.isEmpty) return x01;
+        final handicapsByCompetitor = <String, int>{};
+        for (var i = 0; i < s.selectedPlayerIds.length; i++) {
+          final handicap = s.playerHandicaps[s.selectedPlayerIds[i]];
+          if (handicap != null && handicap != 0) {
+            handicapsByCompetitor[competitors[i].competitorId] = handicap;
+          }
+        }
+        return handicapsByCompetitor.isEmpty
+            ? x01
+            : x01.copyWith(handicaps: handicapsByCompetitor);
+      },
+      orElse: () => s.config,
+    );
+
+    final game = Game(
+      gameId: gameId,
+      gameType: s.gameType,
+      config: finalConfig,
+      startTime: DateTime.now(),
+    );
 
     // Abandon any lingering active game (e.g. user navigated away mid-game)
     final activeGame = await ref.read(gameRepositoryProvider).getActiveGame();
@@ -169,9 +207,9 @@ class GameSetupNotifier extends _$GameSetupNotifier {
           await ref.read(createGameUseCaseProvider).execute(game, competitors);
       // Persist config as "last used" for quick re-start next session.
       if (s.gameType == GameType.x01) {
-        await ref.read(lastGameConfigProvider('x01').notifier).save(s.config);
+        await ref.read(lastGameConfigProvider('x01').notifier).save(finalConfig);
       } else if (s.gameType == GameType.cricket) {
-        await ref.read(lastGameConfigProvider('cricket').notifier).save(s.config);
+        await ref.read(lastGameConfigProvider('cricket').notifier).save(finalConfig);
       }
       return result.gameId;
     } on ValidationException {

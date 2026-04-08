@@ -292,10 +292,10 @@ return checkoutPractice(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int startingScore,  String inStrategy,  String outStrategy,  int legsToWin,  int? totalRounds,  String? startingPlayerId)?  x01,TResult Function( String variant,  List<String> numbers,  int legsToWin,  int? totalRounds,  String? startingPlayerId)?  cricket,TResult Function( String variant,  String? startingPlayerId)?  aroundTheClock,TResult Function( String? startingPlayerId)?  killer,TResult Function( String? startingPlayerId)?  baseball,TResult Function( String? startingPlayerId)?  golf,TResult Function( int totalRounds,  String? startingPlayerId)?  shanghai,TResult Function( String? startingPlayerId)?  scram,TResult Function( String? startingPlayerId)?  halveIt,TResult Function( String? startingPlayerId)?  highScore,TResult Function( String? startingPlayerId)?  blindCricket,TResult Function( String? startingPlayerId)?  blindGolf,TResult Function( String? startingPlayerId)?  blindKiller,TResult Function( String? startingPlayerId)?  blindShanghai,TResult Function( String? startingPlayerId)?  chaseTheDragon,TResult Function( String? startingPlayerId,  int totalRounds,  List<int> roundTargets)?  catch40,TResult Function( String? startingPlayerId)?  bobs27,TResult Function( String? startingPlayerId,  bool randomOrder,  int? targetSuccesses)?  checkoutPractice,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int startingScore,  String inStrategy,  String outStrategy,  int legsToWin,  int? totalRounds,  String? startingPlayerId,  Map<String, int> handicaps)?  x01,TResult Function( String variant,  List<String> numbers,  int legsToWin,  int? totalRounds,  String? startingPlayerId)?  cricket,TResult Function( String variant,  String? startingPlayerId)?  aroundTheClock,TResult Function( String? startingPlayerId)?  killer,TResult Function( String? startingPlayerId)?  baseball,TResult Function( String? startingPlayerId)?  golf,TResult Function( int totalRounds,  String? startingPlayerId)?  shanghai,TResult Function( String? startingPlayerId)?  scram,TResult Function( String? startingPlayerId)?  halveIt,TResult Function( String? startingPlayerId)?  highScore,TResult Function( String? startingPlayerId)?  blindCricket,TResult Function( String? startingPlayerId)?  blindGolf,TResult Function( String? startingPlayerId)?  blindKiller,TResult Function( String? startingPlayerId)?  blindShanghai,TResult Function( String? startingPlayerId)?  chaseTheDragon,TResult Function( String? startingPlayerId,  int totalRounds,  List<int> roundTargets)?  catch40,TResult Function( String? startingPlayerId)?  bobs27,TResult Function( String? startingPlayerId,  bool randomOrder,  int? targetSuccesses)?  checkoutPractice,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case X01GameConfig() when x01 != null:
-return x01(_that.startingScore,_that.inStrategy,_that.outStrategy,_that.legsToWin,_that.totalRounds,_that.startingPlayerId);case CricketGameConfig() when cricket != null:
+return x01(_that.startingScore,_that.inStrategy,_that.outStrategy,_that.legsToWin,_that.totalRounds,_that.startingPlayerId,_that.handicaps);case CricketGameConfig() when cricket != null:
 return cricket(_that.variant,_that.numbers,_that.legsToWin,_that.totalRounds,_that.startingPlayerId);case AroundTheClockGameConfig() when aroundTheClock != null:
 return aroundTheClock(_that.variant,_that.startingPlayerId);case KillerGameConfig() when killer != null:
 return killer(_that.startingPlayerId);case BaseballGameConfig() when baseball != null:
@@ -330,10 +330,10 @@ return checkoutPractice(_that.startingPlayerId,_that.randomOrder,_that.targetSuc
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int startingScore,  String inStrategy,  String outStrategy,  int legsToWin,  int? totalRounds,  String? startingPlayerId)  x01,required TResult Function( String variant,  List<String> numbers,  int legsToWin,  int? totalRounds,  String? startingPlayerId)  cricket,required TResult Function( String variant,  String? startingPlayerId)  aroundTheClock,required TResult Function( String? startingPlayerId)  killer,required TResult Function( String? startingPlayerId)  baseball,required TResult Function( String? startingPlayerId)  golf,required TResult Function( int totalRounds,  String? startingPlayerId)  shanghai,required TResult Function( String? startingPlayerId)  scram,required TResult Function( String? startingPlayerId)  halveIt,required TResult Function( String? startingPlayerId)  highScore,required TResult Function( String? startingPlayerId)  blindCricket,required TResult Function( String? startingPlayerId)  blindGolf,required TResult Function( String? startingPlayerId)  blindKiller,required TResult Function( String? startingPlayerId)  blindShanghai,required TResult Function( String? startingPlayerId)  chaseTheDragon,required TResult Function( String? startingPlayerId,  int totalRounds,  List<int> roundTargets)  catch40,required TResult Function( String? startingPlayerId)  bobs27,required TResult Function( String? startingPlayerId,  bool randomOrder,  int? targetSuccesses)  checkoutPractice,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int startingScore,  String inStrategy,  String outStrategy,  int legsToWin,  int? totalRounds,  String? startingPlayerId,  Map<String, int> handicaps)  x01,required TResult Function( String variant,  List<String> numbers,  int legsToWin,  int? totalRounds,  String? startingPlayerId)  cricket,required TResult Function( String variant,  String? startingPlayerId)  aroundTheClock,required TResult Function( String? startingPlayerId)  killer,required TResult Function( String? startingPlayerId)  baseball,required TResult Function( String? startingPlayerId)  golf,required TResult Function( int totalRounds,  String? startingPlayerId)  shanghai,required TResult Function( String? startingPlayerId)  scram,required TResult Function( String? startingPlayerId)  halveIt,required TResult Function( String? startingPlayerId)  highScore,required TResult Function( String? startingPlayerId)  blindCricket,required TResult Function( String? startingPlayerId)  blindGolf,required TResult Function( String? startingPlayerId)  blindKiller,required TResult Function( String? startingPlayerId)  blindShanghai,required TResult Function( String? startingPlayerId)  chaseTheDragon,required TResult Function( String? startingPlayerId,  int totalRounds,  List<int> roundTargets)  catch40,required TResult Function( String? startingPlayerId)  bobs27,required TResult Function( String? startingPlayerId,  bool randomOrder,  int? targetSuccesses)  checkoutPractice,}) {final _that = this;
 switch (_that) {
 case X01GameConfig():
-return x01(_that.startingScore,_that.inStrategy,_that.outStrategy,_that.legsToWin,_that.totalRounds,_that.startingPlayerId);case CricketGameConfig():
+return x01(_that.startingScore,_that.inStrategy,_that.outStrategy,_that.legsToWin,_that.totalRounds,_that.startingPlayerId,_that.handicaps);case CricketGameConfig():
 return cricket(_that.variant,_that.numbers,_that.legsToWin,_that.totalRounds,_that.startingPlayerId);case AroundTheClockGameConfig():
 return aroundTheClock(_that.variant,_that.startingPlayerId);case KillerGameConfig():
 return killer(_that.startingPlayerId);case BaseballGameConfig():
@@ -367,10 +367,10 @@ return checkoutPractice(_that.startingPlayerId,_that.randomOrder,_that.targetSuc
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int startingScore,  String inStrategy,  String outStrategy,  int legsToWin,  int? totalRounds,  String? startingPlayerId)?  x01,TResult? Function( String variant,  List<String> numbers,  int legsToWin,  int? totalRounds,  String? startingPlayerId)?  cricket,TResult? Function( String variant,  String? startingPlayerId)?  aroundTheClock,TResult? Function( String? startingPlayerId)?  killer,TResult? Function( String? startingPlayerId)?  baseball,TResult? Function( String? startingPlayerId)?  golf,TResult? Function( int totalRounds,  String? startingPlayerId)?  shanghai,TResult? Function( String? startingPlayerId)?  scram,TResult? Function( String? startingPlayerId)?  halveIt,TResult? Function( String? startingPlayerId)?  highScore,TResult? Function( String? startingPlayerId)?  blindCricket,TResult? Function( String? startingPlayerId)?  blindGolf,TResult? Function( String? startingPlayerId)?  blindKiller,TResult? Function( String? startingPlayerId)?  blindShanghai,TResult? Function( String? startingPlayerId)?  chaseTheDragon,TResult? Function( String? startingPlayerId,  int totalRounds,  List<int> roundTargets)?  catch40,TResult? Function( String? startingPlayerId)?  bobs27,TResult? Function( String? startingPlayerId,  bool randomOrder,  int? targetSuccesses)?  checkoutPractice,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int startingScore,  String inStrategy,  String outStrategy,  int legsToWin,  int? totalRounds,  String? startingPlayerId,  Map<String, int> handicaps)?  x01,TResult? Function( String variant,  List<String> numbers,  int legsToWin,  int? totalRounds,  String? startingPlayerId)?  cricket,TResult? Function( String variant,  String? startingPlayerId)?  aroundTheClock,TResult? Function( String? startingPlayerId)?  killer,TResult? Function( String? startingPlayerId)?  baseball,TResult? Function( String? startingPlayerId)?  golf,TResult? Function( int totalRounds,  String? startingPlayerId)?  shanghai,TResult? Function( String? startingPlayerId)?  scram,TResult? Function( String? startingPlayerId)?  halveIt,TResult? Function( String? startingPlayerId)?  highScore,TResult? Function( String? startingPlayerId)?  blindCricket,TResult? Function( String? startingPlayerId)?  blindGolf,TResult? Function( String? startingPlayerId)?  blindKiller,TResult? Function( String? startingPlayerId)?  blindShanghai,TResult? Function( String? startingPlayerId)?  chaseTheDragon,TResult? Function( String? startingPlayerId,  int totalRounds,  List<int> roundTargets)?  catch40,TResult? Function( String? startingPlayerId)?  bobs27,TResult? Function( String? startingPlayerId,  bool randomOrder,  int? targetSuccesses)?  checkoutPractice,}) {final _that = this;
 switch (_that) {
 case X01GameConfig() when x01 != null:
-return x01(_that.startingScore,_that.inStrategy,_that.outStrategy,_that.legsToWin,_that.totalRounds,_that.startingPlayerId);case CricketGameConfig() when cricket != null:
+return x01(_that.startingScore,_that.inStrategy,_that.outStrategy,_that.legsToWin,_that.totalRounds,_that.startingPlayerId,_that.handicaps);case CricketGameConfig() when cricket != null:
 return cricket(_that.variant,_that.numbers,_that.legsToWin,_that.totalRounds,_that.startingPlayerId);case AroundTheClockGameConfig() when aroundTheClock != null:
 return aroundTheClock(_that.variant,_that.startingPlayerId);case KillerGameConfig() when killer != null:
 return killer(_that.startingPlayerId);case BaseballGameConfig() when baseball != null:
@@ -399,7 +399,7 @@ return checkoutPractice(_that.startingPlayerId,_that.randomOrder,_that.targetSuc
 @JsonSerializable()
 
 class X01GameConfig implements GameConfig {
-  const X01GameConfig({required this.startingScore, required this.inStrategy, required this.outStrategy, this.legsToWin = 1, this.totalRounds = null, this.startingPlayerId = null, final  String? $type}): $type = $type ?? 'x01';
+  const X01GameConfig({required this.startingScore, required this.inStrategy, required this.outStrategy, this.legsToWin = 1, this.totalRounds = null, this.startingPlayerId = null, final  Map<String, int> handicaps = const <String, int>{}, final  String? $type}): _handicaps = handicaps,$type = $type ?? 'x01';
   factory X01GameConfig.fromJson(Map<String, dynamic> json) => _$X01GameConfigFromJson(json);
 
  final  int startingScore;
@@ -410,6 +410,13 @@ class X01GameConfig implements GameConfig {
 @JsonKey() final  int legsToWin;
 @JsonKey() final  int? totalRounds;
 @override@JsonKey() final  String? startingPlayerId;
+ final  Map<String, int> _handicaps;
+@JsonKey() Map<String, int> get handicaps {
+  if (_handicaps is EqualUnmodifiableMapView) return _handicaps;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_handicaps);
+}
+
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -428,16 +435,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is X01GameConfig&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.inStrategy, inStrategy) || other.inStrategy == inStrategy)&&(identical(other.outStrategy, outStrategy) || other.outStrategy == outStrategy)&&(identical(other.legsToWin, legsToWin) || other.legsToWin == legsToWin)&&(identical(other.totalRounds, totalRounds) || other.totalRounds == totalRounds)&&(identical(other.startingPlayerId, startingPlayerId) || other.startingPlayerId == startingPlayerId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is X01GameConfig&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.inStrategy, inStrategy) || other.inStrategy == inStrategy)&&(identical(other.outStrategy, outStrategy) || other.outStrategy == outStrategy)&&(identical(other.legsToWin, legsToWin) || other.legsToWin == legsToWin)&&(identical(other.totalRounds, totalRounds) || other.totalRounds == totalRounds)&&(identical(other.startingPlayerId, startingPlayerId) || other.startingPlayerId == startingPlayerId)&&const DeepCollectionEquality().equals(other._handicaps, _handicaps));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,startingScore,inStrategy,outStrategy,legsToWin,totalRounds,startingPlayerId);
+int get hashCode => Object.hash(runtimeType,startingScore,inStrategy,outStrategy,legsToWin,totalRounds,startingPlayerId,const DeepCollectionEquality().hash(_handicaps));
 
 @override
 String toString() {
-  return 'GameConfig.x01(startingScore: $startingScore, inStrategy: $inStrategy, outStrategy: $outStrategy, legsToWin: $legsToWin, totalRounds: $totalRounds, startingPlayerId: $startingPlayerId)';
+  return 'GameConfig.x01(startingScore: $startingScore, inStrategy: $inStrategy, outStrategy: $outStrategy, legsToWin: $legsToWin, totalRounds: $totalRounds, startingPlayerId: $startingPlayerId, handicaps: $handicaps)';
 }
 
 
@@ -448,7 +455,7 @@ abstract mixin class $X01GameConfigCopyWith<$Res> implements $GameConfigCopyWith
   factory $X01GameConfigCopyWith(X01GameConfig value, $Res Function(X01GameConfig) _then) = _$X01GameConfigCopyWithImpl;
 @override @useResult
 $Res call({
- int startingScore, String inStrategy, String outStrategy, int legsToWin, int? totalRounds, String? startingPlayerId
+ int startingScore, String inStrategy, String outStrategy, int legsToWin, int? totalRounds, String? startingPlayerId, Map<String, int> handicaps
 });
 
 
@@ -465,7 +472,7 @@ class _$X01GameConfigCopyWithImpl<$Res>
 
 /// Create a copy of GameConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? startingScore = null,Object? inStrategy = null,Object? outStrategy = null,Object? legsToWin = null,Object? totalRounds = freezed,Object? startingPlayerId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? startingScore = null,Object? inStrategy = null,Object? outStrategy = null,Object? legsToWin = null,Object? totalRounds = freezed,Object? startingPlayerId = freezed,Object? handicaps = null,}) {
   return _then(X01GameConfig(
 startingScore: null == startingScore ? _self.startingScore : startingScore // ignore: cast_nullable_to_non_nullable
 as int,inStrategy: null == inStrategy ? _self.inStrategy : inStrategy // ignore: cast_nullable_to_non_nullable
@@ -473,7 +480,8 @@ as String,outStrategy: null == outStrategy ? _self.outStrategy : outStrategy // 
 as String,legsToWin: null == legsToWin ? _self.legsToWin : legsToWin // ignore: cast_nullable_to_non_nullable
 as int,totalRounds: freezed == totalRounds ? _self.totalRounds : totalRounds // ignore: cast_nullable_to_non_nullable
 as int?,startingPlayerId: freezed == startingPlayerId ? _self.startingPlayerId : startingPlayerId // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,handicaps: null == handicaps ? _self._handicaps : handicaps // ignore: cast_nullable_to_non_nullable
+as Map<String, int>,
   ));
 }
 
