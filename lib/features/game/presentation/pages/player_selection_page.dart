@@ -49,12 +49,6 @@ String _configSummaryFor(GameConfig config) {
   );
 }
 
-int? _maxPlayersFor(GameType type) {
-  return switch (type) {
-    GameType.x01 => 6,
-    _ => null,
-  };
-}
 
 String _initials(String name) {
   final words = name.trim().split(RegExp(r'\s+'))
@@ -119,7 +113,7 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
     final isX01 = config is X01GameConfig;
 
     final canStart = notifier.canStart;
-    final maxPlayers = gameType != null ? _maxPlayersFor(gameType) : null;
+    final maxPlayers = gameType != null ? gameType?.maxPlayers : null;
 
     final playersAsync = ref.watch(allPlayersProvider);
     final players = playersAsync.value ?? <Player>[];
@@ -257,7 +251,9 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
                     maxPlayers: maxPlayers,
                     onTapPlayer: (id) {
                       final isSelected = selectedIds.contains(id);
-                      if (!isSelected) {
+                      if (isSelected) {
+                        notifier.togglePlayer(id);
+                      } else {
                         final atMax = maxPlayers != null &&
                             selectedIds.length >= maxPlayers;
                         if (!atMax) notifier.togglePlayer(id);
@@ -371,7 +367,7 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
             selectingPlayers: (s) => s.gameType,
             orElse: () => null,
           );
-          final maxPlayers = gameType != null ? _maxPlayersFor(gameType) : null;
+          final maxPlayers = gameType != null ? gameType?.maxPlayers : null;
           final selectedCount = state.maybeMap(
             selectingPlayers: (s) => s.selectedPlayerIds.length,
             orElse: () => 0,

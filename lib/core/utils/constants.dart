@@ -20,7 +20,15 @@ enum GameType {
   chaseTheDragon,
   catch40,
   bobs27,
-  checkoutPractice,
+  checkoutPractice;
+
+  /// Maximum number of players allowed for this game type, or null if unlimited.
+  int? get maxPlayers => switch (this) {
+    GameType.x01 => 6,
+    GameType.cricket || GameType.blindCricket => 6,
+    GameType.catch40 || GameType.bobs27 || GameType.checkoutPractice => 1,
+    _ => null,
+  };
 }
 
 // Competitor Types
