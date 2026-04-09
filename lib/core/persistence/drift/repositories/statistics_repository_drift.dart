@@ -551,7 +551,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
   }) async {
     try {
       final gamesPerPlayerQuery = _db.selectOnly(_db.dartThrows)
-        ..addColumns([_db.dartThrows.playerId, _db.dartThrows.gameId.count()])
+        ..addColumns([_db.dartThrows.playerId, _db.dartThrows.gameId.count(distinct: true)])
         ..join([
           innerJoin(
               _db.games, _db.games.gameId.equalsExp(_db.dartThrows.gameId))
@@ -563,7 +563,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       final playerGameCounts = <String, int>{};
       for (final row in gamesPerPlayerResults) {
         final pId = row.read(_db.dartThrows.playerId);
-        final gameCount = row.read(_db.dartThrows.gameId.count()) ?? 0;
+        final gameCount = row.read(_db.dartThrows.gameId.count(distinct: true)) ?? 0;
         if (pId != null && gameCount >= minGames) {
           playerGameCounts[pId] = gameCount;
         }
@@ -1148,34 +1148,79 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         return {'checkoutPercentage': null, 'highestCheckout': null};
       }
 
-      double checkoutPercentageSum = 0.0;
-      int checkoutAttemptCount = 0;
+      int totalAttempts = 0;
+      int totalSuccesses = 0;
       int? highestCheckout;
 
       for (final gId in gameIds) {
-        final pct = await _calculateCheckoutPercentageForGame(playerId, gId);
         final hc = await _calculateHighestCheckoutForGame(playerId, gId);
-
-        if (pct != null) {
-          checkoutPercentageSum += pct;
-          checkoutAttemptCount++;
-        }
         if (hc != null &&
             (highestCheckout == null || hc > highestCheckout)) {
           highestCheckout = hc;
         }
+
+        // Accumulate raw attempts/successes for weighted checkout percentage
+        final counts = await _getCheckoutCountsForGame(playerId, gId);
+        totalAttempts += counts.attempts;
+        totalSuccesses += counts.successes;
       }
 
-      final double? avgCheckoutPct = checkoutAttemptCount > 0
-          ? checkoutPercentageSum / checkoutAttemptCount
+      final double? checkoutPercentage = totalAttempts > 0
+          ? (totalSuccesses / totalAttempts) * 100
           : null;
 
       return {
-        'checkoutPercentage': avgCheckoutPct,
+        'checkoutPercentage': checkoutPercentage,
         'highestCheckout': highestCheckout,
       };
     } catch (e) {
       return {'checkoutPercentage': null, 'highestCheckout': null};
+    }
+  }
+
+  /// Returns raw checkout attempt and success counts for a single game.
+  Future<({int attempts, int successes})> _getCheckoutCountsForGame(
+      String playerId, String gameId) async {
+    try {
+      final events = await (_db.select(_db.gameEvents)
+            ..where((e) => e.gameId.equals(gameId))
+            ..orderBy([(e) => OrderingTerm.asc(e.localSequence)]))
+          .get();
+
+      if (events.isEmpty) return (attempts: 0, successes: 0);
+
+      int checkoutAttempts = 0;
+      int successfulCheckouts = 0;
+      bool inCheckoutRange = false;
+
+      for (final event in events) {
+        final payload =
+            jsonDecode(event.payloadJson) as Map<String, dynamic>;
+        final eventType = event.eventType;
+
+        if (eventType == 'TurnStarted') {
+          final turnPlayerId = payload['player_id'] as String?;
+          final startingScore = payload['starting_score'] as int?;
+          if (turnPlayerId == playerId &&
+              startingScore != null &&
+              startingScore <= 170) {
+            inCheckoutRange = true;
+            checkoutAttempts++;
+          }
+        } else if (eventType == 'LegCompleted') {
+          final winnerPlayerId = payload['winner_player_id'] as String?;
+          if (winnerPlayerId == playerId && inCheckoutRange) {
+            successfulCheckouts++;
+          }
+          inCheckoutRange = false;
+        } else if (eventType == 'TurnEnded') {
+          inCheckoutRange = false;
+        }
+      }
+
+      return (attempts: checkoutAttempts, successes: successfulCheckouts);
+    } catch (e) {
+      return (attempts: 0, successes: 0);
     }
   }
 

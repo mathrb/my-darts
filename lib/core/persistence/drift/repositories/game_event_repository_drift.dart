@@ -235,6 +235,7 @@ class GameEventRepositoryDrift implements GameEventRepository {
     final query = _db.select(_db.gameEvents)
       ..where((t) => t.synced.equals(0))
       ..orderBy([
+        (t) => OrderingTerm(expression: t.gameId, mode: OrderingMode.asc),
         (t) => OrderingTerm(expression: t.localSequence, mode: OrderingMode.asc),
       ]);
 

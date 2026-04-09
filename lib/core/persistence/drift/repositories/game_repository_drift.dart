@@ -127,19 +127,30 @@ class GameRepositoryDrift implements GameRepository {
     required String? winnerCompetitorId,
     required DateTime endTime,
   }) async {
-    final rowsAffected = await (_db.update(_db.games)
+    // Pre-check: game must exist and not already be complete
+    final existing = await (_db.select(_db.games)
+          ..where((t) => t.gameId.equals(gameId))
+          ..limit(1))
+        .getSingleOrNull();
+
+    if (existing == null) {
+      throw GameNotFoundException(gameId);
+    }
+
+    if (existing.isComplete == 1) {
+      throw GameAlreadyCompleteException(gameId);
+    }
+
+    await (_db.update(_db.games)
       ..where((t) => t.gameId.equals(gameId)))
       .write(
         drift_db.GamesCompanion(
-          isComplete: Value(1),
+          isComplete: const Value(1),
           winnerCompetitorId: Value(winnerCompetitorId),
           endTime: Value(endTime.toIso8601String()),
+          gameStateJson: const Value(null), // Clear active state
         ),
       );
-
-    if (rowsAffected == 0) {
-      throw GameNotFoundException(gameId);
-    }
   }
 
   @override
@@ -267,17 +278,27 @@ class GameRepositoryDrift implements GameRepository {
 
   @override
   Future<void> saveGameState(String gameId, GameStateSnapshot state) async {
-    final rowsAffected = await (_db.update(_db.games)
+    // Pre-check: game must exist and not be complete
+    final existing = await (_db.select(_db.games)
+          ..where((t) => t.gameId.equals(gameId))
+          ..limit(1))
+        .getSingleOrNull();
+
+    if (existing == null) {
+      throw GameNotFoundException(gameId);
+    }
+
+    if (existing.isComplete == 1) {
+      throw GameAlreadyCompleteException(gameId);
+    }
+
+    await (_db.update(_db.games)
       ..where((t) => t.gameId.equals(gameId)))
       .write(
         drift_db.GamesCompanion(
           gameStateJson: Value(json.encode(state.toJson())),
         ),
       );
-
-    if (rowsAffected == 0) {
-      throw GameNotFoundException(gameId);
-    }
   }
 
   @override
