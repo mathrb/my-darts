@@ -43,14 +43,16 @@ class DartThrowRepositoryImpl implements DartThrowRepository {
     int limit = 100,
     int offset = 0,
   }) async {
-    final results = await _db.query(
-      'dart_throws',
-      where: 'player_id = ?',
-      whereArgs: [playerId],
-      orderBy: 'dart_id DESC', // Or insertion order if preferred
-      limit: limit,
-      offset: offset,
-    );
+    // Join with games to sort by game start_time descending (insertion proxy),
+    // then by turn/dart number descending within each game.
+    final results = await _db.rawQuery('''
+      SELECT dt.*
+      FROM dart_throws dt
+      JOIN games g ON dt.game_id = g.game_id
+      WHERE dt.player_id = ?
+      ORDER BY g.start_time DESC, dt.turn_number DESC, dt.dart_number DESC
+      LIMIT ? OFFSET ?
+    ''', [playerId, limit, offset]);
 
     return results.map((json) => DartThrow.fromJson(json)).toList();
   }

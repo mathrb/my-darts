@@ -58,20 +58,17 @@ class GameRepositoryDrift implements GameRepository {
       }
     }
 
-    // Pre-check for duplicate game_id before attempting insert.
-    // This must happen before the transaction so we can throw DuplicateGameException
-    // rather than relying on the PRIMARY KEY constraint, which SQLite may fire after
-    // the idx_games_single_active partial index (making them indistinguishable).
-    final existing = await (_db.select(_db.games)
-          ..where((t) => t.gameId.equals(game.gameId))
-          ..limit(1))
-        .getSingleOrNull();
-    if (existing != null) {
-      throw DuplicateGameException(game.gameId);
-    }
-
     try {
       await _db.transaction(() async {
+        // Check for duplicate game_id inside the transaction to avoid TOCTOU race.
+        final existing = await (_db.select(_db.games)
+              ..where((t) => t.gameId.equals(game.gameId))
+              ..limit(1))
+            .getSingleOrNull();
+        if (existing != null) {
+          throw DuplicateGameException(game.gameId);
+        }
+
         // Insert game
         await _db.into(_db.games).insert(
           drift_db.GamesCompanion.insert(
@@ -243,7 +240,9 @@ class GameRepositoryDrift implements GameRepository {
   CompetitorType _parseCompetitorType(String typeString) {
     return CompetitorType.values.firstWhere(
       (type) => type.name == typeString,
-      orElse: () => CompetitorType.solo,
+      orElse: () => throw DatabaseException(
+        'Unknown competitor type in database: $typeString',
+      ),
     );
   }
 
@@ -346,7 +345,9 @@ class GameRepositoryDrift implements GameRepository {
   GameType _parseGameType(String gameTypeString) {
     return GameType.values.firstWhere(
       (type) => type.name == gameTypeString,
-      orElse: () => GameType.x01,
+      orElse: () => throw DatabaseException(
+        'Unknown game type in database: $gameTypeString',
+      ),
     );
   }
 

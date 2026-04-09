@@ -69,25 +69,36 @@ class DartThrowRepositoryDrift implements DartThrowRepository {
     int limit = 100,
     int offset = 0,
   }) async {
-    final query = _db.select(_db.dartThrows)
-      ..where((t) => t.playerId.equals(playerId))
-      ..orderBy([(t) => OrderingTerm(expression: t.dartId, mode: OrderingMode.desc)])
+    // Join with games to sort by game start_time descending (insertion proxy),
+    // then by turn/dart number descending within each game.
+    final query = _db.select(_db.dartThrows).join([
+      innerJoin(_db.games, _db.games.gameId.equalsExp(_db.dartThrows.gameId)),
+    ])
+      ..where(_db.dartThrows.playerId.equals(playerId))
+      ..orderBy([
+        OrderingTerm(expression: _db.games.startTime, mode: OrderingMode.desc),
+        OrderingTerm(expression: _db.dartThrows.turnNumber, mode: OrderingMode.desc),
+        OrderingTerm(expression: _db.dartThrows.dartNumber, mode: OrderingMode.desc),
+      ])
       ..limit(limit, offset: offset);
 
     final results = await query.get();
 
-    return results.map((row) => DartThrow(
-      dartId: row.dartId,
-      gameId: row.gameId,
-      competitorId: row.competitorId,
-      playerId: row.playerId,
-      turnNumber: row.turnNumber,
-      dartNumber: row.dartNumber,
-      segment: row.segment,
-      score: row.score,
-      x: row.x,
-      y: row.y,
-    )).toList();
+    return results.map((row) {
+      final dt = row.readTable(_db.dartThrows);
+      return DartThrow(
+        dartId: dt.dartId,
+        gameId: dt.gameId,
+        competitorId: dt.competitorId,
+        playerId: dt.playerId,
+        turnNumber: dt.turnNumber,
+        dartNumber: dt.dartNumber,
+        segment: dt.segment,
+        score: dt.score,
+        x: dt.x,
+        y: dt.y,
+      );
+    }).toList();
   }
 
   @override
