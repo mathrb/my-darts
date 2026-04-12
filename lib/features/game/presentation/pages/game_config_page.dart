@@ -112,7 +112,7 @@ class _GameConfigPanelState extends State<GameConfigPanel> {
               onPressed: _hasChanges ? _apply : null,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
-                backgroundColor: cs.primaryContainer,
+                backgroundColor: cs.primaryFixed,
                 foregroundColor: AppColors.onPrimaryFixed,
                 disabledBackgroundColor: cs.surfaceContainerLow,
                 disabledForegroundColor:
