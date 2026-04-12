@@ -9,7 +9,7 @@ import 'package:my_darts/features/game/presentation/widgets/config_stepper_widge
 /// A bottom-sheet panel that lets the user adjust game configuration.
 /// Uses a copy-on-open (draft) pattern: edits are local until Apply is tapped.
 /// Returns the updated [GameConfig] via [Navigator.pop] on Apply, or null on
-/// discard (drag handle tap / swipe dismiss).
+/// discard (swipe dismiss / barrier tap).
 class GameConfigPanel extends StatefulWidget {
   const GameConfigPanel({
     super.key,
@@ -53,7 +53,9 @@ class _GameConfigPanelState extends State<GameConfigPanel> {
 
   // ── Actions ───────────────────────────────────────────────────────────────────
 
-  void _discard() => Navigator.pop(context, _draftConfig);
+  void _apply() => Navigator.pop(context, _draftConfig);
+
+  bool get _hasChanges => _draftConfig != widget.initialConfig;
 
   // ── Build ─────────────────────────────────────────────────────────────────────
 
@@ -62,60 +64,67 @@ class _GameConfigPanelState extends State<GameConfigPanel> {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _discard();
-      },
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Drag handle — tap to discard
-              Center(
-                child: GestureDetector(
-                  onTap: _discard,
-                  child: SizedBox(
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Drag handle
+            Center(
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: Container(
                     width: 48,
-                    height: 48,
-                    child: Center(
-                      child: Container(
-                        width: 48,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: cs.outlineVariant
-                              .withValues(alpha: 0.4),
-                          borderRadius:
-                              BorderRadius.circular(AppTheme.radiusFull),
-                        ),
-                      ),
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: cs.outlineVariant.withValues(alpha: 0.4),
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.radiusFull),
                     ),
                   ),
                 ),
               ),
-              Text(
-                'GAME CONFIG',
-                style: tt.headlineMedium?.copyWith(
-                  color: cs.onSurface,
-                  letterSpacing: -0.5,
+            ),
+            Text(
+              'GAME CONFIG',
+              style: tt.headlineMedium?.copyWith(
+                color: cs.onSurface,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.space4),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ..._buildConfigFields(),
+                    const SizedBox(height: AppSpacing.space6),
+                  ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.space4),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ..._buildConfigFields(),
-                      const SizedBox(height: AppSpacing.space6),
-                    ],
-                  ),
+            ),
+            const SizedBox(height: AppSpacing.space4),
+            FilledButton(
+              onPressed: _hasChanges ? _apply : null,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                backgroundColor: cs.primaryContainer,
+                foregroundColor: AppColors.onPrimaryFixed,
+                disabledBackgroundColor: cs.surfaceContainerLow,
+                disabledForegroundColor:
+                    cs.onSurfaceVariant.withValues(alpha: AppTheme.opacityDisabled),
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(AppTheme.radiusXLarge),
                 ),
               ),
-            ],
-          ),
+              child: const Text('APPLY'),
+            ),
+          ],
         ),
       ),
     );
