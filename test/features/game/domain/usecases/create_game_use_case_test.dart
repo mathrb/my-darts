@@ -12,14 +12,16 @@ import 'package:my_darts/features/game/domain/models/game_config.dart';
 import 'package:my_darts/features/game/domain/repositories/game_event_repository.dart';
 import 'package:my_darts/features/game/domain/repositories/game_repository.dart';
 import 'package:my_darts/features/game/domain/usecases/create_game_use_case.dart';
+import 'package:my_darts/features/players/domain/repositories/player_repository.dart';
 
 import 'create_game_use_case_test.mocks.dart';
 
-@GenerateMocks([GameRepository, GameEventRepository])
+@GenerateMocks([GameRepository, GameEventRepository, PlayerRepository])
 void main() {
   late CreateGameUseCase useCase;
   late MockGameRepository mockGameRepo;
   late MockGameEventRepository mockEventRepo;
+  late MockPlayerRepository mockPlayerRepo;
 
   // --- helpers ---
 
@@ -55,11 +57,13 @@ void main() {
   setUp(() {
     mockGameRepo = MockGameRepository();
     mockEventRepo = MockGameEventRepository();
-    useCase = CreateGameUseCase(mockGameRepo, mockEventRepo);
+    mockPlayerRepo = MockPlayerRepository();
+    useCase = CreateGameUseCase(mockGameRepo, mockEventRepo, mockPlayerRepo);
 
     when(mockGameRepo.createGame(any, any)).thenAnswer((_) async {});
     when(mockEventRepo.getLatestSequence(any)).thenAnswer((_) async => -1);
     when(mockEventRepo.appendEvent(any)).thenAnswer((_) async {});
+    when(mockPlayerRepo.touchPlayer(any)).thenAnswer((_) async {});
   });
 
   // ── Happy path ────────────────────────────────────────────────────────────
@@ -262,5 +266,84 @@ void main() {
       () => useCase.execute(_makeGame(startingScore: 0), _makeCompetitors()),
       throwsA(isA<RepositoryException>()),
     );
+  });
+
+  // ── touchPlayer: participation marks last_active ─────────────────────────
+
+  group('touchPlayer', () {
+    test('calls touchPlayer exactly once per participating player', () async {
+      await useCase.execute(_makeGame(), _makeCompetitors(count: 3));
+
+      verify(mockPlayerRepo.touchPlayer('p0')).called(1);
+      verify(mockPlayerRepo.touchPlayer('p1')).called(1);
+      verify(mockPlayerRepo.touchPlayer('p2')).called(1);
+      verifyNoMoreInteractions(mockPlayerRepo);
+    });
+
+    test('touches every player across team competitors', () async {
+      final teamCompetitors = [
+        const Competitor(
+          competitorId: 'team-a',
+          gameId: 'g1',
+          type: CompetitorType.team,
+          name: 'Team A',
+          players: [
+            CompetitorPlayer(playerId: 'a1', rotationPosition: 0),
+            CompetitorPlayer(playerId: 'a2', rotationPosition: 1),
+          ],
+        ),
+        const Competitor(
+          competitorId: 'team-b',
+          gameId: 'g1',
+          type: CompetitorType.team,
+          name: 'Team B',
+          players: [
+            CompetitorPlayer(playerId: 'b1', rotationPosition: 0),
+            CompetitorPlayer(playerId: 'b2', rotationPosition: 1),
+          ],
+        ),
+      ];
+
+      await useCase.execute(_makeGame(), teamCompetitors);
+
+      verify(mockPlayerRepo.touchPlayer('a1')).called(1);
+      verify(mockPlayerRepo.touchPlayer('a2')).called(1);
+      verify(mockPlayerRepo.touchPlayer('b1')).called(1);
+      verify(mockPlayerRepo.touchPlayer('b2')).called(1);
+    });
+
+    test('PlayerNotFoundException during touch does not abort game creation',
+        () async {
+      when(mockPlayerRepo.touchPlayer('p0'))
+          .thenThrow(PlayerNotFoundException('p0'));
+
+      await expectLater(
+        useCase.execute(_makeGame(), _makeCompetitors(count: 2)),
+        completes,
+      );
+
+      verify(mockPlayerRepo.touchPlayer('p0')).called(1);
+      verify(mockPlayerRepo.touchPlayer('p1')).called(1);
+    });
+
+    test('touchPlayer runs after game + events are persisted', () async {
+      final callOrder = <String>[];
+      when(mockGameRepo.createGame(any, any)).thenAnswer((_) async {
+        callOrder.add('createGame');
+      });
+      when(mockEventRepo.appendEvent(any)).thenAnswer((_) async {
+        callOrder.add('appendEvent');
+      });
+      when(mockPlayerRepo.touchPlayer(any)).thenAnswer((_) async {
+        callOrder.add('touchPlayer');
+      });
+
+      await useCase.execute(_makeGame(), _makeCompetitors(count: 1));
+
+      expect(callOrder.first, 'createGame');
+      expect(callOrder.last, 'touchPlayer');
+      expect(callOrder.indexOf('appendEvent'),
+          lessThan(callOrder.indexOf('touchPlayer')));
+    });
   });
 }

@@ -16,6 +16,9 @@ import 'package:my_darts/features/game/domain/repositories/game_event_repository
     as _i8;
 import 'package:my_darts/features/game/domain/repositories/game_repository.dart'
     as _i2;
+import 'package:my_darts/features/players/domain/entities/player.dart' as _i11;
+import 'package:my_darts/features/players/domain/repositories/player_repository.dart'
+    as _i10;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -237,4 +240,73 @@ class MockGameEventRepository extends _i1.Mock
             returnValue: _i3.Stream<List<_i9.GameEvent>>.empty(),
           )
           as _i3.Stream<List<_i9.GameEvent>>);
+}
+
+/// A class which mocks [PlayerRepository].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockPlayerRepository extends _i1.Mock implements _i10.PlayerRepository {
+  MockPlayerRepository() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i3.Future<List<_i11.Player>> getAllPlayers() =>
+      (super.noSuchMethod(
+            Invocation.method(#getAllPlayers, []),
+            returnValue: _i3.Future<List<_i11.Player>>.value(<_i11.Player>[]),
+          )
+          as _i3.Future<List<_i11.Player>>);
+
+  @override
+  _i3.Future<_i11.Player?> getPlayer(String? playerId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getPlayer, [playerId]),
+            returnValue: _i3.Future<_i11.Player?>.value(),
+          )
+          as _i3.Future<_i11.Player?>);
+
+  @override
+  _i3.Future<void> createPlayer(_i11.Player? player) =>
+      (super.noSuchMethod(
+            Invocation.method(#createPlayer, [player]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> updatePlayerName(String? playerId, String? name) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePlayerName, [playerId, name]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> touchPlayer(String? playerId) =>
+      (super.noSuchMethod(
+            Invocation.method(#touchPlayer, [playerId]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> deletePlayer(String? playerId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deletePlayer, [playerId]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Stream<List<_i11.Player>> watchAllPlayers() =>
+      (super.noSuchMethod(
+            Invocation.method(#watchAllPlayers, []),
+            returnValue: _i3.Stream<List<_i11.Player>>.empty(),
+          )
+          as _i3.Stream<List<_i11.Player>>);
 }

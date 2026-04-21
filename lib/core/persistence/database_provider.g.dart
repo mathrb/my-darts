@@ -694,7 +694,7 @@ final class CreateGameUseCaseProvider
   }
 }
 
-String _$createGameUseCaseHash() => r'86611391ecef89b26d6bee8e7b688815809a9146';
+String _$createGameUseCaseHash() => r'a8811da823c99a54a68c98d26af38df6e303c645';
 
 @ProviderFor(aroundTheClockEngine)
 final aroundTheClockEngineProvider = AroundTheClockEngineProvider._();

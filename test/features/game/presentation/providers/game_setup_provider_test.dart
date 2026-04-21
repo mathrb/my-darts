@@ -26,6 +26,16 @@ void main() {
   late MockCreateGameUseCase mockCreateGameUseCase;
   late MockGameRepository mockGameRepo;
 
+  // _init() chains up to two awaits (getCompletedGames → getCompetitors or
+  // getAllPlayers). Drain via microtasks only: Future.delayed(Duration.zero)
+  // would yield to the timer queue and trip the autoDispose of
+  // gameSetupProvider, recreating the notifier mid-test.
+  Future<void> drainInit() async {
+    for (var i = 0; i < 6; i++) {
+      await Future<void>.microtask(() {});
+    }
+  }
+
   ProviderContainer makeContainer(
     MockPlayerRepository mock,
     MockCreateGameUseCase mockUseCase,
@@ -45,10 +55,16 @@ void main() {
     mockPlayerRepo = MockPlayerRepository();
     mockCreateGameUseCase = MockCreateGameUseCase();
     mockGameRepo = MockGameRepository();
-    // Default: no players — _lockedPlayerId stays null
+    // Default: no players — _lockedPlayerIds stays empty
     when(mockPlayerRepo.getAllPlayers()).thenAnswer((_) async => []);
-    // Default: no active game in progress
+    // Default: no active or completed games
     when(mockGameRepo.getActiveGame()).thenAnswer((_) async => null);
+    when(mockGameRepo.getCompletedGames(
+      limit: anyNamed('limit'),
+      offset: anyNamed('offset'),
+      filterByType: anyNamed('filterByType'),
+    )).thenAnswer((_) async => []);
+    when(mockGameRepo.getCompetitors(any)).thenAnswer((_) async => []);
     container = makeContainer(mockPlayerRepo, mockCreateGameUseCase, mockGameRepo);
   });
 
@@ -401,6 +417,13 @@ void main() {
           ]);
       final mockGameRepoLocked = MockGameRepository();
       when(mockGameRepoLocked.getActiveGame()).thenAnswer((_) async => null);
+      // No completed games → _init() falls back to most-recent player.
+      when(mockGameRepoLocked.getCompletedGames(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        filterByType: anyNamed('filterByType'),
+      )).thenAnswer((_) async => []);
+      when(mockGameRepoLocked.getCompetitors(any)).thenAnswer((_) async => []);
       lockedContainer = makeContainer(playersRepo, MockCreateGameUseCase(), mockGameRepoLocked);
     });
 
@@ -408,7 +431,7 @@ void main() {
 
     test('locked player is the first player by lastActive DESC', () async {
       lockedContainer.read(gameSetupProvider); // trigger build() + _init()
-      await Future.microtask(() {}); // let _init() complete
+      await drainInit();
 
       lockedContainer
           .read(gameSetupProvider.notifier)
@@ -423,7 +446,7 @@ void main() {
 
     test('locked player auto-included in selectedPlayerIds on enter', () async {
       lockedContainer.read(gameSetupProvider);
-      await Future.microtask(() {});
+      await drainInit();
 
       lockedContainer
           .read(gameSetupProvider.notifier)
@@ -439,7 +462,7 @@ void main() {
     test('togglePlayer(lockedPlayerId) removes the locked player (can deselect)',
         () async {
       lockedContainer.read(gameSetupProvider);
-      await Future.microtask(() {});
+      await drainInit();
 
       final n = lockedContainer.read(gameSetupProvider.notifier);
       n.selectVariant(x01Config); // → selectingPlayers with ['locked-id']
@@ -454,7 +477,7 @@ void main() {
 
     test('non-locked player can be toggled normally', () async {
       lockedContainer.read(gameSetupProvider);
-      await Future.microtask(() {});
+      await drainInit();
 
       final n = lockedContainer.read(gameSetupProvider.notifier);
       n.selectVariant(x01Config);
@@ -464,6 +487,198 @@ void main() {
       lockedContainer.read(gameSetupProvider).maybeMap(
             selectingPlayers: (s) =>
                 expect(s.selectedPlayerIds, isNot(contains('other-id'))),
+            orElse: () => fail('Expected selectingPlayers'),
+          );
+    });
+  });
+
+  // ── Last roster seeding (most recent completed game) ─────────────────────
+
+  group('Last-roster seeding', () {
+    const x01Config = GameConfig.x01(
+      startingScore: 501,
+      inStrategy: 'straight',
+      outStrategy: 'double',
+      legsToWin: 1,
+    );
+
+    late MockPlayerRepository playersRepo;
+    late MockGameRepository gameRepo;
+    late ProviderContainer rosterContainer;
+
+    Competitor _soloCompetitor(String compId, String playerId, int pos) =>
+        Competitor(
+          competitorId: compId,
+          gameId: 'g-prev',
+          type: CompetitorType.solo,
+          name: playerId,
+          players: [CompetitorPlayer(playerId: playerId, rotationPosition: pos)],
+        );
+
+    setUp(() {
+      playersRepo = MockPlayerRepository();
+      gameRepo = MockGameRepository();
+      when(gameRepo.getActiveGame()).thenAnswer((_) async => null);
+      // No fallback needed; the completed game path takes precedence.
+      when(playersRepo.getAllPlayers()).thenAnswer((_) async => []);
+      rosterContainer =
+          makeContainer(playersRepo, MockCreateGameUseCase(), gameRepo);
+    });
+
+    tearDown(() => rosterContainer.dispose());
+
+    test('seeds selectedPlayerIds with last game roster in rotation order',
+        () async {
+      final lastGame = Game(
+        gameId: 'g-prev',
+        gameType: GameType.x01,
+        config: x01Config,
+        startTime: DateTime(2026, 4, 20),
+        endTime: DateTime(2026, 4, 20, 1),
+        isComplete: true,
+      );
+      when(gameRepo.getCompletedGames(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        filterByType: anyNamed('filterByType'),
+      )).thenAnswer((_) async => [lastGame]);
+      when(gameRepo.getCompetitors('g-prev')).thenAnswer((_) async => [
+            _soloCompetitor('c0', 'alice', 0),
+            _soloCompetitor('c1', 'bob', 1),
+            _soloCompetitor('c2', 'carol', 2),
+          ]);
+
+      rosterContainer.read(gameSetupProvider); // triggers _init()
+      await drainInit();
+
+      rosterContainer
+          .read(gameSetupProvider.notifier)
+          .selectVariant(x01Config);
+
+      rosterContainer.read(gameSetupProvider).maybeMap(
+            selectingPlayers: (s) =>
+                expect(s.selectedPlayerIds, ['alice', 'bob', 'carol']),
+            orElse: () => fail('Expected selectingPlayers'),
+          );
+    });
+
+    test(
+        'falls back to single most-recent player when no completed games exist',
+        () async {
+      when(gameRepo.getCompletedGames(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        filterByType: anyNamed('filterByType'),
+      )).thenAnswer((_) async => []);
+      when(playersRepo.getAllPlayers()).thenAnswer((_) async => [
+            Player(
+              playerId: 'top',
+              name: 'Top',
+              createdAt: DateTime(2024),
+              lastActive: DateTime(2026),
+            ),
+            Player(
+              playerId: 'older',
+              name: 'Older',
+              createdAt: DateTime(2024),
+              lastActive: DateTime(2023),
+            ),
+          ]);
+
+      rosterContainer.read(gameSetupProvider);
+      await drainInit();
+
+      rosterContainer
+          .read(gameSetupProvider.notifier)
+          .selectVariant(x01Config);
+
+      rosterContainer.read(gameSetupProvider).maybeMap(
+            selectingPlayers: (s) => expect(s.selectedPlayerIds, ['top']),
+            orElse: () => fail('Expected selectingPlayers'),
+          );
+    });
+
+    test('truncates roster to gameType.maxPlayers (catch40 max=1)', () async {
+      final lastGame = Game(
+        gameId: 'g-prev',
+        gameType: GameType.x01,
+        config: x01Config,
+        startTime: DateTime(2026, 4, 20),
+        endTime: DateTime(2026, 4, 20, 1),
+        isComplete: true,
+      );
+      when(gameRepo.getCompletedGames(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        filterByType: anyNamed('filterByType'),
+      )).thenAnswer((_) async => [lastGame]);
+      when(gameRepo.getCompetitors('g-prev')).thenAnswer((_) async => [
+            _soloCompetitor('c0', 'alice', 0),
+            _soloCompetitor('c1', 'bob', 1),
+          ]);
+
+      rosterContainer.read(gameSetupProvider);
+      await drainInit();
+
+      rosterContainer
+          .read(gameSetupProvider.notifier)
+          .selectVariant(const GameConfig.catch40(startingPlayerId: ''));
+
+      rosterContainer.read(gameSetupProvider).maybeMap(
+            selectingPlayers: (s) {
+              expect(s.gameType, GameType.catch40);
+              expect(s.selectedPlayerIds, ['alice']);
+            },
+            orElse: () => fail('Expected selectingPlayers'),
+          );
+    });
+
+    test('flattens team competitors into rotation-ordered player list',
+        () async {
+      final lastGame = Game(
+        gameId: 'g-prev',
+        gameType: GameType.x01,
+        config: x01Config,
+        startTime: DateTime(2026, 4, 20),
+        isComplete: true,
+      );
+      when(gameRepo.getCompletedGames(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        filterByType: anyNamed('filterByType'),
+      )).thenAnswer((_) async => [lastGame]);
+      when(gameRepo.getCompetitors('g-prev')).thenAnswer((_) async => [
+            const Competitor(
+              competitorId: 'team-a',
+              gameId: 'g-prev',
+              type: CompetitorType.team,
+              name: 'Team A',
+              players: [
+                CompetitorPlayer(playerId: 'a2', rotationPosition: 1),
+                CompetitorPlayer(playerId: 'a1', rotationPosition: 0),
+              ],
+            ),
+            const Competitor(
+              competitorId: 'team-b',
+              gameId: 'g-prev',
+              type: CompetitorType.team,
+              name: 'Team B',
+              players: [
+                CompetitorPlayer(playerId: 'b1', rotationPosition: 0),
+              ],
+            ),
+          ]);
+
+      rosterContainer.read(gameSetupProvider);
+      await drainInit();
+
+      rosterContainer
+          .read(gameSetupProvider.notifier)
+          .selectVariant(x01Config);
+
+      rosterContainer.read(gameSetupProvider).maybeMap(
+            selectingPlayers: (s) =>
+                expect(s.selectedPlayerIds, ['a1', 'a2', 'b1']),
             orElse: () => fail('Expected selectingPlayers'),
           );
     });

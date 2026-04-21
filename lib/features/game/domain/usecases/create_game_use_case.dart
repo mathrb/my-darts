@@ -7,6 +7,7 @@ import '../entities/game_event.dart';
 import '../models/game_config.dart';
 import '../repositories/game_repository.dart';
 import '../repositories/game_event_repository.dart';
+import '../../../players/domain/repositories/player_repository.dart';
 import '../../../../core/error/repository_exception.dart';
 import '../../../../core/utils/constants.dart';
 import 'package:uuid/uuid.dart';
@@ -14,8 +15,13 @@ import 'package:uuid/uuid.dart';
 class CreateGameUseCase {
   final GameRepository _gameRepository;
   final GameEventRepository _eventRepository;
+  final PlayerRepository _playerRepository;
 
-  CreateGameUseCase(this._gameRepository, this._eventRepository);
+  CreateGameUseCase(
+    this._gameRepository,
+    this._eventRepository,
+    this._playerRepository,
+  );
 
   static const _validX01StartingScores = {101, 201, 301, 401, 501, 701, 1001};
   static const _validStrategies = {'straight', 'double', 'master'};
@@ -74,6 +80,17 @@ class CreateGameUseCase {
       source: EventSource.client,
     );
     await _eventRepository.appendEvent(turnStartedEvent);
+
+    final playerIds = <String>{
+      for (final c in competitors) for (final cp in c.players) cp.playerId,
+    };
+    for (final playerId in playerIds) {
+      try {
+        await _playerRepository.touchPlayer(playerId);
+      } on PlayerNotFoundException {
+        // touchPlayer is best-effort — a missing row must not abort game creation.
+      }
+    }
 
     return game;
   }

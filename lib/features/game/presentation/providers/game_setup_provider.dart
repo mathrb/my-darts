@@ -12,8 +12,9 @@ part 'game_setup_provider.g.dart';
 
 @riverpod // autoDispose by default — wizard state is reset on leave
 class GameSetupNotifier extends _$GameSetupNotifier {
-  /// Locked player is NOT on GameSetupState; it never reaches the UI.
-  String? _lockedPlayerId;
+  /// Never reaches the UI directly — seeded into `selectedPlayerIds` on entry
+  /// to the player step.
+  List<String> _lockedPlayerIds = const [];
 
   @override
   GameSetupState build() {
@@ -25,14 +26,41 @@ class GameSetupNotifier extends _$GameSetupNotifier {
 
   Future<void> _init() async {
     try {
+      final gameRepo = ref.read(gameRepositoryProvider);
+      final recent = await gameRepo.getCompletedGames(limit: 1);
+      if (recent.isNotEmpty) {
+        final competitors = await gameRepo.getCompetitors(recent.first.gameId);
+        // Sort defensively — Competitor entity doesn't enforce player ordering.
+        final ids = <String>{};
+        for (final competitor in competitors) {
+          final sortedPlayers = [...competitor.players]
+            ..sort((a, b) => a.rotationPosition.compareTo(b.rotationPosition));
+          for (final cp in sortedPlayers) {
+            ids.add(cp.playerId);
+          }
+        }
+        if (ids.isNotEmpty) {
+          _lockedPlayerIds = ids.toList();
+          return;
+        }
+      }
+
+      // getAllPlayers() returns sorted by lastActive DESC, so .first is the most recent.
       final players = await ref.read(playerRepositoryProvider).getAllPlayers();
-      // getAllPlayers() already returns sorted by lastActive DESC
       if (players.isNotEmpty) {
-        _lockedPlayerId = players.first.playerId;
+        _lockedPlayerIds = [players.first.playerId];
       }
     } catch (_) {
-      // Database not ready or no players — locked player stays null (no-op).
+      // Database not ready or no data — no-op, locked roster stays empty.
     }
+  }
+
+  List<String> _seedFor(GameType type) {
+    final max = type.maxPlayers;
+    if (max == null || _lockedPlayerIds.length <= max) {
+      return List<String>.from(_lockedPlayerIds);
+    }
+    return _lockedPlayerIds.sublist(0, max);
   }
 
   // ── Public methods ───────────────────────────────────────────────────────────
@@ -51,19 +79,18 @@ class GameSetupNotifier extends _$GameSetupNotifier {
   void selectVariant(GameConfig config) {
     state.map(
       selectingType: (_) {
+        final type = _gameTypeFor(config);
         state = GameSetupState.selectingPlayers(
-          gameType: _gameTypeFor(config),
+          gameType: type,
           config: config,
-          selectedPlayerIds:
-              _lockedPlayerId != null ? [_lockedPlayerId!] : [],
+          selectedPlayerIds: _seedFor(type),
         );
       },
       configuringGame: (s) {
         state = GameSetupState.selectingPlayers(
           gameType: s.gameType,
           config: config,
-          selectedPlayerIds:
-              _lockedPlayerId != null ? [_lockedPlayerId!] : [],
+          selectedPlayerIds: _seedFor(s.gameType),
         );
       },
       selectingPlayers: (s) {
@@ -133,9 +160,9 @@ class GameSetupNotifier extends _$GameSetupNotifier {
     );
   }
 
-  /// Resets to initial and re-fetches the locked player.
+  /// Resets to initial and re-fetches the locked roster.
   void reset() {
-    _lockedPlayerId = null;
+    _lockedPlayerIds = const [];
     state = GameSetupState.initial();
     _init();
   }
@@ -224,7 +251,7 @@ class GameSetupNotifier extends _$GameSetupNotifier {
         orElse: () => false,
       );
 
-  String? get lockedPlayerId => _lockedPlayerId;
+  List<String> get lockedPlayerIds => List.unmodifiable(_lockedPlayerIds);
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 

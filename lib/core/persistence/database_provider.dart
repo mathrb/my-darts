@@ -169,6 +169,7 @@ CreateGameUseCase createGameUseCase(Ref ref) {
   return CreateGameUseCase(
     ref.watch(gameRepositoryProvider),
     ref.watch(gameEventRepositoryProvider),
+    ref.watch(playerRepositoryProvider),
   );
 }
 
