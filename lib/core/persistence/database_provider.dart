@@ -25,6 +25,7 @@ import '../../features/game/domain/repositories/game_event_repository.dart';
 import '../../features/game/data/repositories/game_event_repository_impl.dart';
 import '../../features/statistics/domain/repositories/statistics_repository.dart';
 import '../../features/statistics/data/repositories/statistics_repository_impl.dart';
+import '../../features/statistics/domain/usecases/compute_leg_stats_use_case.dart';
 import '../../features/game/domain/engines/stateless_x01_engine.dart';
 import '../../features/game/domain/engines/stateless_cricket_engine.dart';
 import '../../features/game/domain/engines/stateless_around_the_clock_engine.dart';
@@ -101,6 +102,10 @@ GameEventRepository gameEventRepository(Ref ref) {
     return GameEventRepositoryImpl(db as Database);
   }
 }
+
+@Riverpod(keepAlive: true)
+ComputeLegStatsUseCase computeLegStatsUseCase(Ref ref) =>
+    const ComputeLegStatsUseCase();
 
 @Riverpod(keepAlive: true)
 StatisticsRepository statisticsRepository(Ref ref) {

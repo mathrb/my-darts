@@ -4,6 +4,7 @@ import 'package:my_darts/features/game/domain/entities/dart_throw.dart';
 import 'package:my_darts/features/game/domain/entities/game.dart';
 import 'package:my_darts/features/game/domain/entities/game_event.dart';
 import 'package:my_darts/features/statistics/domain/entities/game_stats.dart';
+import 'package:my_darts/features/statistics/domain/entities/leg_stats_breakdown.dart';
 
 part 'game_detail_state.freezed.dart';
 
@@ -15,6 +16,7 @@ abstract class GameDetailState with _$GameDetailState {
     @Default(<GameEvent>[]) List<GameEvent> events,
     @Default(<DartThrow>[]) List<DartThrow> darts,
     GameStats? gameStats,
+    @Default(<LegStatsBreakdown>[]) List<LegStatsBreakdown> legStats,
   }) = _GameDetailState;
 
   factory GameDetailState.initial() => const GameDetailState();

@@ -173,11 +173,23 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 
 **Database:** `PRAGMA foreign_keys = ON` must be set in `onOpen`. Schema migrations applied incrementally in `onUpgrade`. Completed games are read-only — enforced in application logic, not triggers.
 
+**Test game setup ordering:** Drift enforces read-only on completed games. In tests: create game with `isComplete: false` → insert darts/events → call `gameRepo.completeGame()`. Never set `isComplete: true` at creation if you need to insert data afterward.
+
 **Statistics scope resets:** Turn resets on `TurnStarted`, Leg resets on `LegCompleted`, Match resets on `GameCompleted`. No other reset points.
+
+**DartThrown payload keys:** `competitor_id`, `player_id`, `segment`, `multiplier`, `score`, `input_method` only (see `buildDartThrownEvent` in `lib/features/game/domain/usecases/game_use_case_helpers.dart`). No `turn_number`, no `dart_number` — reconstruct turn grouping via `TurnStarted`/`TurnEnded` event boundaries if needed.
+
+**Computing stats over an event slice:** Build a `ProjectionRunner` with the projections you need, call `init(ProjectionContext(...))` then `run(events)` then `snapshot()`. Snapshot keys: `x01_average`, `x01_checkout`, `x01_highest_checkout`, `x01.highScoreBuckets`, `cricket.mpt`, `cricket.markBuckets`, `cricket.firstNineMpr`. Same wiring lives in both statistics repos and `ComputeLegStatsUseCase` — update all three when it changes.
+
+**Dual statistics repositories:** Statistics queries exist in both `lib/features/statistics/data/repositories/statistics_repository_impl.dart` (sqflite) and `lib/core/persistence/drift/repositories/statistics_repository_drift.dart` (drift). Always update both when changing query logic.
 
 **Notifier tests:** Use `ProviderContainer` with `overrides`. Never instantiate notifiers directly. Use `ProviderScope` with `overrides` for widget tests.
 
+**Widget test finders:** `StatFormatter.fmtDouble` strips trailing zeros — e.g. `170.0` → `'170'`, which collides with raw `int` values rendered the same way. Prefer `findsNWidgets(n)` or more specific finders (`find.descendant`) over `findsOneWidget` when stat rows may share literals.
+
 **Colors:** Always use themed color tokens from `docs/design/DESIGN_SYSTEM.md`. Never hardcode color values directly in widgets.
+
+**Number formatting:** Use `StatFormatter` (`lib/core/utils/stat_formatter.dart`) for all statistics display — `fmtDouble`, `fmtPct`, `fmtPerLeg`. Never use inline `toStringAsFixed()` in statistics UI.
 
 **Round semantics:** A "round" is one full rotation where ALL competitors throw. `totalRounds` is the correct field name. Do not use `maxRounds` or count per-competitor turns or individual dart throws as rounds.
 

@@ -17,6 +17,7 @@ class GameDetailNotifier extends _$GameDetailNotifier {
     final eventRepo = ref.read(gameEventRepositoryProvider);
     final dartRepo = ref.read(dartThrowRepositoryProvider);
     final statsRepo = ref.read(statisticsRepositoryProvider);
+    final computeLegStats = ref.read(computeLegStatsUseCaseProvider);
 
     Game? game;
     List<Competitor> competitors = [];
@@ -42,12 +43,19 @@ class GameDetailNotifier extends _$GameDetailNotifier {
         return t != 0 ? t : a.dartNumber.compareTo(b.dartNumber);
       });
 
+    final legStats = computeLegStats.execute(
+      events: sortedEvents,
+      competitors: competitors,
+      gameType: game!.gameType,
+    );
+
     return GameDetailState(
       game: game,
       competitors: competitors,
       events: sortedEvents,
       darts: sortedDarts,
       gameStats: gameStats,
+      legStats: legStats,
     );
   }
 }

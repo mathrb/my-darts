@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:my_darts/core/utils/constants.dart';
-import 'package:my_darts/features/game/domain/entities/competitor.dart';
-import 'package:my_darts/features/game/domain/entities/dart_throw.dart';
-import 'package:my_darts/features/game/domain/entities/game_event.dart';
+import 'package:my_darts/core/utils/stat_formatter.dart';
+import 'package:my_darts/features/statistics/domain/entities/leg_stats_breakdown.dart';
 
 class LegBreakdownTableWidget extends StatefulWidget {
-  final List<GameEvent> events;
-  final List<DartThrow> darts;
-  final List<Competitor> competitors;
+  final List<LegStatsBreakdown> legs;
+  final GameType gameType;
 
   const LegBreakdownTableWidget({
-    required this.events,
-    required this.darts,
-    required this.competitors,
+    required this.legs,
+    required this.gameType,
     super.key,
   });
 
@@ -21,108 +18,15 @@ class LegBreakdownTableWidget extends StatefulWidget {
       _LegBreakdownTableWidgetState();
 }
 
-class _LegSummary {
-  final int legNumber;
-  final String winnerName;
-  final int dartsThrown;
-  final List<DartThrow> legDarts;
-
-  const _LegSummary({
-    required this.legNumber,
-    required this.winnerName,
-    required this.dartsThrown,
-    required this.legDarts,
-  });
-}
-
 class _LegBreakdownTableWidgetState extends State<LegBreakdownTableWidget> {
   final Set<int> _expandedLegs = {};
 
-  List<_LegSummary> _buildLegs() {
-    final sortedEvents = [...widget.events]
-      ..sort((a, b) => a.localSequence.compareTo(b.localSequence));
-
-    final dartsByTurn = <int, List<DartThrow>>{};
-    for (final d in widget.darts) {
-      dartsByTurn.putIfAbsent(d.turnNumber, () => []).add(d);
-    }
-
-    final legs = <_LegSummary>[];
-    int prevSeq = 0;
-    int legNumber = 1;
-
-    for (final event in sortedEvents) {
-      if (event.eventType != 'LegCompleted') continue;
-
-      final winnerId = event.payload['winner_competitor_id'] as String?;
-      final winnerComp = widget.competitors.firstWhere(
-        (c) => c.competitorId == winnerId,
-        orElse: () => widget.competitors.isNotEmpty
-            ? widget.competitors.first
-            : const Competitor(
-                competitorId: '',
-                gameId: '',
-                type: CompetitorType.solo,
-                name: 'Unknown',
-                players: [],
-              ),
-      );
-
-      final legTurnNums = sortedEvents
-          .where((e) =>
-              e.localSequence > prevSeq &&
-              e.localSequence < event.localSequence &&
-              e.eventType == 'DartThrown')
-          .map((e) => e.payload['turn_number'] as int?)
-          .whereType<int>()
-          .toSet();
-
-      final legDarts = [
-        for (final tn in legTurnNums) ...?dartsByTurn[tn],
-      ]..sort((a, b) {
-          final t = a.turnNumber.compareTo(b.turnNumber);
-          return t != 0 ? t : a.dartNumber.compareTo(b.dartNumber);
-        });
-
-      legs.add(_LegSummary(
-        legNumber: legNumber++,
-        winnerName: winnerComp.name,
-        dartsThrown: legDarts.length,
-        legDarts: legDarts,
-      ));
-      prevSeq = event.localSequence;
-    }
-
-    return legs;
-  }
-
-  List<Widget> _buildTurnWidgets(_LegSummary leg, ThemeData theme) {
-    final byTurn = <int, List<DartThrow>>{};
-    for (final d in leg.legDarts) {
-      byTurn.putIfAbsent(d.turnNumber, () => []).add(d);
-    }
-    final turnNums = byTurn.keys.toList()..sort();
-    return turnNums.map((tn) {
-      final turnDarts = byTurn[tn]!
-        ..sort((a, b) => a.dartNumber.compareTo(b.dartNumber));
-      return Padding(
-        padding: const EdgeInsets.only(top: 2),
-        child: Text(
-          turnDarts.map((d) => d.segment).join(' '),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      );
-    }).toList();
-  }
+  bool get _expandable => widget.legs.length > 1;
 
   @override
   Widget build(BuildContext context) {
-    final legs = _buildLegs();
     final theme = Theme.of(context);
-
-    if (legs.isEmpty) {
+    if (widget.legs.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(16),
@@ -132,32 +36,35 @@ class _LegBreakdownTableWidgetState extends State<LegBreakdownTableWidget> {
     }
 
     return Table(
-      columnWidths: const {
-        0: FixedColumnWidth(48),
-        1: FlexColumnWidth(),
-        2: FixedColumnWidth(60),
-        3: FixedColumnWidth(40),
+      columnWidths: {
+        0: const FixedColumnWidth(48),
+        1: const FlexColumnWidth(),
+        2: const FixedColumnWidth(60),
+        if (_expandable) 3: const FixedColumnWidth(40),
       },
       children: [
-        TableRow(
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: theme.dividerColor),
-            ),
-          ),
-          children: [
-            _headerCell('Leg'),
-            _headerCell('Winner'),
-            _headerCell('Darts'),
-            const SizedBox.shrink(),
-          ],
-        ),
-        for (final leg in legs) ...[
+        _headerRow(theme),
+        for (final leg in widget.legs) ...[
           _legRow(leg, theme),
-          if (_expandedLegs.contains(leg.legNumber))
+          if (_expandable && _expandedLegs.contains(leg.legNumber))
             _expandedRow(leg, theme),
         ],
       ],
+    );
+  }
+
+  TableRow _headerRow(ThemeData theme) {
+    final cells = <Widget>[
+      _headerCell('Leg'),
+      _headerCell('Winner'),
+      _headerCell('Darts'),
+      if (_expandable) const SizedBox.shrink(),
+    ];
+    return TableRow(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: theme.dividerColor)),
+      ),
+      children: cells,
     );
   }
 
@@ -169,27 +76,24 @@ class _LegBreakdownTableWidgetState extends State<LegBreakdownTableWidget> {
         ),
       );
 
-  TableRow _legRow(_LegSummary leg, ThemeData theme) {
+  TableRow _legRow(LegStatsBreakdown leg, ThemeData theme) {
     final isExpanded = _expandedLegs.contains(leg.legNumber);
-    return TableRow(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.3)),
-        ),
+    final totalDarts =
+        leg.byCompetitor.fold<int>(0, (s, c) => s + c.dartsThrown);
+    final cells = <Widget>[
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Text('${leg.legNumber}'),
       ),
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-          child: Text('${leg.legNumber}'),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-          child: Text(leg.winnerName),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-          child: Text('${leg.dartsThrown}'),
-        ),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Text(leg.winnerName),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Text('$totalDarts'),
+      ),
+      if (_expandable)
         GestureDetector(
           onTap: () => setState(() {
             if (isExpanded) {
@@ -206,19 +110,26 @@ class _LegBreakdownTableWidgetState extends State<LegBreakdownTableWidget> {
             ),
           ),
         ),
-      ],
+    ];
+    return TableRow(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.3)),
+        ),
+      ),
+      children: cells,
     );
   }
 
-  TableRow _expandedRow(_LegSummary leg, ThemeData theme) {
+  TableRow _expandedRow(LegStatsBreakdown leg, ThemeData theme) {
     return TableRow(
       children: [
         const SizedBox.shrink(),
         Padding(
-          padding: const EdgeInsets.only(bottom: 8, left: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: _buildTurnWidgets(leg, theme),
+          padding: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
+          child: _LegStatsTable(
+            leg: leg,
+            gameType: widget.gameType,
           ),
         ),
         const SizedBox.shrink(),
@@ -226,4 +137,228 @@ class _LegBreakdownTableWidgetState extends State<LegBreakdownTableWidget> {
       ],
     );
   }
+}
+
+class _LegStatsTable extends StatelessWidget {
+  const _LegStatsTable({required this.leg, required this.gameType});
+
+  final LegStatsBreakdown leg;
+  final GameType gameType;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final competitors = leg.byCompetitor;
+    if (competitors.isEmpty) return const SizedBox.shrink();
+
+    final isCricket = gameType == GameType.cricket;
+    final rows = isCricket ? _cricketRows(competitors) : _x01Rows(competitors);
+
+    const cellPadding = EdgeInsets.symmetric(horizontal: 12, vertical: 8);
+    final headerStyle = tt.labelSmall?.copyWith(
+      color: cs.onSurfaceVariant,
+      letterSpacing: 1.2,
+      fontWeight: FontWeight.w900,
+    );
+    final categoryStyle = tt.labelSmall?.copyWith(
+      color: cs.onSurfaceVariant,
+      letterSpacing: 1.2,
+      fontWeight: FontWeight.w700,
+    );
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+        border:
+            Border.all(color: cs.outlineVariant.withValues(alpha: 0.18)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Table(
+          defaultColumnWidth: const IntrinsicColumnWidth(),
+          border: TableBorder(
+            horizontalInside:
+                BorderSide(color: cs.outlineVariant.withValues(alpha: 0.08)),
+          ),
+          children: [
+            TableRow(
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerLow,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+              ),
+              children: [
+                Padding(
+                  padding: cellPadding,
+                  child: Text('CATEGORY', style: headerStyle),
+                ),
+                ...competitors.map((c) {
+                  final isWinner = c.competitorId == leg.winnerCompetitorId;
+                  return Padding(
+                    padding: cellPadding,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _shortName(c.competitorName),
+                          style: tt.labelMedium?.copyWith(
+                            color: isWinner ? cs.primaryFixed : cs.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          isWinner ? 'WINNER' : 'OPPONENT',
+                          style: tt.labelSmall?.copyWith(
+                            color: isWinner
+                                ? cs.primaryFixed.withValues(alpha: 0.7)
+                                : cs.onSurfaceVariant,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+            ...rows.map((row) => TableRow(
+                  children: [
+                    Padding(
+                      padding: cellPadding,
+                      child: Text(
+                        row.category.toUpperCase(),
+                        style: categoryStyle,
+                      ),
+                    ),
+                    ...List.generate(competitors.length, (i) {
+                      final highlight = row.highlightWinner &&
+                          competitors[i].competitorId ==
+                              leg.winnerCompetitorId;
+                      return Padding(
+                        padding: cellPadding,
+                        child: Text(
+                          row.values[i],
+                          style: tt.titleMedium?.copyWith(
+                            color:
+                                highlight ? cs.primaryFixed : cs.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<_StatRow> _x01Rows(List<LegCompetitorStats> competitors) {
+    return [
+      _StatRow(
+        category: 'Avg PPR',
+        values: competitors
+            .map((c) => StatFormatter.fmtDouble(c.threeDartAverage))
+            .toList(),
+        highlightWinner: true,
+      ),
+      _StatRow(
+        category: 'Checkout',
+        values: competitors
+            .map((c) =>
+                StatFormatter.fmtPct(c.checkoutPercentage, isRatio: false))
+            .toList(),
+      ),
+      _StatRow(
+        category: 'Best Out',
+        values: competitors
+            .map((c) => c.highestCheckout != null
+                ? '${c.highestCheckout}'
+                : '—')
+            .toList(),
+      ),
+      _StatRow(
+        category: '180s',
+        values:
+            competitors.map((c) => c.oneEightyTurns.toString()).toList(),
+      ),
+      _StatRow(
+        category: '60+',
+        values: competitors.map((c) => c.sixtyPlusTurns.toString()).toList(),
+      ),
+      _StatRow(
+        category: '100+',
+        values: competitors
+            .map((c) => c.oneHundredPlusTurns.toString())
+            .toList(),
+      ),
+      _StatRow(
+        category: '140+',
+        values: competitors
+            .map((c) => c.oneFortyPlusTurns.toString())
+            .toList(),
+      ),
+    ];
+  }
+
+  List<_StatRow> _cricketRows(List<LegCompetitorStats> competitors) {
+    return [
+      _StatRow(
+        category: 'Avg MPR',
+        values: competitors
+            .map((c) => StatFormatter.fmtDouble(c.marksPerRound, decimals: 2))
+            .toList(),
+        highlightWinner: true,
+      ),
+      _StatRow(
+        category: 'First 9 MPR',
+        values: competitors
+            .map((c) =>
+                StatFormatter.fmtDouble(c.firstNineMarksPerRound, decimals: 2))
+            .toList(),
+      ),
+      _StatRow(
+        category: '5 Marks',
+        values: competitors.map((c) => c.fiveMarkTurns.toString()).toList(),
+      ),
+      _StatRow(
+        category: '6 Marks',
+        values: competitors.map((c) => c.sixMarkTurns.toString()).toList(),
+      ),
+      _StatRow(
+        category: '7 Marks',
+        values: competitors.map((c) => c.sevenMarkTurns.toString()).toList(),
+      ),
+      _StatRow(
+        category: '8 Marks',
+        values: competitors.map((c) => c.eightMarkTurns.toString()).toList(),
+      ),
+      _StatRow(
+        category: '9 Marks',
+        values: competitors.map((c) => c.nineMarkTurns.toString()).toList(),
+      ),
+    ];
+  }
+
+  String _shortName(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length == 1) return name;
+    return '${parts.first} ${parts.last[0]}.';
+  }
+}
+
+class _StatRow {
+  final String category;
+  final List<String> values;
+  final bool highlightWinner;
+
+  _StatRow({
+    required this.category,
+    required this.values,
+    this.highlightWinner = false,
+  });
 }

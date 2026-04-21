@@ -266,6 +266,54 @@ final class GameEventRepositoryProvider
 String _$gameEventRepositoryHash() =>
     r'8b3290749051685f2f4b24bba6f9efad955f2208';
 
+@ProviderFor(computeLegStatsUseCase)
+final computeLegStatsUseCaseProvider = ComputeLegStatsUseCaseProvider._();
+
+final class ComputeLegStatsUseCaseProvider
+    extends
+        $FunctionalProvider<
+          ComputeLegStatsUseCase,
+          ComputeLegStatsUseCase,
+          ComputeLegStatsUseCase
+        >
+    with $Provider<ComputeLegStatsUseCase> {
+  ComputeLegStatsUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'computeLegStatsUseCaseProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$computeLegStatsUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<ComputeLegStatsUseCase> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ComputeLegStatsUseCase create(Ref ref) {
+    return computeLegStatsUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ComputeLegStatsUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ComputeLegStatsUseCase>(value),
+    );
+  }
+}
+
+String _$computeLegStatsUseCaseHash() =>
+    r'95edac98faa737aac4bcd1740fee798c856dc09f';
+
 @ProviderFor(statisticsRepository)
 final statisticsRepositoryProvider = StatisticsRepositoryProvider._();
 

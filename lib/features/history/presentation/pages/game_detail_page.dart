@@ -73,9 +73,8 @@ class GameDetailPage extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           LegBreakdownTableWidget(
-            events: detail.events,
-            darts: detail.darts,
-            competitors: detail.competitors,
+            legs: detail.legStats,
+            gameType: game.gameType,
           ),
         ],
       ),
