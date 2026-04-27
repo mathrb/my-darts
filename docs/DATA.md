@@ -48,8 +48,7 @@ A single dart thrown by a player and credited to a competitor.
 ### Game Fields
 
 * `game_id` — UUID (string)
-* `game_type` — string
-  (`"x01"`, `"cricket"`, `"around-the-clock"`, `"killer"`, etc.)
+* `game_type` — string. Stored as the camelCase Dart enum name (e.g. `"x01"`, `"cricket"`, `"aroundTheClock"`, `"killer"`, `"baseball"`, `"golf"`, `"shanghai"`, `"scram"`, `"halveIt"`, `"highScore"`, `"blindCricket"`, `"blindGolf"`, `"blindKiller"`, `"blindShanghai"`, `"chaseTheDragon"`, `"catch40"`, `"bobs27"`, `"checkoutPractice"`). The canonical list lives in the `GameType` enum (`lib/core/utils/constants.dart`).
 * `start_time` — ISO 8601 timestamp
 * `end_time` — ISO 8601 timestamp (nullable)
 * `winner_competitor_id` — UUID (nullable)
@@ -128,73 +127,131 @@ A dart throw is the fundamental event used for scoring and statistics.
 
 ## 7. Game Configuration (JSON)
 
+`config_json` is a JSON object whose shape is dispatched by the parent game's `game_type`. The authoritative source is the `GameConfig` sealed union in `lib/features/game/domain/models/game_config.dart`. JSON keys are camelCase (matching the Dart field names).
+
+Every variant supports an optional `startingPlayerId` (UUID, nullable). Only the variant-specific keys are listed below.
+
+### X01 (`game_type = "x01"`)
+
 ```json
 {
-  "starting_score": 301 | 501 | 701 | 901,
-  "max_rounds": integer | null,
-  "in_strategy": "straight" | "double" | "master",
-  "out_strategy": "straight" | "double" | "master",
+  "startingScore": 301 | 501 | 701 | 901,
+  "inStrategy": "straight" | "double" | "master",
+  "outStrategy": "straight" | "double" | "master",
+  "legsToWin": 1,
+  "totalRounds": integer | null,
+  "startingPlayerId": "<uuid>" | null,
   "handicaps": {
-    "<competitor_id>": integer  // negative offset; e.g. -50 means start at startingScore−50
+    "<competitor_id>": integer
   }
 }
 ```
 
----
+* `handicaps` is a per-competitor signed offset applied to the starting score (e.g. `-50` means that competitor starts at `startingScore - 50`).
+* `totalRounds` is a per-leg round cap. When the cap is reached without a winner, the leg is decided by current standing (see `CLAUDE.md` — Per-leg round cap).
 
-### Cricket Configuration
-
-```json
-{
-  "variant": "standard" | "cut-throat" | "no-score",
-  "numbers_in_play": [15, 16, 17, 18, 19, 20, "bull"]
-}
-```
-
----
-
-### Around the Clock Configuration
+### Cricket (`game_type = "cricket"`)
 
 ```json
 {
-  "direction": "ascending" | "descending" | "random",
-  "target_numbers": [1, 2, ..., 20],
-  "required_hits": 1 | 2 | 3
+  "variant": "standard" | "cut-throat" | "no-score" | "tactics",
+  "numbers": ["15", "16", "17", "18", "19", "20", "bull"],
+  "legsToWin": 1,
+  "totalRounds": integer | null,
+  "startingPlayerId": "<uuid>" | null
 }
 ```
 
----
-
-### Killer Configuration
+### Around the Clock (`game_type = "aroundTheClock"`)
 
 ```json
 {
-  "starting_lives": integer,
-  "number_assignment": "random" | "manual" | "sequential",
-  "hit_requirement": "single" | "double" | "triple"
+  "variant": "standard" | "reverse" | "doublesOnly",
+  "startingPlayerId": "<uuid>" | null
 }
 ```
+
+### Shanghai (`game_type = "shanghai"`)
+
+```json
+{
+  "totalRounds": 7,
+  "startingPlayerId": "<uuid>" | null
+}
+```
+
+### Catch 40 (`game_type = "catch40"`)
+
+```json
+{
+  "totalRounds": 8,
+  "roundTargets": [10, 15, 20, 25, 30, 35, 40, 45],
+  "startingPlayerId": "<uuid>" | null
+}
+```
+
+### Bob's 27 (`game_type = "bobs27"`)
+
+```json
+{
+  "startingPlayerId": "<uuid>" | null
+}
+```
+
+### Checkout Practice (`game_type = "checkoutPractice"`)
+
+```json
+{
+  "randomOrder": false,
+  "targetSuccesses": integer | null,
+  "startingPlayerId": "<uuid>" | null
+}
+```
+
+### Other variants
+
+The following game types currently carry only `startingPlayerId` in their config: `killer`, `baseball`, `golf`, `scram`, `halveIt`, `highScore`, `blindCricket`, `blindGolf`, `blindKiller`, `blindShanghai`, `chaseTheDragon`. Their rules are defined in code (`lib/features/game/domain/engines/`) and in `docs/games/` where applicable; this document does not enumerate gameplay parameters that are not yet persisted in `config_json`.
 
 ---
 
 ## 8. Game State (JSON, Runtime Only)
 
-Game state represents the **current, resumable state** of an active game.
+Game state represents the **current, resumable state** of an active game. It is persisted as a JSON blob in `games.game_state_json` and is set to `NULL` once the game completes.
 
-### Game State Fields
+The persisted blob is a `GameStateSnapshot` (`lib/features/game/domain/models/game_state_snapshot.dart`) — a thin envelope around game-specific runtime state.
 
-* `game_id` — UUID
-* `current_competitor_id` — UUID
-* `current_player_id` — UUID
-* `current_turn` — integer
-* `rotation_index` — object mapping competitor IDs to current rotation position
-* `state_json` — object (game-specific runtime state)
+### GameStateSnapshot envelope
+
+```json
+{
+  "gameId": "<uuid>",
+  "gameType": "<gameType.name>",
+  "stateData": { /* freezed GameState — see below */ },
+  "timestamp": "2026-04-27T14:30:00.000Z",
+  "isComplete": false,
+  "winnerId": "<competitor_id>" | null
+}
+```
+
+### `stateData` — runtime `GameState`
+
+`stateData` is the JSON-serialised `GameState` (`lib/features/game/domain/models/game_state.dart`), which is the single source of truth for what the engine and presentation layer need to resume an active game. The exact field set evolves with the engines; the canonical reference is the freezed class. Stable top-level fields include:
+
+* `gameId`, `gameType` — identifiers.
+* `competitors` — array of `CompetitorState` (per-competitor score, dart history, marks, leg progress, practice counters, etc.).
+* `currentTurnIndex`, `dartsThrownInTurn`, `turnActive`, `status` — turn cursor and engine status.
+* `isComplete`, `winnerCompetitorId` — terminal state.
+* `legsToWin`, `currentLegIndex`, `currentRoundInLeg` — leg/round bookkeeping.
+* `x01TotalRounds`, `cricketTotalRounds` — per-leg round caps when applicable.
+* `inStrategy`, `outStrategy`, `startingScore` — X01 configuration carried into runtime state.
+* `cricketVariant`, `aroundTheClockVariant`, `shanghaiTotalRounds`, `catch40TargetRemaining`, `catch40DartsOnTarget`, `checkoutTargetSuccesses` — game-type-specific runtime fields.
 
 ### Rules
 
 * Only present for active games.
-* Discarded or archived once the game ends.
-* Not used for historical statistics.
+* `game_state_json` is set to `NULL` when the game completes; it is not retained afterwards.
+* Never used as a source for historical statistics — those are projections over `game_events`.
+* Treated as an opaque blob by the database; serialisation/validation is an application-layer concern.
 
 ---
 
@@ -230,7 +287,7 @@ Use JSON only for:
 
 ## 11. Non-Goals (Explicitly Out of Scope)
 
-* Legs / sets
+* Sets (legs are first-class — see X01/Cricket configs in §7 and `LegCompleted` events)
 * Uneven teams
 * Mid-game roster changes
 * Post-game edits

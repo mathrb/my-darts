@@ -42,11 +42,15 @@ Check the relevant spec before implementing. These are the source of truth.
 | Around the Clock transitions | `docs/games/around-the-clock.md` |
 | 170 Checkout Practice rules and transitions | `docs/games/checkout-practice.md` |
 | Statistics definitions and projections | `docs/statistics/x01.projections.md`, `docs/statistics/statistics.architecture.md` |
+| Projection test matrix | `docs/statistics/projection-test-matrix.md` |
 | Riverpod providers, state patterns | `docs/STATE_MANAGEMENT.md` |
 | Navigation flows and screen index | `docs/UI_SCREEN_FLOWS_V3_FINAL.md` |
 | Design tokens, colors, typography, spacing | `docs/design/DESIGN_SYSTEM.md` |
 | Data entities and field names | `docs/DATA.md` |
 | Backend REST endpoints (optional) | `docs/API_CONTRACT.md` |
+| Backend integration patterns (optional) | `docs/BACKEND_INTEGRATION.md` |
+| Architecture diagrams | `docs/ARCHITECTURE_DIAGRAMS.md` |
+| Concise architecture overview | `docs/ARCHITECTURE.md` |
 | Full architecture reference | `docs/ARCHITECTURE_COMPLETE.md` |
 
 ### Web — one-time asset setup (required before first `flutter run`)
@@ -118,6 +122,7 @@ All state classes use `freezed`. Never mutate state in place. Always use `copyWi
 | Navigation | `go_router` |
 | UUID generation | `uuid` |
 | Code generation runner | `build_runner` |
+| Crash reporting | `sentry_flutter` (initialized in `lib/main.dart`; do not remove `SentryFlutter.init`) |
 
 Platform selection (native SQLite vs WASM) happens once in the Drift factory. Everywhere else sees only the repository interface.
 
@@ -171,7 +176,7 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 
 **Contract tests:** Every repository implementation must pass the shared contract tests in `test/contracts/`. Never skip or comment out tests to make CI pass.
 
-**Database:** `PRAGMA foreign_keys = ON` must be set in `onOpen`. Schema migrations applied incrementally in `onUpgrade`. Completed games are read-only — enforced in application logic, not triggers.
+**Database:** `PRAGMA foreign_keys = ON` must be set in `onOpen` (sqflite) / `beforeOpen` (drift). Schema is currently single-version (`databaseVersion = 1`); future schema migrations will be applied in `onUpgrade` (sqflite) / `MigrationStrategy.onUpgrade` (drift). Completed games are read-only — enforced in application logic, not triggers.
 
 **Test game setup ordering:** Drift enforces read-only on completed games. In tests: create game with `isComplete: false` → insert darts/events → call `gameRepo.completeGame()`. Never set `isComplete: true` at creation if you need to insert data afterward.
 
@@ -194,6 +199,8 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 **Number formatting:** Use `StatFormatter` (`lib/core/utils/stat_formatter.dart`) for all statistics display — `fmtDouble`, `fmtPct`, `fmtPerLeg`. Never use inline `toStringAsFixed()` in statistics UI.
 
 **Round semantics:** A "round" is one full rotation where ALL competitors throw. `totalRounds` is the correct field name. Do not use `maxRounds` or count per-competitor turns or individual dart throws as rounds.
+
+**Per-leg round cap:** X01 and Cricket enforce a round cap per leg (see `GameConfigurationConstants` and engine logic). When the cap is hit with no winner, the leg is decided by current standing — do not extend rounds silently. Both engines and any UI showing round progress must respect this.
 
 **Spec edits:** When asked to update a spec or document, only edit that document — do not modify code files unless explicitly asked.
 

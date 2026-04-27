@@ -16,6 +16,8 @@
 
 All tables — including backend sync capabilities (`accounts`, `sync_queue`, `game_sessions`) — are created together in version 1. There are no incremental migrations. The `players` table includes `account_id` and `avatar_url` from the initial schema; `account_id = NULL` for local-only players preserves full offline functionality.
 
+> **Inactive scaffolding (as of 2026-04-27):** The `accounts`, `sync_queue`, and `game_sessions` tables and the `players.account_id` / `players.avatar_url` columns are created in v1 but are **not yet wired into application code** — no repository, provider, use case, or UI reads or writes them. They exist so backend-integration work (see `BACKEND_INTEGRATION.md`) can land without a schema migration. Treat them as authoritative shapes for future use, not as descriptions of current behaviour. Sections describing these tables/columns are flagged with **"Inactive"** below.
+
 ---
 
 ## Enabling Foreign Keys
@@ -41,6 +43,8 @@ await db.execute('PRAGMA foreign_keys = ON;');
 `accounts` must be created before `players` because `players.account_id` references `accounts(account_id)`.
 
 ### accounts
+
+> **Inactive — backend-integration scaffolding.** Not read or written by any current code path.
 
 ```sql
 CREATE TABLE accounts (
@@ -74,8 +78,9 @@ CREATE TABLE players (
 ```
 
 **Notes:**
-- `account_id = NULL` for local-only players. `ON DELETE SET NULL` allows unlinking an account without losing the player record.
-- `avatar_url` is NULL when no avatar has been set.
+- `account_id` and `avatar_url` are **inactive backend-integration scaffolding**. They exist on every row but are never read or written by current code: the `Player` domain entity (`lib/features/players/domain/entities/player.dart`) does not declare them, and both repository implementations ignore them.
+- `account_id = NULL` for local-only players (i.e. all players today). `ON DELETE SET NULL` will allow unlinking an account without losing the player record once the feature ships.
+- `avatar_url` is NULL when no avatar has been set; the current avatar widget renders a deterministic colour from `playerId` rather than reading this column.
 - Players cannot be hard-deleted while they have rows in `competitor_players` (`ON DELETE RESTRICT` there protects historical data).
 
 ---
@@ -85,7 +90,7 @@ CREATE TABLE players (
 ```sql
 CREATE TABLE games (
     game_id               TEXT     NOT NULL PRIMARY KEY,  -- UUID
-    game_type             TEXT     NOT NULL,              -- 'x01' | 'cricket' | 'around-the-clock' | 'killer'
+    game_type             TEXT     NOT NULL,              -- camelCase Dart enum name (e.g. 'x01', 'cricket', 'aroundTheClock', 'catch40'). Authoritative list: GameType in lib/core/utils/constants.dart
     config_json           TEXT     NOT NULL,              -- JSON: game-type-specific configuration (see DATA.md §7)
     start_time            TEXT     NOT NULL,              -- ISO 8601
     end_time              TEXT,                           -- ISO 8601, NULL while game is active
@@ -183,7 +188,7 @@ Stores the append-only event log used for game state reconstruction, replay, and
 CREATE TABLE game_events (
     event_id        TEXT     NOT NULL PRIMARY KEY,  -- UUID, globally unique
     game_id         TEXT     NOT NULL REFERENCES games(game_id) ON DELETE CASCADE,
-    event_type      TEXT     NOT NULL,              -- 'GameCreated' | 'TurnStarted' | 'DartThrown' | 'TurnEnded' | 'DartCorrected' | 'GameCompleted' | ...
+    event_type      TEXT     NOT NULL,              -- See GAME-EVENT-SPECIFICATIONS.md for the authoritative event catalogue
     local_sequence  INTEGER  NOT NULL,              -- Client-assigned monotonically increasing integer per game
     occurred_at     TEXT     NOT NULL,              -- ISO 8601
     payload_json    TEXT     NOT NULL,              -- JSON: event-type-specific payload (see GAME-EVENT-SPECIFICATIONS.md §4)
@@ -211,6 +216,8 @@ CREATE INDEX idx_game_events_sequence ON game_events(game_id, local_sequence);
 
 ### sync_queue
 
+> **Inactive — backend-integration scaffolding.** Not read or written by any current code path.
+
 Manages pending outbound synchronization operations.
 
 ```sql
@@ -233,6 +240,8 @@ CREATE INDEX idx_sync_queue_status ON sync_queue(status);
 ---
 
 ### game_sessions
+
+> **Inactive — backend-integration scaffolding.** Not read or written by any current code path.
 
 Tracks remote multiplayer sessions.
 
