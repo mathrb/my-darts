@@ -33,7 +33,7 @@ dependencies:
   
   # UI components
   flutter_svg: ^2.0.7
-  google_fonts: ^6.2.0
+  google_fonts: ">=6.2.0 <9.0.0"
   fl_chart: ^0.69.0
 
   # Error monitoring
