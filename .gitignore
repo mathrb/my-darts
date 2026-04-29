@@ -4,3 +4,5 @@ build/
 .metadata
 web/
 android/
+releases/
+tools/apk-server/

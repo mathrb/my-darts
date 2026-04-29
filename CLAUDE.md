@@ -35,9 +35,9 @@ flutter create --platforms=android .   # one-time, after fresh clone or rm -rf a
 flutter build apk --debug              # or --release
 ```
 
-Requires JDK 17 + Android SDK on `PATH` (`JAVA_HOME`, `ANDROID_HOME`). CI also produces release APKs.
+Requires JDK 17 + Android SDK on `PATH` (`JAVA_HOME`, `ANDROID_HOME`). Non-interactive shells (incl. Bash tool calls) don't load `~/.bashrc` — use `tools/release-debug.sh` or prepend env exports inline. CI also produces release APKs.
 
-**Sideloading to a phone over Wi-Fi:** `tools/release-debug.sh --serve` bumps `versionCode`, rebuilds, and starts `python3 -m http.server` on port 8000. Phone downloads from `http://<lan-ip>:8000/app-debug.apk`. In-place upgrades only work when `versionCode` increases AND the signing key matches — debug builds on the same machine share `~/.android/debug.keystore` so upgrades just work; mixing local debug ↔ CI release ↔ another machine forces uninstall.
+**Sideloading to a phone:** `tools/release-debug.sh` bumps `versionCode`, rebuilds, and copies the APK to `releases/my_darts-debug-<version>.apk` (folder gitignored). Serve `releases/` by whichever method (Python http.server, nginx, docker — devs choose). In-place upgrades require both an increased `versionCode` AND a matching signing key; debug builds on the same machine share `~/.android/debug.keystore` so upgrades just work; mixing local debug ↔ CI release ↔ another machine forces uninstall. Android identifies apps by `applicationId` + signing key, NOT by APK filename — different filenames with the same identity all upgrade the same installed app.
 
 ---
 
