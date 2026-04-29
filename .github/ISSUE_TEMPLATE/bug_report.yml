@@ -1,0 +1,99 @@
+name: Bug report
+description: Report a defect in scoring, UI, persistence, or build
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill in as
+        much detail as possible — it makes the difference between a fix in
+        an evening and a fix in a month.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One or two sentences describing what went wrong.
+      placeholder: e.g. Cricket double-bull scores 25 instead of 50 when the segment is closed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to trigger the bug. Use a numbered list.
+      placeholder: |
+        1. Start a Cricket game with two players.
+        2. Player 1 closes 20 with three triples.
+        3. Player 1 hits double-bull on the next turn.
+        4. Observe score increment.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      placeholder: Score should increase by 50.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      placeholder: Score increases by 25.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options:
+        - Web (Chrome)
+        - Web (Firefox)
+        - Web (Safari)
+        - Android
+        - iOS
+        - Other (mention in additional context)
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: From the Settings screen, or the `version:` line in pubspec.yaml.
+      placeholder: e.g. 1.0.0+4
+    validations:
+      required: false
+
+  - type: input
+    id: flutter-version
+    attributes:
+      label: Flutter version
+      description: Output of `flutter --version`.
+      placeholder: e.g. Flutter 3.22.0 • channel stable
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Console output, stack traces, screenshots. Trim long logs.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else that might be relevant.
+    validations:
+      required: false

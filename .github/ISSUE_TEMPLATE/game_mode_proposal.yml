@@ -1,0 +1,79 @@
+name: Game mode proposal
+description: Propose a new darts game mode for the app
+title: "[Game]: "
+labels: ["game-mode", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to propose a new game mode. The more complete
+        the rules and scoring spec, the easier it is to evaluate and
+        eventually implement.
+
+        For inspiration, see the existing transition tables under
+        [`docs/games/`](https://github.com/mathrb/my-darts/tree/main/docs/games)
+        and the early brainstorm notes under
+        [`docs/games/research/`](https://github.com/mathrb/my-darts/tree/main/docs/games/research).
+
+  - type: input
+    id: name
+    attributes:
+      label: Game name
+      placeholder: e.g. Halve-It
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: One-line summary
+      placeholder: Score points by hitting target numbers, halve your score on misses.
+    validations:
+      required: true
+
+  - type: textarea
+    id: rules
+    attributes:
+      label: Rules
+      description: |
+        How does a leg / match start? Who throws first? How do players
+        take turns? What ends a leg? What ends a match?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scoring
+    attributes:
+      label: Scoring
+      description: |
+        How are darts scored? What counts as a hit? Are there bust /
+        penalty conditions? Are doubles / triples treated specially?
+    validations:
+      required: true
+
+  - type: textarea
+    id: variants
+    attributes:
+      label: Variants (optional)
+      description: Common rule variations for this game.
+    validations:
+      required: false
+
+  - type: textarea
+    id: stats
+    attributes:
+      label: Statistics implications
+      description: |
+        Are there per-leg / per-match statistics specific to this mode
+        that should be tracked? (Per-target hit rate, average per round,
+        success rate, etc.)
+    validations:
+      required: false
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to authoritative rule descriptions, governing-body specs, or popular implementations.
+    validations:
+      required: false
