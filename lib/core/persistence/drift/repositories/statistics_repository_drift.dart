@@ -16,6 +16,9 @@ import 'package:dart_lodge/features/statistics/domain/engines/x01/x01_checkout_p
 import 'package:dart_lodge/features/statistics/domain/engines/x01/x01_high_score_buckets_projection.dart';
 import 'package:dart_lodge/features/statistics/domain/engines/x01/x01_highest_checkout_projection.dart';
 import 'package:dart_lodge/features/statistics/domain/engines/cricket/cricket_segment_utils.dart';
+import 'package:dart_lodge/features/statistics/domain/engines/cricket/cricket_marks_per_turn_projection.dart';
+import 'package:dart_lodge/features/statistics/domain/engines/cricket/cricket_mark_buckets_projection.dart';
+import 'package:dart_lodge/features/statistics/domain/engines/cricket/cricket_first_nine_mpr_projection.dart';
 import '../database.dart' as drift_db;
 
 class StatisticsRepositoryDrift implements StatisticsRepository {
@@ -45,10 +48,26 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       }
 
       final isX01 = gameRow.gameType == GameType.x01.name;
+      final isGameCricket = gameRow.gameType == GameType.cricket.name;
 
-      // Pre-fetch game events once for X01 projections
+      final dartThrows = await (_db.select(_db.dartThrows)
+            ..where((t) => t.gameId.equals(gameId))
+            ..orderBy([
+              (t) => OrderingTerm.asc(t.turnNumber),
+              (t) => OrderingTerm.asc(t.dartNumber),
+            ]))
+          .get();
+
+      if (dartThrows.isEmpty) {
+        return GameStats(
+          gameId: gameId,
+          byCompetitor: [],
+          gameType: gameRow.gameType,
+        );
+      }
+
       List<domain.GameEvent> gameEvents = [];
-      if (isX01) {
+      if (isX01 || isGameCricket) {
         final eventRows = await (_db.select(_db.gameEvents)
               ..where((e) => e.gameId.equals(gameId))
               ..orderBy([(e) => OrderingTerm.asc(e.localSequence)]))
@@ -65,19 +84,6 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
           globalSequence: row.globalSequence,
           source: EventSource.client,
         )).toList();
-      }
-
-      // Get all dart throws for this game ordered by turn/dart number
-      final dartThrows = await (_db.select(_db.dartThrows)
-            ..where((t) => t.gameId.equals(gameId))
-            ..orderBy([
-              (t) => OrderingTerm.asc(t.turnNumber),
-              (t) => OrderingTerm.asc(t.dartNumber),
-            ]))
-          .get();
-
-      if (dartThrows.isEmpty) {
-        return GameStats(gameId: gameId, byCompetitor: []);
       }
 
       // Group by competitor in Dart
@@ -178,6 +184,62 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
             ? (totalSuccessfulCheckouts / totalCheckoutAttempts) * 100
             : null;
 
+        // Cricket-specific stats via projection engine
+        double? cricketMpr;
+        double? cricketFirstNineMpr;
+        int cricketFiveMark = 0,
+            cricketSixMark = 0,
+            cricketSevenMark = 0,
+            cricketEightMark = 0,
+            cricketNineMark = 0;
+
+        if (isGameCricket) {
+          final playerIds = byPlayer.keys.toList();
+          int totalMarks = 0;
+          int totalTurns = 0;
+          int firstNineMarksTotal = 0;
+          int firstNineLegsTotal = 0;
+
+          for (final playerId in playerIds) {
+            final runner = ProjectionRunner([
+              CricketMarksPerTurnProjection(),
+              CricketMarkBucketsProjection(),
+              CricketFirstNineMprProjection(),
+            ]);
+            runner.init(ProjectionContext(
+              playerId: playerId,
+              gameType: GameType.cricket,
+              inStrategy: 'straight',
+              outStrategy: 'straight',
+              playerIds: playerIds,
+            ));
+            runner.run(gameEvents);
+            final snap = runner.snapshot();
+
+            final mptSnap = snap['cricket.mpt'] ?? {};
+            totalMarks += (mptSnap['totalMarks'] as int? ?? 0);
+            totalTurns += (mptSnap['totalTurns'] as int? ?? 0);
+
+            final bucketsSnap = snap['cricket.markBuckets'] ?? {};
+            cricketFiveMark += (bucketsSnap['fiveMarkExact'] as int? ?? 0);
+            cricketSixMark += (bucketsSnap['sixMarkExact'] as int? ?? 0);
+            cricketSevenMark += (bucketsSnap['sevenMarkExact'] as int? ?? 0);
+            cricketEightMark += (bucketsSnap['eightMarkExact'] as int? ?? 0);
+            cricketNineMark += (bucketsSnap['nineMarkExact'] as int? ?? 0);
+
+            final fn9Snap = snap['cricket.firstNineMpr'] ?? {};
+            firstNineMarksTotal +=
+                (fn9Snap['totalFirstNineMarks'] as int? ?? 0);
+            firstNineLegsTotal +=
+                (fn9Snap['totalFirstNineLegs'] as int? ?? 0);
+          }
+
+          cricketMpr = totalTurns > 0 ? totalMarks / totalTurns : null;
+          cricketFirstNineMpr = firstNineLegsTotal > 0
+              ? firstNineMarksTotal / (firstNineLegsTotal * 3)
+              : null;
+        }
+
         competitorStats.add(CompetitorStats(
           competitorId: competitorId,
           competitorName: competitor.name,
@@ -191,10 +253,21 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
           sixtyPlusTurns: totalSixtyPlus,
           oneHundredPlusTurns: totalHundredPlus,
           oneFortyPlusTurns: totalFortyPlus,
+          marksPerRound: cricketMpr,
+          firstNineMarksPerRound: cricketFirstNineMpr,
+          fiveMarkTurns: cricketFiveMark,
+          sixMarkTurns: cricketSixMark,
+          sevenMarkTurns: cricketSevenMark,
+          eightMarkTurns: cricketEightMark,
+          nineMarkTurns: cricketNineMark,
         ));
       }
 
-      return GameStats(gameId: gameId, byCompetitor: competitorStats);
+      return GameStats(
+        gameId: gameId,
+        byCompetitor: competitorStats,
+        gameType: gameRow.gameType,
+      );
     } on RepositoryException {
       rethrow;
     } catch (e) {

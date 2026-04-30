@@ -85,6 +85,7 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         return GameStats(
           gameId: gameId,
           byCompetitor: [],
+          gameType: gameTypeStr ?? '',
         );
       }
 
