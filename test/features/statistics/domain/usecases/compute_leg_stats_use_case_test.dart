@@ -201,10 +201,11 @@ void main() {
       expect(l1p1.threeDartAverage, closeTo(170.0, 0.001));
       expect(l1p1.checkoutPercentage, 100.0);
       expect(l1p1.highestCheckout, 170);
+      // 170 lands exclusively in the 140+ bracket.
       expect(l1p1.oneEightyTurns, 0);
       expect(l1p1.oneFortyPlusTurns, 1);
-      expect(l1p1.oneHundredPlusTurns, 1);
-      expect(l1p1.sixtyPlusTurns, 1);
+      expect(l1p1.oneHundredPlusTurns, 0);
+      expect(l1p1.sixtyPlusTurns, 0);
 
       final l1p2 = l1.byCompetitor.firstWhere((c) => c.competitorId == 'c2');
       expect(l1p2.dartsThrown, 0);
@@ -222,10 +223,11 @@ void main() {
       // Avg = 180 * 3 / 6 = 90.
       expect(l2p1.dartsThrown, 6);
       expect(l2p1.threeDartAverage, closeTo(90.0, 0.001));
+      // 180 lands exclusively in the 180s bracket.
       expect(l2p1.oneEightyTurns, 1);
-      expect(l2p1.oneFortyPlusTurns, 1);
-      expect(l2p1.oneHundredPlusTurns, 1);
-      expect(l2p1.sixtyPlusTurns, 1);
+      expect(l2p1.oneFortyPlusTurns, 0);
+      expect(l2p1.oneHundredPlusTurns, 0);
+      expect(l2p1.sixtyPlusTurns, 0);
       // No checkout attempted by p1 in leg 2 (starting_score > 170).
       expect(l2p1.checkoutPercentage, isNull);
       expect(l2p1.highestCheckout, isNull);

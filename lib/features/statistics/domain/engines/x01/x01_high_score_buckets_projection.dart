@@ -48,10 +48,15 @@ class X01HighScoreBucketsProjection extends ProjectionEngine {
         final reason = event.payload['reason'] as String?;
         if (reason != 'bust') {
           final s = _currentTurnScore;
-          if (s == 180) _onEighty++;
-          if (s >= 140) _oneFortyPlus++;
-          if (s >= 100) _oneHundredPlus++;
-          if (s >= 60) _sixtyPlus++;
+          if (s == 180) {
+            _onEighty++;
+          } else if (s >= 140) {
+            _oneFortyPlus++;
+          } else if (s >= 100) {
+            _oneHundredPlus++;
+          } else if (s >= 60) {
+            _sixtyPlus++;
+          }
         }
         _currentTurnScore = 0;
     }

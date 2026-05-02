@@ -1613,10 +1613,15 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         final reason = payload['reason'] as String?;
         if (reason != 'bust') {
           final s = currentTurnScore;
-          if (s == 180) oneEighty++;
-          if (s >= 140) oneFortyPlus++;
-          if (s >= 100) oneHundredPlus++;
-          if (s >= 60) sixtyPlus++;
+          if (s == 180) {
+            oneEighty++;
+          } else if (s >= 140) {
+            oneFortyPlus++;
+          } else if (s >= 100) {
+            oneHundredPlus++;
+          } else if (s >= 60) {
+            sixtyPlus++;
+          }
           if (inFirstNine) totalFirstNinePoints += s;
           if (inFirstNine) legFirstNineScore += s;
         }
