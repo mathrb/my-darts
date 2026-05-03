@@ -110,6 +110,39 @@ void main() {
       expect(stats.oneFortyPlusTurns, 0); // exclusive bucket per fix #83
     });
 
+    test('busted turn → points still count in AVG; bucket excludes the bust',
+        () {
+      // Turn 1: T20 + T20 + T20 (180) → bust. AVG numerator gets 180,
+      //         but high-score buckets still skip busted turns.
+      // Turn 2: T20 + T20 + T20 (180) → not bust. Bucket counts this.
+      // AVG = (180 + 180) / 6 * 3 = 180.
+      final events = [
+        turnStarted(turnNumber: 1, startingScore: 100),
+        dart(20, 3),
+        dart(20, 3),
+        dart(20, 3),
+        turnEnded(reason: 'bust'),
+        turnStarted(turnNumber: 2, startingScore: 100),
+        dart(20, 3),
+        dart(20, 3),
+        dart(20, 3),
+        turnEnded(),
+      ];
+
+      final stats = assembler.fromEvents(
+        playerId: playerId,
+        gameType: GameType.x01,
+        events: events,
+        totalGames: 1,
+        totalDartsThrown: 6,
+      );
+
+      expect(stats.threeDartAverage, 180.0);
+      expect(stats.bustRate, 0.5);
+      // Bucket excludes the busted 180.
+      expect(stats.oneEightyTurns, 1);
+    });
+
     test('high-score bucket lands in 60+ exclusive bucket only', () {
       // T20 + 5 + 5 = 70, no other scoring turns.
       final events = [

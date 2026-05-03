@@ -67,10 +67,9 @@ class X01BestLegPprProjection extends ProjectionEngine {
         final playerId = event.payload['player_id'] as String?;
         if (playerId != _context?.playerId) return;
         if (_turnIndex <= 3) {
-          final reason = event.payload['reason'] as String?;
-          if (reason != 'bust') {
-            _firstNineScore += _currentTurnScore;
-          }
+          // Best-leg first-9 PPR counts every dart's score, busts included.
+          // See X01AverageProjection for rationale.
+          _firstNineScore += _currentTurnScore;
           _currentTurnScore = 0;
         }
       case 'LegCompleted':

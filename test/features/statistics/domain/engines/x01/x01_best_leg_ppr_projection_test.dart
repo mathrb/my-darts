@@ -238,10 +238,10 @@ void main() {
     expect(engine.descriptor.supportedGameTypes.contains(GameType.cricket), isFalse);
   });
 
-  test('GS3 — bust turn does not contribute to first nine score', () {
+  test('GS3 — bust turn still contributes to first nine score', () {
     engine.init(_makeContext());
     int seq = 1;
-    // Turn 1: bust — should NOT be counted in firstNineScore
+    // Turn 1: bust — bust points ARE counted in firstNineScore (per AVG convention)
     engine.apply(_makeEvent('TurnStarted', {'player_id': 'p1', 'starting_score': 501}, seq: seq++));
     engine.apply(_makeEvent('DartThrown', {'player_id': 'p1', 'segment': 20, 'multiplier': 3}, seq: seq++));
     engine.apply(_makeEvent('TurnEnded', {'player_id': 'p1', 'reason': 'bust'}, seq: seq++));
@@ -255,8 +255,8 @@ void main() {
     engine.apply(_makeEvent('TurnEnded', {'player_id': 'p1', 'reason': 'normal'}, seq: seq++));
     engine.apply(_makeEvent('LegCompleted', {'winner_player_id': 'p1'}, seq: seq++));
 
-    // firstNineScore = 0 (bust) + 60 + 60 = 120
-    // bestFirstNinePpr = 120/9*3 = 40.0
-    expect(engine.snapshot()['bestFirstNinePpr'], closeTo(40.0, 0.001));
+    // firstNineScore = 60 (bust) + 60 + 60 = 180
+    // bestFirstNinePpr = 180/9*3 = 60.0
+    expect(engine.snapshot()['bestFirstNinePpr'], closeTo(60.0, 0.001));
   });
 }
