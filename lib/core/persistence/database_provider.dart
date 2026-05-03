@@ -7,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'data_change_notifier.dart';
 import 'database_helper.dart';
 import 'drift/drift_helper.dart';
 import 'drift/database.dart';
@@ -59,6 +60,18 @@ Future<dynamic> database(Ref ref) async {
   }
 }
 
+// Coarse-grained "something changed" signal published by sqflite write-side
+// repositories and consumed by sqflite read-side repositories to drive their
+// watchXxx streams. Drift exposes its own per-query reactivity natively, so
+// this notifier is mobile-only in practice (the constructor params are
+// optional everywhere).
+@Riverpod(keepAlive: true)
+DataChangeNotifier dataChangeNotifier(Ref ref) {
+  final notifier = DataChangeNotifier();
+  ref.onDispose(notifier.dispose);
+  return notifier;
+}
+
 @Riverpod(keepAlive: true)
 PlayerRepository playerRepository(Ref ref) {
   final db = ref.watch(databaseProvider).requireValue;
@@ -73,33 +86,36 @@ PlayerRepository playerRepository(Ref ref) {
 @Riverpod(keepAlive: true)
 GameRepository gameRepository(Ref ref) {
   final db = ref.watch(databaseProvider).requireValue;
-  
+
   if (kIsWeb) {
     return GameRepositoryDrift(db as AppDatabase);
   } else {
-    return GameRepositoryImpl(db as Database);
+    return GameRepositoryImpl(db as Database,
+        changeNotifier: ref.watch(dataChangeProvider));
   }
 }
 
 @Riverpod(keepAlive: true)
 DartThrowRepository dartThrowRepository(Ref ref) {
   final db = ref.watch(databaseProvider).requireValue;
-  
+
   if (kIsWeb) {
     return DartThrowRepositoryDrift(db as AppDatabase);
   } else {
-    return DartThrowRepositoryImpl(db as Database);
+    return DartThrowRepositoryImpl(db as Database,
+        changeNotifier: ref.watch(dataChangeProvider));
   }
 }
 
 @Riverpod(keepAlive: true)
 GameEventRepository gameEventRepository(Ref ref) {
   final db = ref.watch(databaseProvider).requireValue;
-  
+
   if (kIsWeb) {
     return GameEventRepositoryDrift(db as AppDatabase);
   } else {
-    return GameEventRepositoryImpl(db as Database);
+    return GameEventRepositoryImpl(db as Database,
+        changeNotifier: ref.watch(dataChangeProvider));
   }
 }
 
@@ -110,11 +126,12 @@ ComputeLegStatsUseCase computeLegStatsUseCase(Ref ref) =>
 @Riverpod(keepAlive: true)
 StatisticsRepository statisticsRepository(Ref ref) {
   final db = ref.watch(databaseProvider).requireValue;
-  
+
   if (kIsWeb) {
     return StatisticsRepositoryDrift(db as AppDatabase);
   } else {
-    return StatisticsRepositoryImpl(db as Database);
+    return StatisticsRepositoryImpl(db as Database,
+        changeNotifier: ref.watch(dataChangeProvider));
   }
 }
 

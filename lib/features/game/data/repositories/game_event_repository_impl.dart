@@ -6,11 +6,14 @@ import 'dart:convert';
 import '../../domain/entities/game_event.dart';
 import '../../domain/repositories/game_event_repository.dart';
 import 'package:dart_lodge/core/error/repository_exception.dart' hide DatabaseException;
+import 'package:dart_lodge/core/persistence/data_change_notifier.dart';
 
 class GameEventRepositoryImpl implements GameEventRepository {
   final Database _db;
+  final DataChangeNotifier? _changeNotifier;
 
-  GameEventRepositoryImpl(this._db);
+  GameEventRepositoryImpl(this._db, {DataChangeNotifier? changeNotifier})
+      : _changeNotifier = changeNotifier;
 
   @override
   Future<List<GameEvent>> getEventsForGame(String gameId) async {
@@ -120,6 +123,7 @@ class GameEventRepositoryImpl implements GameEventRepository {
       }
       rethrow;
     }
+    _changeNotifier?.notify();
   }
 
   @override
@@ -190,6 +194,7 @@ class GameEventRepositoryImpl implements GameEventRepository {
         }
       }
     });
+    _changeNotifier?.notify();
   }
 
   @override

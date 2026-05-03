@@ -83,6 +83,54 @@ final class DatabaseProvider
 
 String _$databaseHash() => r'ef53a182f91de0d4e4ceabd6c422edf7b00dddb1';
 
+@ProviderFor(dataChangeNotifier)
+final dataChangeProvider = DataChangeNotifierProvider._();
+
+final class DataChangeNotifierProvider
+    extends
+        $FunctionalProvider<
+          DataChangeNotifier,
+          DataChangeNotifier,
+          DataChangeNotifier
+        >
+    with $Provider<DataChangeNotifier> {
+  DataChangeNotifierProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'dataChangeProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$dataChangeNotifierHash();
+
+  @$internal
+  @override
+  $ProviderElement<DataChangeNotifier> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  DataChangeNotifier create(Ref ref) {
+    return dataChangeNotifier(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DataChangeNotifier value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DataChangeNotifier>(value),
+    );
+  }
+}
+
+String _$dataChangeNotifierHash() =>
+    r'55a1e08aca205d71f0fe434b6cfbab8b4ea42ad5';
+
 @ProviderFor(playerRepository)
 final playerRepositoryProvider = PlayerRepositoryProvider._();
 
@@ -168,7 +216,7 @@ final class GameRepositoryProvider
   }
 }
 
-String _$gameRepositoryHash() => r'083e9f6689b0b7ab344b51a60ee4d6f834c54eb9';
+String _$gameRepositoryHash() => r'f88c7b025f6036dda181931bd50275bdc959ba09';
 
 @ProviderFor(dartThrowRepository)
 final dartThrowRepositoryProvider = DartThrowRepositoryProvider._();
@@ -216,7 +264,7 @@ final class DartThrowRepositoryProvider
 }
 
 String _$dartThrowRepositoryHash() =>
-    r'fdd7ab1b41f3908f909ae4fa02e1f88078fc3f80';
+    r'ac0c7b6b56eda8ae6fcb1f6286e16b456c02f5e9';
 
 @ProviderFor(gameEventRepository)
 final gameEventRepositoryProvider = GameEventRepositoryProvider._();
@@ -264,7 +312,7 @@ final class GameEventRepositoryProvider
 }
 
 String _$gameEventRepositoryHash() =>
-    r'8b3290749051685f2f4b24bba6f9efad955f2208';
+    r'4df835353ade6d736302176a3d5292ef5470f45b';
 
 @ProviderFor(computeLegStatsUseCase)
 final computeLegStatsUseCaseProvider = ComputeLegStatsUseCaseProvider._();
@@ -360,7 +408,7 @@ final class StatisticsRepositoryProvider
 }
 
 String _$statisticsRepositoryHash() =>
-    r'69351339e1646555ed4e39dd7beb944daa1c58b8';
+    r'697dbc2d293598ca5117bf9a3695590b74bd9216';
 
 @ProviderFor(x01Engine)
 final x01EngineProvider = X01EngineProvider._();
@@ -503,7 +551,7 @@ final class UndoLastDartUseCaseProvider
 }
 
 String _$undoLastDartUseCaseHash() =>
-    r'ce3e43ff7caec4c1884ca2731374fd3dbd8b1dee';
+    r'91fe21f3b9e8ae53cbf51fbce1f22ffdd569a074';
 
 @ProviderFor(cricketEngine)
 final cricketEngineProvider = CricketEngineProvider._();
@@ -647,7 +695,7 @@ final class UndoCricketLastDartUseCaseProvider
 }
 
 String _$undoCricketLastDartUseCaseHash() =>
-    r'44d8322a30d5419bf5d9c2c405d6eb4d0c066349';
+    r'8520dabcefb36cfdc47cde988c403063175f5b23';
 
 @ProviderFor(createGameUseCase)
 final createGameUseCaseProvider = CreateGameUseCaseProvider._();
@@ -1229,7 +1277,7 @@ final class UndoPracticeAroundTheClockLastDartUseCaseProvider
 }
 
 String _$undoPracticeAroundTheClockLastDartUseCaseHash() =>
-    r'300f4763f8c9fea5b1e84d7f4adee2c4c7e0ef7e';
+    r'452d2ed376b6847a7478fd65f637a4ed3963ac1b';
 
 @ProviderFor(undoPracticeBobs27LastDartUseCase)
 final undoPracticeBobs27LastDartUseCaseProvider =
@@ -1279,7 +1327,7 @@ final class UndoPracticeBobs27LastDartUseCaseProvider
 }
 
 String _$undoPracticeBobs27LastDartUseCaseHash() =>
-    r'd305f3330a4d3c8839b9977c734cfd73c6b32cca';
+    r'8391824452b239a31ea42eff2e2e35dd172e1057';
 
 @ProviderFor(undoPracticeShanghaiLastDartUseCase)
 final undoPracticeShanghaiLastDartUseCaseProvider =
@@ -1329,7 +1377,7 @@ final class UndoPracticeShanghaiLastDartUseCaseProvider
 }
 
 String _$undoPracticeShanghaiLastDartUseCaseHash() =>
-    r'74e694e5b3edd8b172204a61d11cede402423f95';
+    r'196dfe86dac88c682949a460ae9e58cf92898626';
 
 @ProviderFor(undoPracticeCatch40LastDartUseCase)
 final undoPracticeCatch40LastDartUseCaseProvider =
@@ -1379,7 +1427,7 @@ final class UndoPracticeCatch40LastDartUseCaseProvider
 }
 
 String _$undoPracticeCatch40LastDartUseCaseHash() =>
-    r'5599993456c9e9cf72ebeb57a06373b56db4ee98';
+    r'b9a085b08d63f2f5e97554f694e2545fb0e5e141';
 
 @ProviderFor(undoPracticeCheckoutPracticeLastDartUseCase)
 final undoPracticeCheckoutPracticeLastDartUseCaseProvider =
@@ -1429,7 +1477,7 @@ final class UndoPracticeCheckoutPracticeLastDartUseCaseProvider
 }
 
 String _$undoPracticeCheckoutPracticeLastDartUseCaseHash() =>
-    r'7ab05d07e1307ff6f0f4d623097bebe3132180a6';
+    r'bf5a3bdf1267ef8c18d199488cee1ef1eb2c882f';
 
 @ProviderFor(endCheckoutPracticeUseCase)
 final endCheckoutPracticeUseCaseProvider =
