@@ -219,11 +219,13 @@ void main() {
       expect(l2.winnerCompetitorId, 'c2');
 
       final l2p1 = l2.byCompetitor.firstWhere((c) => c.competitorId == 'c1');
-      // Turn 1 (180) counted, Turn 2 (bust, 180) excluded from scored points.
-      // Avg = 180 * 3 / 6 = 90.
+      // Turn 1 (180) counted, Turn 2 (bust, 180) ALSO counted in scored points
+      // — busts contribute to AVG (per phase 1.2 of #87).
+      // Avg = (180 + 180) * 3 / 6 = 180.
       expect(l2p1.dartsThrown, 6);
-      expect(l2p1.threeDartAverage, closeTo(90.0, 0.001));
-      // 180 lands exclusively in the 180s bracket.
+      expect(l2p1.threeDartAverage, closeTo(180.0, 0.001));
+      // 180 lands exclusively in the 180s bracket. (Buckets still exclude
+      // busted turns — the 180-bust does not count as a 180 turn.)
       expect(l2p1.oneEightyTurns, 1);
       expect(l2p1.oneFortyPlusTurns, 0);
       expect(l2p1.oneHundredPlusTurns, 0);

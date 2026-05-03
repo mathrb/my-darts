@@ -42,10 +42,10 @@ class X01AverageProjection extends ProjectionEngine {
       case 'TurnEnded':
         final playerId = event.payload['player_id'] as String?;
         if (playerId != _context?.playerId) return;
-        final reason = event.payload['reason'] as String?;
-        if (reason != 'bust') {
-          _totalScoredPoints += _turnScore;
-        }
+        // 3-dart average counts every dart's score, busts included — that's
+        // the convention darts is conventionally scored by. The bust outcome
+        // affects the leg's checkout, not your throwing accuracy.
+        _totalScoredPoints += _turnScore;
         _turnScore = 0;
     }
   }

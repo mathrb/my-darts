@@ -12,6 +12,7 @@ import 'package:dart_lodge/core/utils/constants.dart';
 import 'package:dart_lodge/core/error/repository_exception.dart' hide DatabaseException;
 import 'package:dart_lodge/features/game/domain/entities/game_event.dart';
 import 'package:dart_lodge/features/statistics/domain/assemblers/player_stats_assembler.dart';
+import 'package:dart_lodge/features/statistics/domain/event_leg_limiter.dart';
 import 'package:dart_lodge/features/statistics/domain/engines/projection_engine.dart';
 import 'package:dart_lodge/features/statistics/domain/engines/projection_runner.dart';
 import 'package:dart_lodge/features/statistics/domain/engines/x01/x01_checkout_projection.dart';
@@ -601,29 +602,14 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
     //    `local_sequence` is per-game and starts at 1 for each game, so ordering
     //    by it alone interleaves events from different games — corrupting the
     //    projection state. Ordering by game_id first keeps each game contiguous.
-    var eventsResult = await _db.rawQuery(
+    final eventsResult = await _db.rawQuery(
       'SELECT * FROM game_events WHERE game_id IN ($placeholders) ORDER BY game_id ASC, local_sequence ASC',
       gameIds,
     );
-    var events = eventsResult.map((row) => GameEvent.fromJson(row)).toList();
-
-    // Apply legLimit by finding the Nth-from-last LegCompleted event and trimming
-    if (legLimit != null && legLimit > 0) {
-      final legCompletedIndices = <int>[];
-      for (int i = 0; i < events.length; i++) {
-        if (events[i].eventType == 'LegCompleted') {
-          legCompletedIndices.add(i);
-        }
-      }
-      if (legCompletedIndices.length > legLimit) {
-        // Keep only the last legLimit legs: start from the event after the
-        // (N - legLimit)th LegCompleted event.
-        final prevLegCompletedIdx =
-            legCompletedIndices[legCompletedIndices.length - legLimit - 1];
-        events = events.sublist(prevLegCompletedIdx + 1);
-        gameIds = events.map((e) => e.gameId).toSet().toList();
-      }
-    }
+    final events = EventLegLimiter.trim(
+      eventsResult.map((row) => GameEvent.fromJson(row)).toList(),
+      legLimit,
+    );
 
     // 4. Extract in/out strategy + ATC variant from most recent game's config
     String inStrategy = 'straight';

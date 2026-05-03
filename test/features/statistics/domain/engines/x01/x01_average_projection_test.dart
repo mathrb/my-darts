@@ -160,11 +160,11 @@ void main() {
     expect(s['totalScoredPoints'], 0); // not committed yet
   });
 
-  test('F2 — bust turn does not add to scored points', () {
+  test('F2 — bust turn still adds to scored points (busts counted in AVG)', () {
     engine.init(_makeContext());
     engine.apply(_makeEvent('DartThrown', {'player_id': 'p1', 'score': 60}, seq: 1));
     engine.apply(_makeEvent('TurnEnded', {'player_id': 'p1', 'reason': 'bust'}, seq: 2));
-    expect(engine.snapshot()['totalScoredPoints'], 0);
+    expect(engine.snapshot()['totalScoredPoints'], 60);
   });
 
   // ── Category G: Isolation ─────────────────────────────────────────────────
