@@ -6,11 +6,14 @@ import 'package:sqflite/sqflite.dart';
 import '../../domain/entities/dart_throw.dart';
 import '../../domain/repositories/dart_throw_repository.dart';
 import 'package:dart_lodge/core/error/repository_exception.dart' hide DatabaseException;
+import 'package:dart_lodge/core/persistence/data_change_notifier.dart';
 
 class DartThrowRepositoryImpl implements DartThrowRepository {
   final Database _db;
+  final DataChangeNotifier? _changeNotifier;
 
-  DartThrowRepositoryImpl(this._db);
+  DartThrowRepositoryImpl(this._db, {DataChangeNotifier? changeNotifier})
+      : _changeNotifier = changeNotifier;
 
   @override
   Future<List<DartThrow>> getDartsForGame(String gameId) async {
@@ -98,6 +101,7 @@ class DartThrowRepositoryImpl implements DartThrowRepository {
       }
       rethrow;
     }
+    _changeNotifier?.notify();
   }
 
   @override
@@ -148,6 +152,7 @@ class DartThrowRepositoryImpl implements DartThrowRepository {
         }
       }
     });
+    _changeNotifier?.notify();
   }
 
   @override
@@ -187,5 +192,6 @@ class DartThrowRepositoryImpl implements DartThrowRepository {
       where: 'dart_id = ?',
       whereArgs: [dartId],
     );
+    _changeNotifier?.notify();
   }
 }

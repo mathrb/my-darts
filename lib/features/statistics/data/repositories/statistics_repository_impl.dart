@@ -11,6 +11,7 @@ import '../../domain/repositories/statistics_repository.dart';
 import 'package:dart_lodge/core/utils/constants.dart';
 import 'package:dart_lodge/core/error/repository_exception.dart' hide DatabaseException;
 import 'package:dart_lodge/features/game/domain/entities/game_event.dart';
+import 'package:dart_lodge/core/persistence/data_change_notifier.dart';
 import 'package:dart_lodge/features/statistics/domain/assemblers/player_stats_assembler.dart';
 import 'package:dart_lodge/features/statistics/domain/event_leg_limiter.dart';
 import 'package:dart_lodge/features/statistics/domain/engines/cricket/cricket_segment_utils.dart';
@@ -20,10 +21,12 @@ import 'package:dart_lodge/features/statistics/domain/entities/player_leg_snapsh
 class StatisticsRepositoryImpl implements StatisticsRepository {
   final Database _db;
   final PlayerStatsAssembler _assembler;
+  final DataChangeNotifier? _changeNotifier;
 
   StatisticsRepositoryImpl(this._db,
-      {PlayerStatsAssembler? assembler})
-      : _assembler = assembler ?? const PlayerStatsAssembler();
+      {PlayerStatsAssembler? assembler, DataChangeNotifier? changeNotifier})
+      : _assembler = assembler ?? const PlayerStatsAssembler(),
+        _changeNotifier = changeNotifier;
 
   static const _practiceGameTypes = {
     GameType.aroundTheClock,
@@ -125,7 +128,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
       if (error is RepositoryException) rethrow;
       throw StatisticsException('Failed to watch game statistics: ${error.toString()}');
     }
-    yield* Stream.periodic(const Duration(seconds: 5))
+    final source = _changeNotifier?.changes ?? const Stream<void>.empty();
+    yield* source
         .asyncMap((_) async => getGameStats(gameId))
         .distinct()
         .handleError((error) {
@@ -240,8 +244,9 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
   @override
   Stream<PlayerStats> watchPlayerStats(String playerId,
       {required GameType gameType}) async* {
-    // Emit an initial snapshot before falling into the periodic poll so
-    // subscribers don't wait the full 5s tick for their first value.
+    // Emit an initial snapshot first so subscribers don't wait for a write
+    // before seeing data. Subsequent values fire in response to writes
+    // published by the data-mutating repos.
     try {
       final initial = await _buildPlayerStatsViaProjection(playerId, gameType: gameType);
       yield initial ?? _createEmptyPlayerStats(playerId, gameType);
@@ -249,7 +254,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
       if (error is RepositoryException) rethrow;
       throw StatisticsException('Failed to watch player statistics: ${error.toString()}');
     }
-    yield* Stream.periodic(const Duration(seconds: 5), (_) {})
+    final source = _changeNotifier?.changes ?? const Stream<void>.empty();
+    yield* source
       .asyncMap((_) async {
         final stats = await _buildPlayerStatsViaProjection(playerId, gameType: gameType);
         return stats ?? _createEmptyPlayerStats(playerId, gameType);

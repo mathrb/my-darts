@@ -10,12 +10,15 @@ import '../../domain/entities/competitor.dart';
 import '../../domain/repositories/game_repository.dart';
 import '../../domain/models/game_state_snapshot.dart';
 import 'package:dart_lodge/core/error/repository_exception.dart' hide DatabaseException;
+import 'package:dart_lodge/core/persistence/data_change_notifier.dart';
 import 'package:dart_lodge/core/utils/constants.dart';
 
 class GameRepositoryImpl implements GameRepository {
   final Database _db;
+  final DataChangeNotifier? _changeNotifier;
 
-  GameRepositoryImpl(this._db);
+  GameRepositoryImpl(this._db, {DataChangeNotifier? changeNotifier})
+      : _changeNotifier = changeNotifier;
 
   @override
   Future<Game?> getActiveGame() async {
@@ -287,6 +290,7 @@ class GameRepositoryImpl implements GameRepository {
       where: 'game_id = ?',
       whereArgs: [gameId],
     );
+    _changeNotifier?.notify();
   }
 
   @override
