@@ -238,6 +238,8 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 
 **UI refactors:** After any widget redesign or UI refactor, update the corresponding test expectations in the same session before committing.
 
+**Navigation — `context.go()` vs `context.push()`:** `context.go()` REPLACES the entire route stack — Android's physical back button then has nothing to pop and exits the app. Use `context.push()` for any forward navigation that should be back-poppable (Home → Stats/History/Players/Settings, list → detail, etc.). Reserve `context.go()` for intentional stack resets: game completion → home, post-deletion redirects, deep-link landing pages. If a screen MUST be reached via `go()` (e.g. the variant selection flow), wrap its body in `PopScope(canPop: false, onPopInvokedWithResult: (didPop, _) { if (!didPop) context.go(GameRoutes.home); })` like `variant_selection_page.dart` does, so the Android back button still works.
+
 **Branch naming:** All work goes on a branch off `main` named `<type>/<slug>` where type ∈ {`feat`, `fix`, `docs`, `chore`, `hotfix`}. Slugs are short and dash-separated (`feat/cricket-stats-export`). Never commit directly to `main`.
 
 **PR titles:** Soft Conventional Commits — `feat(cricket): ...`, `fix(x01): ...`, `docs: ...`, `chore(deps): ...`. PR titles become squash-merge commit messages and feed GitHub's auto-generated release notes.
