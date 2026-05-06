@@ -111,6 +111,19 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
       orElse: () => const <String, int>{},
     );
     final isX01 = config is X01GameConfig;
+    final isCountUp = config is CountUpGameConfig;
+    // Per-game-type handicap value lists. X01 stores negatives (handicap
+    // SUBTRACTS from the starting score); count-up stores positives (handicap
+    // ADDS to the initial 0). The chip renders the sign automatically.
+    const x01HandicapValues = [0, -50, -100, -150, -200];
+    final countUpHandicapValues =
+        GameConfigurationConstants.countUpAllowedHandicaps;
+    final handicapValues = isX01
+        ? x01HandicapValues
+        : isCountUp
+            ? countUpHandicapValues
+            : const <int>[];
+    final showHandicap = isX01 || isCountUp;
 
     final canStart = notifier.canStart;
     final maxPlayers = gameType != null ? gameType.maxPlayers : null;
@@ -185,9 +198,10 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
               onReorder: notifier.reorderPlayers,
               onRemove: (id) => notifier.togglePlayer(id),
               playerHandicaps: playerHandicaps,
-              onHandicapChanged: isX01
+              onHandicapChanged: showHandicap
                   ? (id, h) => notifier.setPlayerHandicap(id, h)
                   : null,
+              handicapValues: handicapValues,
             ),
 
             // Roster section header + add button
@@ -488,6 +502,7 @@ class _ActiveLineup extends StatelessWidget {
     required this.onRemove,
     this.playerHandicaps = const {},
     this.onHandicapChanged,
+    this.handicapValues = const [],
   });
 
   final List<String> selectedPlayerIds;
@@ -496,6 +511,7 @@ class _ActiveLineup extends StatelessWidget {
   final void Function(String id) onRemove;
   final Map<String, int> playerHandicaps;
   final void Function(String playerId, int handicap)? onHandicapChanged;
+  final List<int> handicapValues;
 
   Player _playerById(String id) => players.firstWhere(
     (p) => p.playerId == id,
@@ -558,6 +574,7 @@ class _ActiveLineup extends StatelessWidget {
             onHandicapChanged: onHandicapChanged != null
                 ? (h) => onHandicapChanged!(id, h)
                 : null,
+            handicapValues: handicapValues,
           );
         },
       ),
@@ -573,6 +590,7 @@ class _ActivePlayerCard extends ConsumerWidget {
     required this.onRemove,
     this.handicap = 0,
     this.onHandicapChanged,
+    this.handicapValues = const [],
   });
 
   final int index;
@@ -580,6 +598,7 @@ class _ActivePlayerCard extends ConsumerWidget {
   final VoidCallback onRemove;
   final int handicap;
   final ValueChanged<int>? onHandicapChanged;
+  final List<int> handicapValues;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -686,6 +705,7 @@ class _ActivePlayerCard extends ConsumerWidget {
               _HandicapChip(
                 handicap: handicap,
                 onChanged: onHandicapChanged!,
+                values: handicapValues,
               ),
             ],
 
@@ -710,14 +730,20 @@ class _ActivePlayerCard extends ConsumerWidget {
 // ── Handicap chip ─────────────────────────────────────────────────────────────
 
 class _HandicapChip extends StatelessWidget {
-  const _HandicapChip({required this.handicap, required this.onChanged});
+  const _HandicapChip({
+    required this.handicap,
+    required this.onChanged,
+    required this.values,
+  });
 
   final int handicap;
   final ValueChanged<int> onChanged;
+  final List<int> values;
 
-  static const _values = [0, -50, -100, -150, -200];
-
-  String _label(int value) => value == 0 ? '0' : '−${value.abs()}';
+  String _label(int value) {
+    if (value == 0) return '0';
+    return value > 0 ? '+$value' : '−${value.abs()}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -763,7 +789,7 @@ class _HandicapChip extends StatelessWidget {
           ],
         ),
       ),
-      itemBuilder: (context) => _values
+      itemBuilder: (context) => values
           .map(
             (value) => PopupMenuItem<int>(
               value: value,
