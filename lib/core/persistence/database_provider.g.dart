@@ -985,6 +985,164 @@ final class CheckoutPracticeEngineProvider
 String _$checkoutPracticeEngineHash() =>
     r'fb08d42d834f25bf3687caefde17644b3b12d511';
 
+@ProviderFor(countUpEngine)
+final countUpEngineProvider = CountUpEngineProvider._();
+
+final class CountUpEngineProvider
+    extends
+        $FunctionalProvider<
+          StatelessCountUpEngine,
+          StatelessCountUpEngine,
+          StatelessCountUpEngine
+        >
+    with $Provider<StatelessCountUpEngine> {
+  CountUpEngineProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'countUpEngineProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$countUpEngineHash();
+
+  @$internal
+  @override
+  $ProviderElement<StatelessCountUpEngine> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  StatelessCountUpEngine create(Ref ref) {
+    return countUpEngine(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(StatelessCountUpEngine value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<StatelessCountUpEngine>(value),
+    );
+  }
+}
+
+String _$countUpEngineHash() => r'8ab14edba24e93e64f03c2ebdfbe044431a033e4';
+
+/// Count-up reuses the X01-shaped ProcessDartUseCase: DartThrown is purely
+/// additive (no bust, no leg-end mid-dart), so the same scaffolding works.
+/// Game-end detection happens on TurnEnded inside the count-up engine — see
+/// ActiveCountUpNotifier._startNextTurn for the surrounding orchestration.
+
+@ProviderFor(processCountUpDartUseCase)
+final processCountUpDartUseCaseProvider = ProcessCountUpDartUseCaseProvider._();
+
+/// Count-up reuses the X01-shaped ProcessDartUseCase: DartThrown is purely
+/// additive (no bust, no leg-end mid-dart), so the same scaffolding works.
+/// Game-end detection happens on TurnEnded inside the count-up engine — see
+/// ActiveCountUpNotifier._startNextTurn for the surrounding orchestration.
+
+final class ProcessCountUpDartUseCaseProvider
+    extends
+        $FunctionalProvider<
+          ProcessDartUseCase,
+          ProcessDartUseCase,
+          ProcessDartUseCase
+        >
+    with $Provider<ProcessDartUseCase> {
+  /// Count-up reuses the X01-shaped ProcessDartUseCase: DartThrown is purely
+  /// additive (no bust, no leg-end mid-dart), so the same scaffolding works.
+  /// Game-end detection happens on TurnEnded inside the count-up engine — see
+  /// ActiveCountUpNotifier._startNextTurn for the surrounding orchestration.
+  ProcessCountUpDartUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'processCountUpDartUseCaseProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$processCountUpDartUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<ProcessDartUseCase> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ProcessDartUseCase create(Ref ref) {
+    return processCountUpDartUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ProcessDartUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ProcessDartUseCase>(value),
+    );
+  }
+}
+
+String _$processCountUpDartUseCaseHash() =>
+    r'ef5602835459a6ddab674f62fafc9d092919b4a0';
+
+@ProviderFor(undoCountUpLastDartUseCase)
+final undoCountUpLastDartUseCaseProvider =
+    UndoCountUpLastDartUseCaseProvider._();
+
+final class UndoCountUpLastDartUseCaseProvider
+    extends
+        $FunctionalProvider<
+          UndoLastDartUseCase,
+          UndoLastDartUseCase,
+          UndoLastDartUseCase
+        >
+    with $Provider<UndoLastDartUseCase> {
+  UndoCountUpLastDartUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'undoCountUpLastDartUseCaseProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$undoCountUpLastDartUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<UndoLastDartUseCase> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  UndoLastDartUseCase create(Ref ref) {
+    return undoCountUpLastDartUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(UndoLastDartUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<UndoLastDartUseCase>(value),
+    );
+  }
+}
+
+String _$undoCountUpLastDartUseCaseHash() =>
+    r'e9438e4d3a09881708cbc112a7e451f7d93a04c1';
+
 @ProviderFor(processAroundTheClockDartUseCase)
 final processAroundTheClockDartUseCaseProvider =
     ProcessAroundTheClockDartUseCaseProvider._();

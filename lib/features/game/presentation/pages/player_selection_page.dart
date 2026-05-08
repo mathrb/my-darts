@@ -417,6 +417,7 @@ class _PlayerSelectionPageState extends ConsumerState<PlayerSelectionPage> {
         final routeBase = switch (gameType) {
           GameType.x01 => GameRoutes.activeX01,
           GameType.cricket || GameType.blindCricket => GameRoutes.activeCricket,
+          GameType.countUp => GameRoutes.activeCountUp,
           _ => GameRoutes.activePractice,
         };
         router.go('$routeBase/$gameId');
