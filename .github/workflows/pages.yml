@@ -1,0 +1,103 @@
+name: Deploy Web to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow this workflow to publish to Pages and mint the OIDC token the deploy
+# action uses to authenticate. `contents: read` is the default but spelled out
+# so the permissions block is self-documenting.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment runs at a time. We do NOT cancel an in-flight
+# deploy — the deploy-pages action recommends letting it finish so the live
+# site is never left in a half-published state.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Flutter web
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.1'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # web/ is gitignored (see CLAUDE.md "Web — one-time asset setup").
+      # Scaffold it fresh on every CI run, the same way each dev does locally.
+      - name: Scaffold web platform
+        run: flutter create --platforms=web .
+
+      - name: Write Drift web worker entrypoint
+        run: |
+          cat > web/drift_worker.dart <<'EOF'
+          import 'package:drift/wasm.dart';
+
+          void main() {
+            WasmDatabase.workerMainForOpen();
+          }
+          EOF
+
+      - name: Compile Drift web worker
+        run: dart compile js -O4 -o web/drift_worker.dart.js web/drift_worker.dart
+
+      - name: Download sqlite3.wasm matching pubspec.lock
+        run: |
+          SQLITE_VERSION=$(grep -A7 "^  sqlite3:$" pubspec.lock | grep version | sed -E 's/.*"([^"]+)".*/\1/')
+          if [ -z "$SQLITE_VERSION" ]; then
+            echo "::error::Could not resolve sqlite3 version from pubspec.lock" >&2
+            exit 1
+          fi
+          echo "Using sqlite3 v$SQLITE_VERSION"
+          curl -fL -o web/sqlite3.wasm \
+            "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-v${SQLITE_VERSION}/sqlite3.wasm"
+
+      # --base-href must match the GitHub Pages project subpath
+      # (https://mathrb.github.io/dartlodge/) or asset URLs and go_router
+      # routes resolve to the wrong path and the app 404s on reload.
+      - name: Build web bundle
+        run: |
+          flutter build web --release \
+            --base-href "/dartlodge/" \
+            --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }} \
+            --dart-define=SENTRY_ENVIRONMENT=production
+
+      # GitHub Pages serves /<path> and /<path>/ but not arbitrary deep links
+      # without a fallback. Copying index.html → 404.html makes any unknown
+      # URL fall through to the SPA so go_router can resolve client-side
+      # routes after a hard refresh.
+      - name: Add SPA 404 fallback
+        run: cp build/web/index.html build/web/404.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
