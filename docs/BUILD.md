@@ -54,14 +54,14 @@ Then download the matching release from the sqlite3.dart GitHub releases:
 
 ```bash
 curl -L -o web/sqlite3.wasm \
-  "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-v<VERSION>/sqlite3.wasm"
+  "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-<VERSION>/sqlite3.wasm"
 ```
 
 Example for version `2.9.4`:
 
 ```bash
 curl -L -o web/sqlite3.wasm \
-  "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-v2.9.4/sqlite3.wasm"
+  "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-2.9.4/sqlite3.wasm"
 ```
 
 Repeat this step whenever `sqlite3` is upgraded in `pubspec.lock`.
