@@ -46,7 +46,7 @@ dart compile js -O4 -o web/drift_worker.dart.js web/drift_worker.dart
 # Download sqlite3.wasm matching your pubspec.lock version
 grep -A7 "^  sqlite3:$" pubspec.lock | grep version
 curl -L -o web/sqlite3.wasm \
-  "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-v<VERSION>/sqlite3.wasm"
+  "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-<VERSION>/sqlite3.wasm"
 ```
 
 Then:
