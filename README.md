@@ -4,6 +4,10 @@ A **local-first**, open-source darts scoring and statistics app for Android and
 iOS, built with Flutter. Plays offline by default; statistics are computed by
 replaying the local game-event log so they always reflect the current data.
 
+**Try it in your browser:** <https://mathrb.github.io/dartlodge/> — the latest
+`main` is auto-deployed to GitHub Pages. Data is stored in your browser's
+IndexedDB; clearing site data wipes your games.
+
 ## Game modes
 
 - **X01** — 301 / 501 / 701 / 901 with configurable starting score, double-out / straight-out / master-out, leg/match formats
