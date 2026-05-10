@@ -69,8 +69,6 @@ class PlayerStatsPage extends _$PlayerStatsPage {
       state = state.copyWith(selectedCricketVariant: variant);
   void setTimeRange(StatsTimeRange range) =>
       state = state.copyWith(timeRange: range);
-  void toggleCheckoutOverlay() =>
-      state = state.copyWith(showCheckoutOverlay: !state.showCheckoutOverlay);
   void setPracticeGameType(GameType gameType) =>
       state = state.copyWith(selectedPracticeGameType: gameType);
 }

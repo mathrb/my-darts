@@ -16,7 +16,6 @@ abstract class PlayerStatsPageState with _$PlayerStatsPageState {
     @Default(null) String? selectedCricketVariant,
     @Default(GameType.aroundTheClock) GameType selectedPracticeGameType,
     @Default(StatsTimeRange.all) StatsTimeRange timeRange,
-    @Default(false) bool showCheckoutOverlay,
   }) = _PlayerStatsPageState;
 
   factory PlayerStatsPageState.initial() => const PlayerStatsPageState();

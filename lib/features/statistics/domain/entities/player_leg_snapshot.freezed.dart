@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PlayerLegSnapshot {
 
- String get gameId; int get legIndex; DateTime get gameDate; double get ppr; double? get checkoutPct; int? get startingScore; double? get mpt; double? get practiceScore;
+ String get gameId; int get legIndex; DateTime get gameDate; double get ppr; double? get checkoutPct; int? get checkoutScore; int? get startingScore; double? get mpt; double? get practiceScore;
 /// Create a copy of PlayerLegSnapshot
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $PlayerLegSnapshotCopyWith<PlayerLegSnapshot> get copyWith => _$PlayerLegSnapsho
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerLegSnapshot&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.legIndex, legIndex) || other.legIndex == legIndex)&&(identical(other.gameDate, gameDate) || other.gameDate == gameDate)&&(identical(other.ppr, ppr) || other.ppr == ppr)&&(identical(other.checkoutPct, checkoutPct) || other.checkoutPct == checkoutPct)&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.mpt, mpt) || other.mpt == mpt)&&(identical(other.practiceScore, practiceScore) || other.practiceScore == practiceScore));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerLegSnapshot&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.legIndex, legIndex) || other.legIndex == legIndex)&&(identical(other.gameDate, gameDate) || other.gameDate == gameDate)&&(identical(other.ppr, ppr) || other.ppr == ppr)&&(identical(other.checkoutPct, checkoutPct) || other.checkoutPct == checkoutPct)&&(identical(other.checkoutScore, checkoutScore) || other.checkoutScore == checkoutScore)&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.mpt, mpt) || other.mpt == mpt)&&(identical(other.practiceScore, practiceScore) || other.practiceScore == practiceScore));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,gameId,legIndex,gameDate,ppr,checkoutPct,startingScore,mpt,practiceScore);
+int get hashCode => Object.hash(runtimeType,gameId,legIndex,gameDate,ppr,checkoutPct,checkoutScore,startingScore,mpt,practiceScore);
 
 @override
 String toString() {
-  return 'PlayerLegSnapshot(gameId: $gameId, legIndex: $legIndex, gameDate: $gameDate, ppr: $ppr, checkoutPct: $checkoutPct, startingScore: $startingScore, mpt: $mpt, practiceScore: $practiceScore)';
+  return 'PlayerLegSnapshot(gameId: $gameId, legIndex: $legIndex, gameDate: $gameDate, ppr: $ppr, checkoutPct: $checkoutPct, checkoutScore: $checkoutScore, startingScore: $startingScore, mpt: $mpt, practiceScore: $practiceScore)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $PlayerLegSnapshotCopyWith<$Res>  {
   factory $PlayerLegSnapshotCopyWith(PlayerLegSnapshot value, $Res Function(PlayerLegSnapshot) _then) = _$PlayerLegSnapshotCopyWithImpl;
 @useResult
 $Res call({
- String gameId, int legIndex, DateTime gameDate, double ppr, double? checkoutPct, int? startingScore, double? mpt, double? practiceScore
+ String gameId, int legIndex, DateTime gameDate, double ppr, double? checkoutPct, int? checkoutScore, int? startingScore, double? mpt, double? practiceScore
 });
 
 
@@ -62,14 +62,15 @@ class _$PlayerLegSnapshotCopyWithImpl<$Res>
 
 /// Create a copy of PlayerLegSnapshot
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? gameId = null,Object? legIndex = null,Object? gameDate = null,Object? ppr = null,Object? checkoutPct = freezed,Object? startingScore = freezed,Object? mpt = freezed,Object? practiceScore = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? gameId = null,Object? legIndex = null,Object? gameDate = null,Object? ppr = null,Object? checkoutPct = freezed,Object? checkoutScore = freezed,Object? startingScore = freezed,Object? mpt = freezed,Object? practiceScore = freezed,}) {
   return _then(_self.copyWith(
 gameId: null == gameId ? _self.gameId : gameId // ignore: cast_nullable_to_non_nullable
 as String,legIndex: null == legIndex ? _self.legIndex : legIndex // ignore: cast_nullable_to_non_nullable
 as int,gameDate: null == gameDate ? _self.gameDate : gameDate // ignore: cast_nullable_to_non_nullable
 as DateTime,ppr: null == ppr ? _self.ppr : ppr // ignore: cast_nullable_to_non_nullable
 as double,checkoutPct: freezed == checkoutPct ? _self.checkoutPct : checkoutPct // ignore: cast_nullable_to_non_nullable
-as double?,startingScore: freezed == startingScore ? _self.startingScore : startingScore // ignore: cast_nullable_to_non_nullable
+as double?,checkoutScore: freezed == checkoutScore ? _self.checkoutScore : checkoutScore // ignore: cast_nullable_to_non_nullable
+as int?,startingScore: freezed == startingScore ? _self.startingScore : startingScore // ignore: cast_nullable_to_non_nullable
 as int?,mpt: freezed == mpt ? _self.mpt : mpt // ignore: cast_nullable_to_non_nullable
 as double?,practiceScore: freezed == practiceScore ? _self.practiceScore : practiceScore // ignore: cast_nullable_to_non_nullable
 as double?,
@@ -157,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String gameId,  int legIndex,  DateTime gameDate,  double ppr,  double? checkoutPct,  int? startingScore,  double? mpt,  double? practiceScore)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String gameId,  int legIndex,  DateTime gameDate,  double ppr,  double? checkoutPct,  int? checkoutScore,  int? startingScore,  double? mpt,  double? practiceScore)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlayerLegSnapshot() when $default != null:
-return $default(_that.gameId,_that.legIndex,_that.gameDate,_that.ppr,_that.checkoutPct,_that.startingScore,_that.mpt,_that.practiceScore);case _:
+return $default(_that.gameId,_that.legIndex,_that.gameDate,_that.ppr,_that.checkoutPct,_that.checkoutScore,_that.startingScore,_that.mpt,_that.practiceScore);case _:
   return orElse();
 
 }
@@ -178,10 +179,10 @@ return $default(_that.gameId,_that.legIndex,_that.gameDate,_that.ppr,_that.check
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String gameId,  int legIndex,  DateTime gameDate,  double ppr,  double? checkoutPct,  int? startingScore,  double? mpt,  double? practiceScore)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String gameId,  int legIndex,  DateTime gameDate,  double ppr,  double? checkoutPct,  int? checkoutScore,  int? startingScore,  double? mpt,  double? practiceScore)  $default,) {final _that = this;
 switch (_that) {
 case _PlayerLegSnapshot():
-return $default(_that.gameId,_that.legIndex,_that.gameDate,_that.ppr,_that.checkoutPct,_that.startingScore,_that.mpt,_that.practiceScore);case _:
+return $default(_that.gameId,_that.legIndex,_that.gameDate,_that.ppr,_that.checkoutPct,_that.checkoutScore,_that.startingScore,_that.mpt,_that.practiceScore);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +199,10 @@ return $default(_that.gameId,_that.legIndex,_that.gameDate,_that.ppr,_that.check
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String gameId,  int legIndex,  DateTime gameDate,  double ppr,  double? checkoutPct,  int? startingScore,  double? mpt,  double? practiceScore)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String gameId,  int legIndex,  DateTime gameDate,  double ppr,  double? checkoutPct,  int? checkoutScore,  int? startingScore,  double? mpt,  double? practiceScore)?  $default,) {final _that = this;
 switch (_that) {
 case _PlayerLegSnapshot() when $default != null:
-return $default(_that.gameId,_that.legIndex,_that.gameDate,_that.ppr,_that.checkoutPct,_that.startingScore,_that.mpt,_that.practiceScore);case _:
+return $default(_that.gameId,_that.legIndex,_that.gameDate,_that.ppr,_that.checkoutPct,_that.checkoutScore,_that.startingScore,_that.mpt,_that.practiceScore);case _:
   return null;
 
 }
@@ -213,7 +214,7 @@ return $default(_that.gameId,_that.legIndex,_that.gameDate,_that.ppr,_that.check
 
 
 class _PlayerLegSnapshot implements PlayerLegSnapshot {
-  const _PlayerLegSnapshot({required this.gameId, required this.legIndex, required this.gameDate, required this.ppr, this.checkoutPct, this.startingScore, this.mpt, this.practiceScore});
+  const _PlayerLegSnapshot({required this.gameId, required this.legIndex, required this.gameDate, required this.ppr, this.checkoutPct, this.checkoutScore, this.startingScore, this.mpt, this.practiceScore});
   
 
 @override final  String gameId;
@@ -221,6 +222,7 @@ class _PlayerLegSnapshot implements PlayerLegSnapshot {
 @override final  DateTime gameDate;
 @override final  double ppr;
 @override final  double? checkoutPct;
+@override final  int? checkoutScore;
 @override final  int? startingScore;
 @override final  double? mpt;
 @override final  double? practiceScore;
@@ -235,16 +237,16 @@ _$PlayerLegSnapshotCopyWith<_PlayerLegSnapshot> get copyWith => __$PlayerLegSnap
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlayerLegSnapshot&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.legIndex, legIndex) || other.legIndex == legIndex)&&(identical(other.gameDate, gameDate) || other.gameDate == gameDate)&&(identical(other.ppr, ppr) || other.ppr == ppr)&&(identical(other.checkoutPct, checkoutPct) || other.checkoutPct == checkoutPct)&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.mpt, mpt) || other.mpt == mpt)&&(identical(other.practiceScore, practiceScore) || other.practiceScore == practiceScore));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlayerLegSnapshot&&(identical(other.gameId, gameId) || other.gameId == gameId)&&(identical(other.legIndex, legIndex) || other.legIndex == legIndex)&&(identical(other.gameDate, gameDate) || other.gameDate == gameDate)&&(identical(other.ppr, ppr) || other.ppr == ppr)&&(identical(other.checkoutPct, checkoutPct) || other.checkoutPct == checkoutPct)&&(identical(other.checkoutScore, checkoutScore) || other.checkoutScore == checkoutScore)&&(identical(other.startingScore, startingScore) || other.startingScore == startingScore)&&(identical(other.mpt, mpt) || other.mpt == mpt)&&(identical(other.practiceScore, practiceScore) || other.practiceScore == practiceScore));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,gameId,legIndex,gameDate,ppr,checkoutPct,startingScore,mpt,practiceScore);
+int get hashCode => Object.hash(runtimeType,gameId,legIndex,gameDate,ppr,checkoutPct,checkoutScore,startingScore,mpt,practiceScore);
 
 @override
 String toString() {
-  return 'PlayerLegSnapshot(gameId: $gameId, legIndex: $legIndex, gameDate: $gameDate, ppr: $ppr, checkoutPct: $checkoutPct, startingScore: $startingScore, mpt: $mpt, practiceScore: $practiceScore)';
+  return 'PlayerLegSnapshot(gameId: $gameId, legIndex: $legIndex, gameDate: $gameDate, ppr: $ppr, checkoutPct: $checkoutPct, checkoutScore: $checkoutScore, startingScore: $startingScore, mpt: $mpt, practiceScore: $practiceScore)';
 }
 
 
@@ -255,7 +257,7 @@ abstract mixin class _$PlayerLegSnapshotCopyWith<$Res> implements $PlayerLegSnap
   factory _$PlayerLegSnapshotCopyWith(_PlayerLegSnapshot value, $Res Function(_PlayerLegSnapshot) _then) = __$PlayerLegSnapshotCopyWithImpl;
 @override @useResult
 $Res call({
- String gameId, int legIndex, DateTime gameDate, double ppr, double? checkoutPct, int? startingScore, double? mpt, double? practiceScore
+ String gameId, int legIndex, DateTime gameDate, double ppr, double? checkoutPct, int? checkoutScore, int? startingScore, double? mpt, double? practiceScore
 });
 
 
@@ -272,14 +274,15 @@ class __$PlayerLegSnapshotCopyWithImpl<$Res>
 
 /// Create a copy of PlayerLegSnapshot
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? gameId = null,Object? legIndex = null,Object? gameDate = null,Object? ppr = null,Object? checkoutPct = freezed,Object? startingScore = freezed,Object? mpt = freezed,Object? practiceScore = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? gameId = null,Object? legIndex = null,Object? gameDate = null,Object? ppr = null,Object? checkoutPct = freezed,Object? checkoutScore = freezed,Object? startingScore = freezed,Object? mpt = freezed,Object? practiceScore = freezed,}) {
   return _then(_PlayerLegSnapshot(
 gameId: null == gameId ? _self.gameId : gameId // ignore: cast_nullable_to_non_nullable
 as String,legIndex: null == legIndex ? _self.legIndex : legIndex // ignore: cast_nullable_to_non_nullable
 as int,gameDate: null == gameDate ? _self.gameDate : gameDate // ignore: cast_nullable_to_non_nullable
 as DateTime,ppr: null == ppr ? _self.ppr : ppr // ignore: cast_nullable_to_non_nullable
 as double,checkoutPct: freezed == checkoutPct ? _self.checkoutPct : checkoutPct // ignore: cast_nullable_to_non_nullable
-as double?,startingScore: freezed == startingScore ? _self.startingScore : startingScore // ignore: cast_nullable_to_non_nullable
+as double?,checkoutScore: freezed == checkoutScore ? _self.checkoutScore : checkoutScore // ignore: cast_nullable_to_non_nullable
+as int?,startingScore: freezed == startingScore ? _self.startingScore : startingScore // ignore: cast_nullable_to_non_nullable
 as int?,mpt: freezed == mpt ? _self.mpt : mpt // ignore: cast_nullable_to_non_nullable
 as double?,practiceScore: freezed == practiceScore ? _self.practiceScore : practiceScore // ignore: cast_nullable_to_non_nullable
 as double?,

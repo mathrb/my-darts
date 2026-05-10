@@ -561,6 +561,11 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         int atcCurrentTarget = 1;
         bool atcInPlayerTurn = false;
 
+        // X01 checkout-score tracking: starting_score from this player's most
+        // recent TurnStarted before LegCompleted. If they win the leg, that's
+        // the score they checked out on.
+        int? lastPlayerTurnStartingScore;
+
         for (final eventRow in eventsResult) {
           final event = GameEvent.fromJson(eventRow);
           switch (event.eventType) {
@@ -570,6 +575,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
               currentTurnNumber = event.payload['turn_number'] as int? ?? currentTurnNumber;
               currentTurnMarks = 0;
               atcInPlayerTurn = true;
+              lastPlayerTurnStartingScore =
+                  (event.payload['starting_score'] as num?)?.toInt();
             case 'DartThrown':
               final pid = event.payload['player_id'] as String?;
               if (pid != playerId) break;
@@ -625,6 +632,12 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
                 checkoutPct = (1 / checkoutAttempts) * 100;
               }
 
+              final winnerPlayerId =
+                  event.payload['winner_player_id'] as String?;
+              final legCheckoutScore = winnerPlayerId == playerId
+                  ? lastPlayerTurnStartingScore
+                  : null;
+
               // Compute practiceScore for the trend chart
               double? practiceScore;
               if (isPracticeGame) {
@@ -643,6 +656,7 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
                 gameDate: gameDate,
                 ppr: ppr,
                 checkoutPct: checkoutPct,
+                checkoutScore: legCheckoutScore,
                 startingScore: gamStartingScore,
                 mpt: mpt,
                 practiceScore: practiceScore,
@@ -659,6 +673,7 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
               atcHits = 0;
               atcCurrentTarget = 1;
               atcInPlayerTurn = false;
+              lastPlayerTurnStartingScore = null;
           }
         }
       }

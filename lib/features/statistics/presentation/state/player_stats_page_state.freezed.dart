@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PlayerStatsPageState {
 
- StatsTabIndex get activeTab; int? get selectedStartingScore; String? get selectedCricketVariant; GameType get selectedPracticeGameType; StatsTimeRange get timeRange; bool get showCheckoutOverlay;
+ StatsTabIndex get activeTab; int? get selectedStartingScore; String? get selectedCricketVariant; GameType get selectedPracticeGameType; StatsTimeRange get timeRange;
 /// Create a copy of PlayerStatsPageState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $PlayerStatsPageStateCopyWith<PlayerStatsPageState> get copyWith => _$PlayerStat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerStatsPageState&&(identical(other.activeTab, activeTab) || other.activeTab == activeTab)&&(identical(other.selectedStartingScore, selectedStartingScore) || other.selectedStartingScore == selectedStartingScore)&&(identical(other.selectedCricketVariant, selectedCricketVariant) || other.selectedCricketVariant == selectedCricketVariant)&&(identical(other.selectedPracticeGameType, selectedPracticeGameType) || other.selectedPracticeGameType == selectedPracticeGameType)&&(identical(other.timeRange, timeRange) || other.timeRange == timeRange)&&(identical(other.showCheckoutOverlay, showCheckoutOverlay) || other.showCheckoutOverlay == showCheckoutOverlay));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerStatsPageState&&(identical(other.activeTab, activeTab) || other.activeTab == activeTab)&&(identical(other.selectedStartingScore, selectedStartingScore) || other.selectedStartingScore == selectedStartingScore)&&(identical(other.selectedCricketVariant, selectedCricketVariant) || other.selectedCricketVariant == selectedCricketVariant)&&(identical(other.selectedPracticeGameType, selectedPracticeGameType) || other.selectedPracticeGameType == selectedPracticeGameType)&&(identical(other.timeRange, timeRange) || other.timeRange == timeRange));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,activeTab,selectedStartingScore,selectedCricketVariant,selectedPracticeGameType,timeRange,showCheckoutOverlay);
+int get hashCode => Object.hash(runtimeType,activeTab,selectedStartingScore,selectedCricketVariant,selectedPracticeGameType,timeRange);
 
 @override
 String toString() {
-  return 'PlayerStatsPageState(activeTab: $activeTab, selectedStartingScore: $selectedStartingScore, selectedCricketVariant: $selectedCricketVariant, selectedPracticeGameType: $selectedPracticeGameType, timeRange: $timeRange, showCheckoutOverlay: $showCheckoutOverlay)';
+  return 'PlayerStatsPageState(activeTab: $activeTab, selectedStartingScore: $selectedStartingScore, selectedCricketVariant: $selectedCricketVariant, selectedPracticeGameType: $selectedPracticeGameType, timeRange: $timeRange)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $PlayerStatsPageStateCopyWith<$Res>  {
   factory $PlayerStatsPageStateCopyWith(PlayerStatsPageState value, $Res Function(PlayerStatsPageState) _then) = _$PlayerStatsPageStateCopyWithImpl;
 @useResult
 $Res call({
- StatsTabIndex activeTab, int? selectedStartingScore, String? selectedCricketVariant, GameType selectedPracticeGameType, StatsTimeRange timeRange, bool showCheckoutOverlay
+ StatsTabIndex activeTab, int? selectedStartingScore, String? selectedCricketVariant, GameType selectedPracticeGameType, StatsTimeRange timeRange
 });
 
 
@@ -62,15 +62,14 @@ class _$PlayerStatsPageStateCopyWithImpl<$Res>
 
 /// Create a copy of PlayerStatsPageState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? activeTab = null,Object? selectedStartingScore = freezed,Object? selectedCricketVariant = freezed,Object? selectedPracticeGameType = null,Object? timeRange = null,Object? showCheckoutOverlay = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? activeTab = null,Object? selectedStartingScore = freezed,Object? selectedCricketVariant = freezed,Object? selectedPracticeGameType = null,Object? timeRange = null,}) {
   return _then(_self.copyWith(
 activeTab: null == activeTab ? _self.activeTab : activeTab // ignore: cast_nullable_to_non_nullable
 as StatsTabIndex,selectedStartingScore: freezed == selectedStartingScore ? _self.selectedStartingScore : selectedStartingScore // ignore: cast_nullable_to_non_nullable
 as int?,selectedCricketVariant: freezed == selectedCricketVariant ? _self.selectedCricketVariant : selectedCricketVariant // ignore: cast_nullable_to_non_nullable
 as String?,selectedPracticeGameType: null == selectedPracticeGameType ? _self.selectedPracticeGameType : selectedPracticeGameType // ignore: cast_nullable_to_non_nullable
 as GameType,timeRange: null == timeRange ? _self.timeRange : timeRange // ignore: cast_nullable_to_non_nullable
-as StatsTimeRange,showCheckoutOverlay: null == showCheckoutOverlay ? _self.showCheckoutOverlay : showCheckoutOverlay // ignore: cast_nullable_to_non_nullable
-as bool,
+as StatsTimeRange,
   ));
 }
 
@@ -155,10 +154,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( StatsTabIndex activeTab,  int? selectedStartingScore,  String? selectedCricketVariant,  GameType selectedPracticeGameType,  StatsTimeRange timeRange,  bool showCheckoutOverlay)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( StatsTabIndex activeTab,  int? selectedStartingScore,  String? selectedCricketVariant,  GameType selectedPracticeGameType,  StatsTimeRange timeRange)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlayerStatsPageState() when $default != null:
-return $default(_that.activeTab,_that.selectedStartingScore,_that.selectedCricketVariant,_that.selectedPracticeGameType,_that.timeRange,_that.showCheckoutOverlay);case _:
+return $default(_that.activeTab,_that.selectedStartingScore,_that.selectedCricketVariant,_that.selectedPracticeGameType,_that.timeRange);case _:
   return orElse();
 
 }
@@ -176,10 +175,10 @@ return $default(_that.activeTab,_that.selectedStartingScore,_that.selectedCricke
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( StatsTabIndex activeTab,  int? selectedStartingScore,  String? selectedCricketVariant,  GameType selectedPracticeGameType,  StatsTimeRange timeRange,  bool showCheckoutOverlay)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( StatsTabIndex activeTab,  int? selectedStartingScore,  String? selectedCricketVariant,  GameType selectedPracticeGameType,  StatsTimeRange timeRange)  $default,) {final _that = this;
 switch (_that) {
 case _PlayerStatsPageState():
-return $default(_that.activeTab,_that.selectedStartingScore,_that.selectedCricketVariant,_that.selectedPracticeGameType,_that.timeRange,_that.showCheckoutOverlay);case _:
+return $default(_that.activeTab,_that.selectedStartingScore,_that.selectedCricketVariant,_that.selectedPracticeGameType,_that.timeRange);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +195,10 @@ return $default(_that.activeTab,_that.selectedStartingScore,_that.selectedCricke
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( StatsTabIndex activeTab,  int? selectedStartingScore,  String? selectedCricketVariant,  GameType selectedPracticeGameType,  StatsTimeRange timeRange,  bool showCheckoutOverlay)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( StatsTabIndex activeTab,  int? selectedStartingScore,  String? selectedCricketVariant,  GameType selectedPracticeGameType,  StatsTimeRange timeRange)?  $default,) {final _that = this;
 switch (_that) {
 case _PlayerStatsPageState() when $default != null:
-return $default(_that.activeTab,_that.selectedStartingScore,_that.selectedCricketVariant,_that.selectedPracticeGameType,_that.timeRange,_that.showCheckoutOverlay);case _:
+return $default(_that.activeTab,_that.selectedStartingScore,_that.selectedCricketVariant,_that.selectedPracticeGameType,_that.timeRange);case _:
   return null;
 
 }
@@ -211,7 +210,7 @@ return $default(_that.activeTab,_that.selectedStartingScore,_that.selectedCricke
 
 
 class _PlayerStatsPageState implements PlayerStatsPageState {
-  const _PlayerStatsPageState({this.activeTab = StatsTabIndex.x01, this.selectedStartingScore = null, this.selectedCricketVariant = null, this.selectedPracticeGameType = GameType.aroundTheClock, this.timeRange = StatsTimeRange.all, this.showCheckoutOverlay = false});
+  const _PlayerStatsPageState({this.activeTab = StatsTabIndex.x01, this.selectedStartingScore = null, this.selectedCricketVariant = null, this.selectedPracticeGameType = GameType.aroundTheClock, this.timeRange = StatsTimeRange.all});
   
 
 @override@JsonKey() final  StatsTabIndex activeTab;
@@ -219,7 +218,6 @@ class _PlayerStatsPageState implements PlayerStatsPageState {
 @override@JsonKey() final  String? selectedCricketVariant;
 @override@JsonKey() final  GameType selectedPracticeGameType;
 @override@JsonKey() final  StatsTimeRange timeRange;
-@override@JsonKey() final  bool showCheckoutOverlay;
 
 /// Create a copy of PlayerStatsPageState
 /// with the given fields replaced by the non-null parameter values.
@@ -231,16 +229,16 @@ _$PlayerStatsPageStateCopyWith<_PlayerStatsPageState> get copyWith => __$PlayerS
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlayerStatsPageState&&(identical(other.activeTab, activeTab) || other.activeTab == activeTab)&&(identical(other.selectedStartingScore, selectedStartingScore) || other.selectedStartingScore == selectedStartingScore)&&(identical(other.selectedCricketVariant, selectedCricketVariant) || other.selectedCricketVariant == selectedCricketVariant)&&(identical(other.selectedPracticeGameType, selectedPracticeGameType) || other.selectedPracticeGameType == selectedPracticeGameType)&&(identical(other.timeRange, timeRange) || other.timeRange == timeRange)&&(identical(other.showCheckoutOverlay, showCheckoutOverlay) || other.showCheckoutOverlay == showCheckoutOverlay));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlayerStatsPageState&&(identical(other.activeTab, activeTab) || other.activeTab == activeTab)&&(identical(other.selectedStartingScore, selectedStartingScore) || other.selectedStartingScore == selectedStartingScore)&&(identical(other.selectedCricketVariant, selectedCricketVariant) || other.selectedCricketVariant == selectedCricketVariant)&&(identical(other.selectedPracticeGameType, selectedPracticeGameType) || other.selectedPracticeGameType == selectedPracticeGameType)&&(identical(other.timeRange, timeRange) || other.timeRange == timeRange));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,activeTab,selectedStartingScore,selectedCricketVariant,selectedPracticeGameType,timeRange,showCheckoutOverlay);
+int get hashCode => Object.hash(runtimeType,activeTab,selectedStartingScore,selectedCricketVariant,selectedPracticeGameType,timeRange);
 
 @override
 String toString() {
-  return 'PlayerStatsPageState(activeTab: $activeTab, selectedStartingScore: $selectedStartingScore, selectedCricketVariant: $selectedCricketVariant, selectedPracticeGameType: $selectedPracticeGameType, timeRange: $timeRange, showCheckoutOverlay: $showCheckoutOverlay)';
+  return 'PlayerStatsPageState(activeTab: $activeTab, selectedStartingScore: $selectedStartingScore, selectedCricketVariant: $selectedCricketVariant, selectedPracticeGameType: $selectedPracticeGameType, timeRange: $timeRange)';
 }
 
 
@@ -251,7 +249,7 @@ abstract mixin class _$PlayerStatsPageStateCopyWith<$Res> implements $PlayerStat
   factory _$PlayerStatsPageStateCopyWith(_PlayerStatsPageState value, $Res Function(_PlayerStatsPageState) _then) = __$PlayerStatsPageStateCopyWithImpl;
 @override @useResult
 $Res call({
- StatsTabIndex activeTab, int? selectedStartingScore, String? selectedCricketVariant, GameType selectedPracticeGameType, StatsTimeRange timeRange, bool showCheckoutOverlay
+ StatsTabIndex activeTab, int? selectedStartingScore, String? selectedCricketVariant, GameType selectedPracticeGameType, StatsTimeRange timeRange
 });
 
 
@@ -268,15 +266,14 @@ class __$PlayerStatsPageStateCopyWithImpl<$Res>
 
 /// Create a copy of PlayerStatsPageState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? activeTab = null,Object? selectedStartingScore = freezed,Object? selectedCricketVariant = freezed,Object? selectedPracticeGameType = null,Object? timeRange = null,Object? showCheckoutOverlay = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? activeTab = null,Object? selectedStartingScore = freezed,Object? selectedCricketVariant = freezed,Object? selectedPracticeGameType = null,Object? timeRange = null,}) {
   return _then(_PlayerStatsPageState(
 activeTab: null == activeTab ? _self.activeTab : activeTab // ignore: cast_nullable_to_non_nullable
 as StatsTabIndex,selectedStartingScore: freezed == selectedStartingScore ? _self.selectedStartingScore : selectedStartingScore // ignore: cast_nullable_to_non_nullable
 as int?,selectedCricketVariant: freezed == selectedCricketVariant ? _self.selectedCricketVariant : selectedCricketVariant // ignore: cast_nullable_to_non_nullable
 as String?,selectedPracticeGameType: null == selectedPracticeGameType ? _self.selectedPracticeGameType : selectedPracticeGameType // ignore: cast_nullable_to_non_nullable
 as GameType,timeRange: null == timeRange ? _self.timeRange : timeRange // ignore: cast_nullable_to_non_nullable
-as StatsTimeRange,showCheckoutOverlay: null == showCheckoutOverlay ? _self.showCheckoutOverlay : showCheckoutOverlay // ignore: cast_nullable_to_non_nullable
-as bool,
+as StatsTimeRange,
   ));
 }
 
