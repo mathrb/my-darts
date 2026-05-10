@@ -10,6 +10,7 @@ abstract class PlayerLegSnapshot with _$PlayerLegSnapshot {
     required DateTime gameDate,
     required double ppr,
     double? checkoutPct,
+    int? checkoutScore,
     int? startingScore,
     double? mpt,
     double? practiceScore,

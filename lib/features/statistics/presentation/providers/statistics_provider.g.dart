@@ -322,7 +322,7 @@ final class PlayerStatsPageProvider
   }
 }
 
-String _$playerStatsPageHash() => r'9b3906acea6bc66502e39105234d1d5111f800ff';
+String _$playerStatsPageHash() => r'b143e7801151614d59630ec5a4c986894208d6f6';
 
 final class PlayerStatsPageFamily extends $Family
     with

@@ -535,6 +535,11 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         int atcCurrentTarget = 1;
         bool atcInPlayerTurn = false;
 
+        // X01 checkout-score tracking: starting_score from this player's most
+        // recent TurnStarted before LegCompleted. If they win the leg, that's
+        // the score they checked out on.
+        int? lastPlayerTurnStartingScore;
+
         for (final event in events) {
           final payload =
               jsonDecode(event.payloadJson) as Map<String, dynamic>;
@@ -545,6 +550,8 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
               if (pid != playerId) break;
               currentTurnMarks = 0;
               atcInPlayerTurn = true;
+              lastPlayerTurnStartingScore =
+                  (payload['starting_score'] as num?)?.toInt();
             case 'DartThrown':
               final pid = payload['player_id'] as String?;
               if (pid != playerId) break;
@@ -607,6 +614,12 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
                 checkoutPct = (1 / checkoutAttempts) * 100;
               }
 
+              final winnerPlayerId =
+                  payload['winner_player_id'] as String?;
+              final legCheckoutScore = winnerPlayerId == playerId
+                  ? lastPlayerTurnStartingScore
+                  : null;
+
               double? practiceScore;
               if (isPracticeGame) {
                 if (gameType == GameType.aroundTheClock) {
@@ -624,6 +637,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
                 gameDate: gameDate,
                 ppr: ppr,
                 checkoutPct: checkoutPct,
+                checkoutScore: legCheckoutScore,
                 startingScore: gamStartingScore,
                 mpt: mpt,
                 practiceScore: practiceScore,
@@ -639,6 +653,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
               atcHits = 0;
               atcCurrentTarget = 1;
               atcInPlayerTurn = false;
+              lastPlayerTurnStartingScore = null;
           }
         }
       }
