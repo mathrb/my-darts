@@ -156,8 +156,18 @@ class UndoLastDartUseCase {
 
   /// Builds a blank initial GameState for replay, seeded from the static
   /// configuration fields of [source] (strategies, legsToWin, startingScore,
-  /// and competitor identities). All dynamic fields are reset to zero.
+  /// variants, and competitor identities). All dynamic fields are reset to
+  /// zero. Game-type-specific seeds (e.g. `currentTarget` for Around the
+  /// Clock) mirror [GameState.initial] so the engine sees the same starting
+  /// conditions during replay as it did when the game was first created.
   GameState _buildInitialState(GameState source) {
+    // Around the Clock: starting target depends on the variant. Without this
+    // seed, the engine's hit validation rejects every dart during replay and
+    // `currentTarget` stays null after undo (issue #116).
+    final int? initialTarget = source.gameType == GameType.aroundTheClock
+        ? (source.aroundTheClockVariant == 'reverse' ? 20 : 1)
+        : null;
+
     final initialCompetitors = source.competitors
         .map(
           (c) => CompetitorState(
@@ -170,6 +180,7 @@ class UndoLastDartUseCase {
             isComplete: false,
             dartThrows: const [],
             turnStartScore: null,
+            currentTarget: initialTarget,
           ),
         )
         .toList();
@@ -188,6 +199,14 @@ class UndoLastDartUseCase {
       inStrategy: source.inStrategy,
       outStrategy: source.outStrategy,
       startingScore: source.startingScore,
+      cricketVariant: source.cricketVariant,
+      aroundTheClockVariant: source.aroundTheClockVariant,
+      shanghaiTotalRounds: source.shanghaiTotalRounds,
+      catch40TargetRemaining:
+          source.gameType == GameType.catch40 ? 61 : 0,
+      x01TotalRounds: source.x01TotalRounds,
+      cricketTotalRounds: source.cricketTotalRounds,
+      countUpTotalRounds: source.countUpTotalRounds,
     );
   }
 }

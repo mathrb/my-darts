@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dart_lodge/core/error/repository_exception.dart';
 import 'package:dart_lodge/core/utils/constants.dart';
 import 'package:dart_lodge/features/game/domain/engines/base_game_engine.dart';
+import 'package:dart_lodge/features/game/domain/engines/stateless_around_the_clock_engine.dart';
 import 'package:dart_lodge/features/game/domain/engines/stateless_cricket_engine.dart';
 import 'package:dart_lodge/features/game/domain/engines/stateless_x01_engine.dart';
 import 'package:dart_lodge/features/game/domain/entities/game_event.dart';
@@ -539,6 +540,174 @@ void main() {
           reason: 'B never hit 20 — must not inherit a mark from A');
       expect(state.competitors[1].marksPerNumber['19'] ?? 0, 0,
           reason: "B's 19 was undone");
+    });
+  });
+
+  // ── regression: issue #116 ────────────────────────────────────────────────
+
+  group('Issue #116 — Around the Clock undo restores currentTarget', () {
+    GameEvent _atcEvent(
+      String id,
+      String type,
+      int seq, [
+      Map<String, dynamic> payload = const {},
+    ]) =>
+        GameEvent(
+          eventId: id,
+          gameId: 'atc',
+          eventType: type,
+          localSequence: seq,
+          occurredAt: DateTime(2024),
+          payload: payload,
+          synced: false,
+          actorId: 'system',
+          source: EventSource.client,
+        );
+
+    GameEvent _atcDart(String id, int seq, int segment, int multiplier) =>
+        _atcEvent(id, 'DartThrown', seq, {
+          'competitor_id': 'cA',
+          'segment': segment,
+          'multiplier': multiplier,
+          'input_method': 'manual',
+        });
+
+    GameState _atcState({
+      required String variant,
+      required int currentTarget,
+      required int dartsThrownInTurn,
+    }) {
+      return GameState(
+        gameId: 'atc',
+        gameType: GameType.aroundTheClock,
+        competitors: [
+          CompetitorState(
+            competitorId: 'cA',
+            name: 'A',
+            playerIds: const ['pA'],
+            score: 0,
+            isIn: true,
+            currentTarget: currentTarget,
+          ),
+        ],
+        currentTurnIndex: 0,
+        dartsThrownInTurn: dartsThrownInTurn,
+        isComplete: false,
+        status: GameEngineStatus.inProgress,
+        turnActive: true,
+        legsToWin: 1,
+        startingScore: 0,
+        aroundTheClockVariant: variant,
+      );
+    }
+
+    test('undoing the first hit restores currentTarget = 1 (standard)',
+        () async {
+      final atcEngine = StatelessAroundTheClockEngine();
+      final atcUseCase =
+          UndoLastDartUseCase(mockEventRepo, mockDartRepo, atcEngine);
+
+      // Player hit target 1 once; engine advanced currentTarget to 2.
+      final state = _atcState(
+        variant: 'standard',
+        currentTarget: 2,
+        dartsThrownInTurn: 1,
+      );
+
+      final events = <GameEvent>[
+        _atcEvent('gc', 'GameCreated', 1, {
+          'ruleset': 'aroundTheClock',
+          'rules_payload': {'variant': 'standard'},
+          'competitors': ['cA'],
+        }),
+        _atcEvent('tsA', 'TurnStarted', 2,
+            {'competitor_id': 'cA', 'turn_index': 0, 'leg_index': 0}),
+        _atcDart('d1', 3, 1, 1), // S1 — hits target 1
+      ];
+      when(mockEventRepo.getEventsForGame('atc'))
+          .thenAnswer((_) async => events);
+      when(mockEventRepo.getLatestSequence('atc')).thenAnswer((_) async => 3);
+
+      final newState = await atcUseCase.execute(state);
+
+      expect(newState.competitors[0].currentTarget, 1,
+          reason: 'After undo, target reverts to the variant start (1)');
+      expect(newState.dartsThrownInTurn, 0);
+      expect(newState.aroundTheClockVariant, 'standard');
+    });
+
+    test('subsequent hit after undo registers (currentTarget advances)',
+        () async {
+      final atcEngine = StatelessAroundTheClockEngine();
+      final atcUseCase =
+          UndoLastDartUseCase(mockEventRepo, mockDartRepo, atcEngine);
+
+      final state = _atcState(
+        variant: 'standard',
+        currentTarget: 2,
+        dartsThrownInTurn: 1,
+      );
+
+      final events = <GameEvent>[
+        _atcEvent('gc', 'GameCreated', 1, {
+          'ruleset': 'aroundTheClock',
+          'rules_payload': {'variant': 'standard'},
+          'competitors': ['cA'],
+        }),
+        _atcEvent('tsA', 'TurnStarted', 2,
+            {'competitor_id': 'cA', 'turn_index': 0, 'leg_index': 0}),
+        _atcDart('d1', 3, 1, 1),
+      ];
+      when(mockEventRepo.getEventsForGame('atc'))
+          .thenAnswer((_) async => List.of(events));
+      when(mockEventRepo.getLatestSequence('atc')).thenAnswer((_) async => 3);
+
+      final afterUndo = await atcUseCase.execute(state);
+
+      // Pre-fix, currentTarget was null here — re-throwing S1 would not
+      // register. Verify the engine still treats segment 1 as a hit.
+      final hitAgain = atcEngine
+          .apply(
+            afterUndo,
+            _atcDart('d2', 5, 1, 1),
+          )
+          .state;
+
+      expect(hitAgain.competitors[0].currentTarget, 2,
+          reason: 'Replayed hit on target 1 advances target to 2');
+      expect(hitAgain.dartsThrownInTurn, 1);
+    });
+
+    test('reverse variant restores currentTarget = 20', () async {
+      final atcEngine = StatelessAroundTheClockEngine();
+      final atcUseCase =
+          UndoLastDartUseCase(mockEventRepo, mockDartRepo, atcEngine);
+
+      // Reverse variant starts at 20, descends. After hitting 20, target=19.
+      final state = _atcState(
+        variant: 'reverse',
+        currentTarget: 19,
+        dartsThrownInTurn: 1,
+      );
+
+      final events = <GameEvent>[
+        _atcEvent('gc', 'GameCreated', 1, {
+          'ruleset': 'aroundTheClock',
+          'rules_payload': {'variant': 'reverse'},
+          'competitors': ['cA'],
+        }),
+        _atcEvent('tsA', 'TurnStarted', 2,
+            {'competitor_id': 'cA', 'turn_index': 0, 'leg_index': 0}),
+        _atcDart('d1', 3, 20, 1),
+      ];
+      when(mockEventRepo.getEventsForGame('atc'))
+          .thenAnswer((_) async => events);
+      when(mockEventRepo.getLatestSequence('atc')).thenAnswer((_) async => 3);
+
+      final newState = await atcUseCase.execute(state);
+
+      expect(newState.competitors[0].currentTarget, 20);
+      expect(newState.aroundTheClockVariant, 'reverse');
     });
   });
 }
