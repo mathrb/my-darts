@@ -102,11 +102,11 @@ These are hard constraints. Breaking them requires explicit human approval.
 ```
 lib/features/<feature>/
   domain/       ← pure Dart only — NO Flutter, NO drift, NO http
-  data/         ← implements domain interfaces; contains drift/sqflite code
+  data/         ← implements domain interfaces; contains drift code
   presentation/ ← Flutter widgets and Riverpod providers
 ```
 
-- `domain/` has zero imports of `package:flutter`, `package:drift`, `package:sqflite`, or `package:dio`.
+- `domain/` has zero imports of `package:flutter`, `package:drift`, or `package:dio`.
 - No feature imports another feature directly. Cross-feature communication via `core/` providers or shared domain entities only.
 - `core/` contains no domain logic — only infrastructure (database wiring, error types, shared utilities).
 
@@ -201,13 +201,11 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 
 **Contract tests:** Every repository implementation must pass the shared contract tests in `test/contracts/`. Never skip or comment out tests to make CI pass.
 
-**Database:** `PRAGMA foreign_keys = ON` must be set in `onOpen` (sqflite) / `beforeOpen` (drift). Schema is currently single-version (`databaseVersion = 1`); future schema migrations will be applied in `onUpgrade` (sqflite) / `MigrationStrategy.onUpgrade` (drift). Completed games are read-only — enforced in application logic, not triggers.
-
-**Dual database schemas:** The schema is declared in two parallel sources that must stay in sync: `lib/core/persistence/database_migrations.dart` (sqflite, canonical) and `lib/core/persistence/drift/database.dart` (drift web). When changing schema, update both. After editing drift table classes, run `dart run build_runner build --delete-conflicting-outputs`. The canonical SQL DDL is mirrored in `docs/DATABASE_DDL.md`.
+**Database:** drift on every platform (`NativeDatabase.createInBackground` on mobile/desktop, `WasmDatabase` over IndexedDB on web). Schema lives in `lib/core/persistence/drift/database.dart`; `databaseVersion = 1`. `PRAGMA foreign_keys = ON` is set in `MigrationStrategy.beforeOpen`. Completed games are read-only — enforced in application logic, not triggers. The canonical SQL DDL reference is `docs/DATABASE_DDL.md`. After editing drift table classes, run `dart run build_runner build --delete-conflicting-outputs`.
 
 **Drift foreign keys:** Plain `text()()` emits NO foreign key clause — you must call `.references(Type, #col, onDelete: KeyAction.{cascade|restrict|setNull})` explicitly. `PRAGMA foreign_keys = ON` is a no-op without `.references()`. When two columns in a table reference the same parent (e.g. `game_sessions.host_player_id` and `current_turn_player_id` both → `players`), add `@ReferenceName('xxx')` annotations to disambiguate manager-API helpers, or build_runner warns.
 
-**Test database setup:** Every sqflite-using test must call `DatabaseMigrations.createSchema(db)` and `await db.execute('PRAGMA foreign_keys = ON;')` before instantiating repositories — never roll a hand-crafted CREATE TABLE schema. Drift tests use `AppDatabase(NativeDatabase.memory())` directly. With FK enforcement active across both backends, fixtures must respect FK order: insert players before competitors, games before competitors/dart_throws/game_events, and use `playerRepo.createPlayer()` to seed referenced player IDs before any `createGame` call.
+**Test database setup:** Drift tests use `AppDatabase(NativeDatabase.memory())` directly — see `test/drift_test_base.dart`. With FK enforcement active, fixtures must respect FK order: insert players before competitors, games before competitors/dart_throws/game_events, and use `playerRepo.createPlayer()` to seed referenced player IDs before any `createGame` call.
 
 **Test game setup ordering:** Drift enforces read-only on completed games. In tests: create game with `isComplete: false` → insert darts/events → call `gameRepo.completeGame()`. Never set `isComplete: true` at creation if you need to insert data afterward.
 
@@ -221,11 +219,11 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 
 **`GameStats.gameType` is load-bearing:** the post-game summary branches on `gameStats.gameType == GameType.cricket.name` to choose MPR vs PPR labels and rows. Every return path of `getGameStats` (including the empty-darts early return) must set it, in both repository implementations.
 
-**Dual statistics repositories:** Statistics computation lives in `PlayerStatsAssembler` and is shared. Only the loader queries are duplicated — `lib/features/statistics/data/repositories/statistics_repository_impl.dart` (sqflite) and `lib/core/persistence/drift/repositories/statistics_repository_drift.dart` (drift) both load events and dart_throws and then delegate to the assembler. When changing how events/throws are loaded (filters, ordering, joins) update both. When changing how stats are computed from those events, update only the assembler.
+**Statistics loader vs computation:** Statistics computation lives in `PlayerStatsAssembler` (shared). The loader queries live in `lib/core/persistence/drift/repositories/statistics_repository_drift.dart` — load events + dart_throws, then delegate to the assembler. When changing how stats are computed, update only the assembler.
 
-**Sqflite write-side reactivity:** Drift gets reactive `watch()` for free via its query API. Sqflite emulates the same behaviour through `DataChangeNotifier` (`lib/core/persistence/data_change_notifier.dart`): write-side repos (`DartThrowRepositoryImpl`, `GameEventRepositoryImpl`, `GameRepositoryImpl.completeGame`) call `_changeNotifier?.notify()` after every data-mutating operation, and `StatisticsRepositoryImpl` subscribes via its `watchPlayerStats` / `watchGameStats` streams. **If you add a new sqflite write that affects stats — call `notify()` after the write, or watchers will not refresh.** The Riverpod provider is `dataChangeProvider` (Riverpod strips the `Notifier` suffix from `dataChangeNotifier`).
+**Watchable queries:** drift's per-query reactivity is automatic — `select(...).watch()` re-fires whenever drift sees a write to one of the referenced tables. No notify-after-write protocol to remember.
 
-**Repository contract tests run on both backends:** `runHybridTests` (`test/hybrid_test_runner.dart`) executes a single contract suite against both sqflite and drift, with separate `setUp`/`tearDown` per engine. Add cross-backend coverage in the shared `*_contract.dart` file — the `*_drift_contract_test.dart` / `*_sqflite_contract_test.dart` wrappers are just two-liners.
+**Repository contract tests:** `runHybridTests` (`test/hybrid_test_runner.dart`) spins up a fresh in-memory `AppDatabase` per test against the shared `*_contract.dart` suites. The "hybrid" name is vestigial from the dual-backend era (issue #112) — there is now a single backend.
 
 **Cricket mark-bucket field overload:** `CompetitorStats.{five..nine}MarkTurns` are populated as **exact-N** counts by `getGameStats` and `ComputeLegStatsUseCase` (read from the `*Exact` snapshot keys) but as **≥-N** counts by `getPlayerStats` (read from the `*MarkTurns` keys). Same field, different cohorts by call path.
 
@@ -270,7 +268,7 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 ## Things You Must Not Do
 
 - Store statistics (averages, ratios, percentages) as pre-calculated values in the database
-- Import `drift`, `sqflite`, `flutter`, or `dio` in any `domain/` layer file
+- Import `drift`, `flutter`, or `dio` in any `domain/` layer file
 - Import one feature's code from another feature's folder
 - Call `ref.read()` inside a widget's `build()` method
 - Catch exceptions inside `AsyncValue.guard()`

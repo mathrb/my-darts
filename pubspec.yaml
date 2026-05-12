@@ -16,16 +16,12 @@ dependencies:
   # Routing
   go_router: ^17.1.0
   
-  # Local database
-  sqflite: ^2.3.0
-  sqflite_common_ffi: ^2.3.0
-  path: ^1.8.3
-  path_provider: ^2.1.1
-  
-  # Web database (Drift with SQLite WASM)
+  # Database (drift everywhere: NativeDatabase on mobile/desktop, WasmDatabase on web)
   drift: ^2.31.0
   sqlite3: ^2.9.4
   sqlite3_flutter_libs: ">=0.5.41 <0.7.0"
+  path: ^1.8.3
+  path_provider: ^2.1.1
   
   # Utility packages
   uuid: ^4.5.2

@@ -3,31 +3,27 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dart_lodge/core/utils/constants.dart';
-import 'package:dart_lodge/features/statistics/data/repositories/statistics_repository_impl.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:dart_lodge/core/persistence/drift/database.dart';
+import 'package:dart_lodge/core/persistence/drift/repositories/statistics_repository_drift.dart';
 
-import '../../../sqflite_test_base.dart';
+import '../../../drift_test_base.dart';
 
 void main() {
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
-
   group('ATC practice stats — getPlayerStats', () {
-    late SqfliteTestBase base;
-    late StatisticsRepositoryImpl statsRepo;
-    late Database db;
+    late DriftTestBase base;
+    late StatisticsRepositoryDrift statsRepo;
+    late AppDatabase db;
 
     const playerId = 'player-atc-1';
     const gameId = 'game-atc-1';
     const competitorId = 'comp-atc-1';
 
     setUp(() async {
-      base = SqfliteTestBase();
+      base = DriftTestBase();
       await base.setUp();
       db = base.db;
-      statsRepo = StatisticsRepositoryImpl(db);
-      // Insert player
-      await db.insert('players', {
+      statsRepo = StatisticsRepositoryDrift(db);
+      await db.rawInsert('players', {
         'player_id': playerId,
         'name': 'ATC Tester',
         'created_at': DateTime.now().toIso8601String(),
@@ -37,24 +33,24 @@ void main() {
 
     tearDown(() async => base.tearDown());
 
-    Future<void> _setupGame({
+    Future<void> setupGame({
       String variant = 'standard',
       List<Map<String, dynamic>> events = const [],
     }) async {
-      await db.insert('games', {
+      await db.rawInsert('games', {
         'game_id': gameId,
         'game_type': GameType.aroundTheClock.name,
         'config_json': jsonEncode({'variant': variant}),
         'start_time': DateTime.now().toIso8601String(),
         'is_complete': 1,
       });
-      await db.insert('competitors', {
+      await db.rawInsert('competitors', {
         'competitor_id': competitorId,
         'game_id': gameId,
         'type': 'solo',
         'name': 'ATC Tester',
       });
-      await db.insert('competitor_players', {
+      await db.rawInsert('competitor_players', {
         'competitor_id': competitorId,
         'player_id': playerId,
         'rotation_position': 0,
@@ -63,7 +59,7 @@ void main() {
       for (final payload in events) {
         final eventType = payload['__type'] as String;
         final cleaned = Map<String, dynamic>.from(payload)..remove('__type');
-        await db.insert('game_events', {
+        await db.rawInsert('game_events', {
           'event_id': 'evt-$seq',
           'game_id': gameId,
           'event_type': eventType,
@@ -88,7 +84,7 @@ void main() {
     });
 
     test('counts darts at target and hits correctly', () async {
-      await _setupGame(events: [
+      await setupGame(events: [
         {'__type': 'TurnStarted', 'player_id': playerId},
         // Hit target 1
         {'__type': 'DartThrown', 'player_id': playerId, 'segment': 1, 'multiplier': 1, 'score': 1},
@@ -126,7 +122,7 @@ void main() {
       evts.add({'__type': 'TurnEnded', 'player_id': playerId});
       evts.add({'__type': 'LegCompleted', 'winner_player_id': playerId});
 
-      await _setupGame(events: evts);
+      await setupGame(events: evts);
 
       final stats = await statsRepo.getPlayerStats(
         playerId,
@@ -139,7 +135,7 @@ void main() {
     });
 
     test('doublesOnly variant: only D-hits advance the target', () async {
-      await _setupGame(variant: 'doublesOnly', events: [
+      await setupGame(variant: 'doublesOnly', events: [
         {'__type': 'TurnStarted', 'player_id': playerId},
         // Single 1 — not a hit in doublesOnly
         {'__type': 'DartThrown', 'player_id': playerId, 'segment': 1, 'multiplier': 1, 'score': 1},
@@ -161,7 +157,7 @@ void main() {
     });
 
     test('non-completing drill: atcCompletions stays 0', () async {
-      await _setupGame(events: [
+      await setupGame(events: [
         {'__type': 'TurnStarted', 'player_id': playerId},
         {'__type': 'DartThrown', 'player_id': playerId, 'segment': 1, 'multiplier': 1, 'score': 1},
         {'__type': 'TurnEnded', 'player_id': playerId},

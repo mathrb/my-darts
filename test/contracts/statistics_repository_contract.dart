@@ -16,9 +16,9 @@ import 'package:dart_lodge/features/game/domain/entities/game_event.dart';
 import 'package:dart_lodge/features/game/domain/models/game_config.dart';
 import 'package:dart_lodge/core/error/repository_exception.dart';
 import 'package:dart_lodge/core/utils/constants.dart';
-import '../database_test_base.dart';
+import '../drift_test_base.dart';
 
-void runStatisticsRepositoryContractTests(DatabaseTestBase base) {
+void runStatisticsRepositoryContractTests(DriftTestBase base) {
   late StatisticsRepository statsRepo;
   late PlayerRepository playerRepo;
   late GameRepository gameRepo;

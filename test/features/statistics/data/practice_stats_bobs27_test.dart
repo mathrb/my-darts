@@ -3,30 +3,28 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dart_lodge/core/utils/constants.dart';
-import 'package:dart_lodge/features/statistics/data/repositories/statistics_repository_impl.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:dart_lodge/core/persistence/drift/database.dart';
+import 'package:dart_lodge/core/persistence/drift/repositories/statistics_repository_drift.dart';
 
-import '../../../sqflite_test_base.dart';
+import '../../../drift_test_base.dart';
 
 void main() {
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
 
   group("Bob's 27 practice stats — getPlayerStats", () {
-    late SqfliteTestBase base;
-    late StatisticsRepositoryImpl statsRepo;
-    late Database db;
+    late DriftTestBase base;
+    late StatisticsRepositoryDrift statsRepo;
+    late AppDatabase db;
 
     const playerId = 'player-b27-1';
     const gameId = 'game-b27-1';
     const competitorId = 'comp-b27-1';
 
     setUp(() async {
-      base = SqfliteTestBase();
+      base = DriftTestBase();
       await base.setUp();
       db = base.db;
-      statsRepo = StatisticsRepositoryImpl(db);
-      await db.insert('players', {
+      statsRepo = StatisticsRepositoryDrift(db);
+      await db.rawInsert('players', {
         'player_id': playerId,
         'name': "Bob's 27 Tester",
         'created_at': DateTime.now().toIso8601String(),
@@ -37,20 +35,20 @@ void main() {
     tearDown(() async => base.tearDown());
 
     Future<void> _setupGame(List<Map<String, dynamic>> events) async {
-      await db.insert('games', {
+      await db.rawInsert('games', {
         'game_id': gameId,
         'game_type': GameType.bobs27.name,
         'config_json': jsonEncode({}),
         'start_time': DateTime.now().toIso8601String(),
         'is_complete': 1,
       });
-      await db.insert('competitors', {
+      await db.rawInsert('competitors', {
         'competitor_id': competitorId,
         'game_id': gameId,
         'type': 'solo',
         'name': "Bob's 27 Tester",
       });
-      await db.insert('competitor_players', {
+      await db.rawInsert('competitor_players', {
         'competitor_id': competitorId,
         'player_id': playerId,
         'rotation_position': 0,
@@ -59,7 +57,7 @@ void main() {
       for (final payload in events) {
         final eventType = payload['__type'] as String;
         final cleaned = Map<String, dynamic>.from(payload)..remove('__type');
-        await db.insert('game_events', {
+        await db.rawInsert('game_events', {
           'event_id': 'evt-$seq',
           'game_id': gameId,
           'event_type': eventType,
