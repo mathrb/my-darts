@@ -1,5 +1,4 @@
-// Player Repository Hybrid Contract Test
-// Runs the shared contract tests against both SQLite and Drift implementations
+// Player Repository Contract Tests
 
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +9,6 @@ import 'package:dart_lodge/core/error/repository_exception.dart';
 import '../hybrid_test_runner.dart';
 
 void main() {
-  // Run tests for both SQLite and Drift engines
   runHybridTests('Player Repository Contract Tests', (base) {
     late PlayerRepository repo;
 
@@ -169,53 +167,30 @@ void main() {
   });
 }
 
-Future<void> _insertHistory(DatabaseTestBase base, String playerId) async {
-  // Insert in FK order: games → competitors → competitor_players. The drift
-  // schema enforces FKs; the sqflite test schema currently does not, but we
-  // still write them in dependency order for parity.
-  if (base is DriftTestBase) {
-    await base.db.into(base.db.games).insert(
-      drift_db.GamesCompanion.insert(
-        gameId: 'g1',
-        gameType: 'x01',
-        configJson: '{}',
-        startTime: DateTime.now().toIso8601String(),
-        isComplete: const drift.Value(1),
-      ),
-    );
-    await base.db.into(base.db.competitors).insert(
-      drift_db.CompetitorsCompanion.insert(
-        competitorId: 'c1',
-        gameId: 'g1',
-        type: 'human',
-        name: 'Alice',
-      ),
-    );
-    await base.db.into(base.db.competitorPlayers).insert(
-      drift_db.CompetitorPlayersCompanion.insert(
-        competitorId: 'c1',
-        playerId: playerId,
-        rotationPosition: 0,
-      ),
-    );
-  } else if (base is SqfliteTestBase) {
-    await base.db.insert('games', {
-      'game_id': 'g1',
-      'game_type': 'x01',
-      'config_json': '{}',
-      'start_time': DateTime.now().toIso8601String(),
-      'is_complete': 1,
-    });
-    await base.db.insert('competitors', {
-      'competitor_id': 'c1',
-      'game_id': 'g1',
-      'type': 'human',
-      'name': 'Alice',
-    });
-    await base.db.insert('competitor_players', {
-      'competitor_id': 'c1',
-      'player_id': playerId,
-      'rotation_position': 0,
-    });
-  }
+Future<void> _insertHistory(DriftTestBase base, String playerId) async {
+  // Insert in FK order: games → competitors → competitor_players.
+  await base.db.into(base.db.games).insert(
+        drift_db.GamesCompanion.insert(
+          gameId: 'g1',
+          gameType: 'x01',
+          configJson: '{}',
+          startTime: DateTime.now().toIso8601String(),
+          isComplete: const drift.Value(1),
+        ),
+      );
+  await base.db.into(base.db.competitors).insert(
+        drift_db.CompetitorsCompanion.insert(
+          competitorId: 'c1',
+          gameId: 'g1',
+          type: 'human',
+          name: 'Alice',
+        ),
+      );
+  await base.db.into(base.db.competitorPlayers).insert(
+        drift_db.CompetitorPlayersCompanion.insert(
+          competitorId: 'c1',
+          playerId: playerId,
+          rotationPosition: 0,
+        ),
+      );
 }

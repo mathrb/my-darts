@@ -1,5 +1,5 @@
-// Drift Test Implementation
-// Test base for web Drift database
+// Test scaffold for repository tests. Spins up an in-memory drift database
+// and exposes the five repositories used across contract and integration tests.
 
 import 'package:drift/native.dart';
 import 'package:dart_lodge/core/persistence/drift/database.dart';
@@ -8,44 +8,46 @@ import 'package:dart_lodge/core/persistence/drift/repositories/game_repository_d
 import 'package:dart_lodge/core/persistence/drift/repositories/dart_throw_repository_drift.dart';
 import 'package:dart_lodge/core/persistence/drift/repositories/game_event_repository_drift.dart';
 import 'package:dart_lodge/core/persistence/drift/repositories/statistics_repository_drift.dart';
-import 'database_test_base.dart';
 
-class DriftTestBase implements DatabaseTestBase {
+class DriftTestBase {
   late AppDatabase db;
 
-  @override
   Future<void> setUp() async {
-    // Use in-memory database for tests
     db = AppDatabase(NativeDatabase.memory());
   }
 
-  @override
   Future<void> tearDown() async {
     await db.close();
   }
 
-  @override
-  Future<PlayerRepositoryDrift> createPlayerRepository() async {
-    return PlayerRepositoryDrift(db);
-  }
+  Future<PlayerRepositoryDrift> createPlayerRepository() async =>
+      PlayerRepositoryDrift(db);
 
-  @override
-  Future<GameRepositoryDrift> createGameRepository() async {
-    return GameRepositoryDrift(db);
-  }
+  Future<GameRepositoryDrift> createGameRepository() async =>
+      GameRepositoryDrift(db);
 
-  @override
-  Future<DartThrowRepositoryDrift> createDartThrowRepository() async {
-    return DartThrowRepositoryDrift(db);
-  }
+  Future<DartThrowRepositoryDrift> createDartThrowRepository() async =>
+      DartThrowRepositoryDrift(db);
 
-  @override
-  Future<GameEventRepositoryDrift> createGameEventRepository() async {
-    return GameEventRepositoryDrift(db);
-  }
+  Future<GameEventRepositoryDrift> createGameEventRepository() async =>
+      GameEventRepositoryDrift(db);
 
-  @override
-  Future<StatisticsRepositoryDrift> createStatisticsRepository() async {
-    return StatisticsRepositoryDrift(db);
+  Future<StatisticsRepositoryDrift> createStatisticsRepository() async =>
+      StatisticsRepositoryDrift(db);
+}
+
+/// Bridges legacy sqflite-style `db.insert(table, {col: value, ...})` calls
+/// in tests onto drift's `customStatement`. Used by the practice-stats tests
+/// that pre-date the sqflite removal — they seed events with custom payloads
+/// where typed `Companion.insert(...)` would be unhelpful boilerplate.
+extension TestRawInsert on AppDatabase {
+  Future<void> rawInsert(String table, Map<String, dynamic> row) async {
+    final cols = row.keys.toList();
+    final placeholders = List.filled(cols.length, '?').join(', ');
+    await customStatement(
+      'INSERT INTO $table (${cols.join(', ')}) VALUES ($placeholders)',
+      cols.map((c) => row[c]).toList(),
+    );
   }
 }
+
