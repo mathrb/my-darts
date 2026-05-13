@@ -802,6 +802,11 @@ class PlayerStatsAssembler {
   ///     `starting_score` BEFORE `LegCompleted` IFF that player won the leg.
   ///   - ATC practice score = atcHits / atcDartsAtTarget for current player;
   ///     other practice gametypes use raw leg score.
+  ///     **Caveat:** the ATC hit-rate tracking hard-codes the ascending
+  ///     `standard` variant (target = legDartCount, walking 1→20). The
+  ///     `reverse` (20→1) and `doublesOnly` ATC variants are NOT modelled and
+  ///     will silently produce incorrect `practiceScore` values for non-standard
+  ///     games. Full multi-variant support is tracked separately.
   ///
   /// [gameType] selects the practice-score branch. Pass `null` to treat the
   /// game as non-practice (no `practiceScore`).
