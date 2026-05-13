@@ -561,9 +561,32 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         // the score they checked out on.
         int? lastPlayerTurnStartingScore;
 
+        // Per-leg event buffer for X01 checkout-% computation. We feed this
+        // slice to `PlayerStatsAssembler.legCheckoutStatsFromEvents` at each
+        // LegCompleted so the percentage is derived from real successes ÷
+        // attempts (via X01CheckoutProjection) — replacing the historical
+        // bogus inline formula `(1 / checkoutAttempts) * 100`.
+        final List<domain.GameEvent> currentLegEvents = [];
+
         for (final event in events) {
           final payload =
               jsonDecode(event.payloadJson) as Map<String, dynamic>;
+          // Materialise as a domain GameEvent for the assembler helper. We
+          // only need the fields the projection reads (eventType, payload),
+          // but keep the full shape to stay consistent with other call sites.
+          final domainEvent = domain.GameEvent(
+            eventId: event.eventId,
+            gameId: event.gameId,
+            eventType: event.eventType,
+            localSequence: event.localSequence,
+            occurredAt: DateTime.parse(event.occurredAt),
+            payload: payload,
+            synced: event.synced == 1,
+            actorId: event.actorId,
+            globalSequence: event.globalSequence,
+            source: EventSource.client,
+          );
+          currentLegEvents.add(domainEvent);
 
           switch (event.eventType) {
             case 'TurnStarted':
@@ -625,15 +648,21 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
                   ? legTotalMarks / legTotalTurns
                   : null;
 
-              final checkoutAttempts =
-                  payload['checkout_attempts'] as int?;
-              final checkoutScore = payload['checkout_score'] as int?;
-              double? checkoutPct;
-              if (checkoutAttempts != null &&
-                  checkoutAttempts > 0 &&
-                  checkoutScore != null) {
-                checkoutPct = (1 / checkoutAttempts) * 100;
-              }
+              // Compute checkout % via X01CheckoutProjection over the leg's
+              // events (Decision 4 of issue #129). Previously the loader
+              // used `(1 / checkoutAttempts) * 100`, which is nonsensical:
+              // the numerator was hardcoded to 1, and `checkout_score` was
+              // read from the payload but ignored. Now the percentage is
+              // `successes / attempts * 100` for this player in this leg.
+              // For non-X01 game types the projection's snapshot stays at
+              // zero attempts (it only consumes TurnStarted/LegCompleted for
+              // the configured player), so the result is null — matching
+              // the prior behaviour of leaving checkoutPct null off-X01.
+              final checkoutStats = _assembler.legCheckoutStatsFromEvents(
+                playerId: playerId,
+                legEvents: currentLegEvents,
+              );
+              final double? checkoutPct = checkoutStats.percentage;
 
               final winnerPlayerId =
                   payload['winner_player_id'] as String?;
@@ -675,6 +704,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
               atcCurrentTarget = 1;
               atcInPlayerTurn = false;
               lastPlayerTurnStartingScore = null;
+              currentLegEvents.clear();
           }
         }
       }
