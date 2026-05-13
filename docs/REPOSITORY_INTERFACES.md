@@ -409,6 +409,16 @@ class SequenceConflictException implements Exception {
   final String gameId;
   final int localSequence;
 }
+class GameNotEditableException implements Exception {
+  // Thrown by appendEvent/appendEvents when the target game is already complete.
+}
+class EventNotFoundException implements Exception {
+  // Thrown by markSynced/updateGlobalSequences when any id does not exist;
+  // the surrounding transaction is rolled back so no partial updates land.
+}
+class ValidationException implements Exception {
+  // Thrown by appendEvents when events span multiple game ids in one batch.
+}
 ```
 
 ---
@@ -554,6 +564,23 @@ final class SequenceConflictException extends RepositoryException {
   final int localSequence;
   const SequenceConflictException(this.gameId, this.localSequence)
       : super('Sequence $localSequence already taken in game $gameId');
+}
+
+final class GameNotEditableException extends RepositoryException {
+  final String gameId;
+  const GameNotEditableException(this.gameId)
+      : super('Cannot edit completed game $gameId');
+}
+
+final class EventNotFoundException extends RepositoryException {
+  final String eventId;
+  const EventNotFoundException(this.eventId)
+      : super('Event not found: $eventId');
+}
+
+// ── Validation ────────────────────────────────────────────────────────────
+final class ValidationException extends RepositoryException {
+  const ValidationException(super.reason);
 }
 ```
 

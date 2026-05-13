@@ -112,7 +112,8 @@ class PlayerRepositoryDrift implements PlayerRepository {
           .get();
 
       if (rows.isNotEmpty) {
-        throw PlayerHasGameHistoryException(playerId);
+        throw PlayerHasGameHistoryException(
+            'Player $playerId has game history');
       }
 
       try {
@@ -126,7 +127,8 @@ class PlayerRepositoryDrift implements PlayerRepository {
           // A competitor_players row appeared between the scan and the delete;
           // the FK with ON DELETE RESTRICT blocked us. Surface the typed
           // exception rather than leaking a raw SqliteException.
-          throw PlayerHasGameHistoryException(playerId);
+          throw PlayerHasGameHistoryException(
+            'Player $playerId has game history');
         }
         if (e is RepositoryException) rethrow;
         throw DatabaseException(
