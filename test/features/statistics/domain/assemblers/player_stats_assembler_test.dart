@@ -192,6 +192,70 @@ void main() {
       expect(stats.hitRate, 1.0);
       expect(stats.nineMarkTurns, 1);
     });
+
+    test(
+        'playerStatsForGameFromEvents branches on cricket — cricket fields '
+        'populated, X01-shaped fields stay default (refs #129 sub-task 5)',
+        () {
+      // One full cricket leg/game for a single competitor.
+      // Turn 1: T20 (3 marks), T19 (3 marks), T18 (3 marks) = 9-mark turn.
+      // Turn 2: 25 single (1 mark on Bull), miss, miss = 1-mark turn.
+      // Then the leg/game completes.
+      final events = [
+        turnStarted(turnNumber: 1),
+        dart(20, 3),
+        dart(19, 3),
+        dart(18, 3),
+        turnEnded(),
+        turnStarted(turnNumber: 2),
+        dart(25, 1),
+        dart(1, 1),
+        dart(1, 1),
+        turnEnded(),
+        legCompleted(winnerPlayerId: playerId),
+        gameCompleted(winnerPlayerId: playerId),
+      ];
+
+      final stats = assembler.playerStatsForGameFromEvents(
+        playerId: playerId,
+        gameType: GameType.cricket,
+        playerDartsInGame: 6,
+        playerScoreInGame: 9 * 20 + 9 * 19 + 9 * 18 + 25 + 1 + 1,
+        events: events,
+      );
+
+      // Cricket-shaped fields are populated.
+      expect(stats.gameType, GameType.cricket);
+      expect(stats.marksPerTurn, closeTo(5.0, 1e-9)); // (9 + 1) / 2
+      // 4 of 6 darts landed on a cricket target (15–20 / 25).
+      expect(stats.hitRate, closeTo(4 / 6, 1e-9));
+      expect(stats.nineMarkTurns, 1); // turn 1 was exactly 9 marks
+      expect(stats.sixMarkTurns, 0); // per-game uses exact-N counts
+      expect(stats.legsPlayed, 1);
+      expect(stats.legsWon, 1);
+
+      // Best-of fields: on a single-leg game both equal the leg/game's own
+      // values. Surfaced for parity with the career bundle so multi-leg
+      // games can show "best leg MPT this game" without per-game callers
+      // having to recompute.
+      expect(stats.bestLegMpt, closeTo(5.0, 1e-9));
+      expect(stats.bestGameHitRate, closeTo(4 / 6, 1e-9));
+
+      // X01-shaped fields must NOT be populated for a cricket per-game slice.
+      // (`checkoutPercentage` and `highestCheckout` are nullable; PPR-shaped
+      // fields default to 0/null.)
+      expect(stats.checkoutPercentage, isNull);
+      expect(stats.highestCheckout, isNull);
+      expect(stats.highestTurnScore, 0);
+      expect(stats.bustRate, 0.0);
+      expect(stats.firstNinePpr, isNull);
+      expect(stats.doubleOutSuccessRate, isNull);
+      expect(stats.firstDartInSuccessRate, isNull);
+      expect(stats.oneEightyTurns, 0);
+      expect(stats.oneFortyPlusTurns, 0);
+      expect(stats.oneHundredPlusTurns, 0);
+      expect(stats.sixtyPlusTurns, 0);
+    });
   });
 
   group('practice — Around the Clock', () {

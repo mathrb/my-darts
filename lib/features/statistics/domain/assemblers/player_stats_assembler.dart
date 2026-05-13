@@ -754,6 +754,67 @@ class PlayerStatsAssembler {
       );
     }
 
+    if (gameType == GameType.cricket) {
+      // Per-game cricket bundle. Wires the same cricket projections as the
+      // career path in `fromEvents`, so per-game `PlayerStats` exposes the
+      // same shape (incl. `bestLegMpt` / `bestGameHitRate` — meaningful on
+      // a single-game slice for multi-leg cricket). Reads `*Exact` keys for
+      // mark buckets, per the per-game "exact-N" convention (see CLAUDE.md
+      // "Cricket mark-bucket field overload").
+      final runner = ProjectionRunner([
+        CricketMarksPerTurnProjection(),
+        CricketHitRateProjection(),
+        CricketMarkBucketsProjection(),
+        CricketLegsProjection(),
+        CricketBestLegMptProjection(),
+        CricketBestGameHitRateProjection(),
+      ]);
+      runner.init(ProjectionContext(
+        playerId: playerId,
+        gameType: GameType.cricket,
+        inStrategy: 'straight',
+        outStrategy: 'straight',
+        playerIds: [playerId],
+      ));
+      runner.run(events);
+      final snap = runner.snapshot();
+
+      final mptSnap = snap['cricket.mpt'] ?? {};
+      final hitRateSnap = snap['cricket.hitRate'] ?? {};
+      final bucketsSnap = snap['cricket.markBuckets'] ?? {};
+      final legsSnap = snap['cricket.legs'] ?? {};
+      final bestLegMptSnap = snap['cricket.bestLegMpt'] ?? {};
+      final bestGameHitRateSnap = snap['cricket.bestGameHitRate'] ?? {};
+
+      final legsPlayed = legsSnap['legsPlayed'] as int? ?? 0;
+      final legsWon = legsSnap['legsWon'] as int? ?? 0;
+
+      return PlayerStats(
+        playerId: playerId,
+        gameType: gameType,
+        totalGames: 1,
+        gamesWon: legsWon > 0 ? 1 : 0,
+        winRate: legsWon > 0 ? 1.0 : 0.0,
+        // threeDartAverage is computed from raw dart scores for parity with
+        // the X01/countUp branches. For cricket it has no scoring meaning
+        // but callers that render generic per-game tiles still expect it.
+        threeDartAverage: threeDartAverage,
+        bustRate: 0.0,
+        highestTurnScore: 0,
+        totalDartsThrown: playerDartsInGame,
+        dartsPerLeg: legsPlayed > 0 ? playerDartsInGame / legsPlayed : 0.0,
+        legsPlayed: legsPlayed,
+        legsWon: legsWon,
+        marksPerTurn: (mptSnap['marksPerTurn'] as num?)?.toDouble(),
+        hitRate: (hitRateSnap['hitRate'] as num?)?.toDouble(),
+        sixMarkTurns: bucketsSnap['sixMarkExact'] as int? ?? 0,
+        nineMarkTurns: bucketsSnap['nineMarkExact'] as int? ?? 0,
+        bestLegMpt: (bestLegMptSnap['bestLegMpt'] as num?)?.toDouble(),
+        bestGameHitRate:
+            (bestGameHitRateSnap['bestGameHitRate'] as num?)?.toDouble(),
+      );
+    }
+
     final runner = ProjectionRunner([
       X01BustRateProjection(),
       X01CheckoutProjection(),
