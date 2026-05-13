@@ -37,7 +37,6 @@ ProjectionContext _ctx({String playerId = 'p1'}) => ProjectionContext(
       gameType: GameType.countUp,
       inStrategy: 'straight',
       outStrategy: 'straight',
-      playerIds: ['p1', 'p2'],
     );
 
 /// Apply a 3-dart turn for [pid] starting at sequence [seqStart].

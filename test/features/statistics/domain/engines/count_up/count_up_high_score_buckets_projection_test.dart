@@ -31,7 +31,6 @@ ProjectionContext _ctx({String playerId = 'p1'}) => ProjectionContext(
       gameType: GameType.countUp,
       inStrategy: 'straight',
       outStrategy: 'straight',
-      playerIds: ['p1', 'p2'],
     );
 
 /// Helper to apply a 3-dart turn ending in a TurnEnded event.

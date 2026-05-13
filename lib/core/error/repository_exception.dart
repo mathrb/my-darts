@@ -60,11 +60,6 @@ final class GameNotEditableException extends RepositoryException {
       : super('Game is complete and not editable: $gameId');
 }
 
-final class MultipleActiveGamesException extends RepositoryException {
-  const MultipleActiveGamesException()
-      : super('Multiple active games detected - only one game can be active at a time');
-}
-
 final class ActiveGameAlreadyExistsException extends RepositoryException {
   const ActiveGameAlreadyExistsException()
       : super('An active game already exists - only one game can be active at a time');
@@ -77,12 +72,6 @@ final class InvalidCompetitorException extends RepositoryException {
 // Statistics Exceptions
 final class StatisticsException extends RepositoryException {
   const StatisticsException(super.message);
-}
-
-final class StatisticsNotFoundException extends RepositoryException {
-  final String entityId;
-  const StatisticsNotFoundException(this.entityId)
-      : super('No statistics found for: $entityId');
 }
 
 // Dart Throw Exceptions

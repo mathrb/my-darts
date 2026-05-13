@@ -1,14 +1,13 @@
 import 'package:dart_lodge/core/utils/constants.dart';
 import 'package:dart_lodge/features/game/domain/entities/game_event.dart';
 
-enum ProjectionScope { dart, turn, leg, match, career }
+enum ProjectionScope { turn, leg, match, career }
 
 class ProjectionContext {
   final String playerId;
   final GameType gameType;
   final String inStrategy;
   final String outStrategy;
-  final List<String> playerIds;
   // Games with a single competitor. Projections that should only count
   // multiplayer outcomes (e.g. legs won) skip events whose gameId is in this
   // set. Empty when the caller does not know or does not care.
@@ -19,7 +18,6 @@ class ProjectionContext {
     required this.gameType,
     required this.inStrategy,
     required this.outStrategy,
-    required this.playerIds,
     this.soloGameIds = const {},
   });
 }
