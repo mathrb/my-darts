@@ -14,10 +14,13 @@ abstract interface class StatisticsRepository {
   Future<GameStats> getGameStats(String gameId);
 
   /// Emits an initial snapshot promptly on subscribe, then a new [GameStats]
-  /// whenever a `dart_throws` or `game_events` row is written for [gameId].
-  /// Watching both tables matters for events without a same-transaction dart
-  /// insert (e.g. `LegCompleted`, `GameCompleted`, empty-turn busts via
-  /// `TurnEnded`). Used for live statistics during an active game.
+  /// after any `dart_throws` or `game_events` write (table-granular — drift
+  /// does not filter at the subscription layer, so writes to unrelated games
+  /// also re-trigger; the emitted [GameStats] is scoped to [gameId] via
+  /// re-computation). Watching both tables matters for events without a
+  /// same-transaction dart insert (e.g. `LegCompleted`, `GameCompleted`,
+  /// empty-turn busts via `TurnEnded`). Used for live statistics during an
+  /// active game.
   Stream<GameStats> watchGameStats(String gameId);
 
   // Per-player (career) statistics
@@ -64,9 +67,11 @@ abstract interface class StatisticsRepository {
   Future<PlayerStats> getPlayerStatsForGame(String playerId, String gameId);
 
   /// Emits an initial snapshot promptly on subscribe, then updated career
-  /// [PlayerStats] whenever a `dart_throws` or `game_events` row is written
-  /// for any game involving [playerId]. Used to keep the statistics dashboard
-  /// current.
+  /// [PlayerStats] after any `dart_throws` or `game_events` write
+  /// (table-granular — drift does not filter at the subscription layer, so
+  /// writes for games this player isn't in also re-trigger; the emitted
+  /// [PlayerStats] is scoped to [playerId] / [gameType] via re-computation).
+  /// Used to keep the statistics dashboard current.
   ///
   /// [gameType] is required for the same reasons as [getPlayerStats].
   Stream<PlayerStats> watchPlayerStats(String playerId,
