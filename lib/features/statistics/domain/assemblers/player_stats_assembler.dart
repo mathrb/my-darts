@@ -754,6 +754,60 @@ class PlayerStatsAssembler {
       );
     }
 
+    if (gameType == GameType.cricket) {
+      // Per-game cricket bundle. Mirrors the projection set used in
+      // `gameStatsFromEvents` per-game cricket path, plus the CricketLegs /
+      // CricketHitRate projections so the slice exposes the same shape as
+      // the career cricket bundle in `fromEvents`. Reads `*Exact` keys for
+      // mark buckets, per the per-game "exact-N" convention (see CLAUDE.md
+      // "Cricket mark-bucket field overload").
+      final runner = ProjectionRunner([
+        CricketMarksPerTurnProjection(),
+        CricketHitRateProjection(),
+        CricketMarkBucketsProjection(),
+        CricketLegsProjection(),
+      ]);
+      runner.init(ProjectionContext(
+        playerId: playerId,
+        gameType: GameType.cricket,
+        inStrategy: 'straight',
+        outStrategy: 'straight',
+        playerIds: [playerId],
+      ));
+      runner.run(events);
+      final snap = runner.snapshot();
+
+      final mptSnap = snap['cricket.mpt'] ?? {};
+      final hitRateSnap = snap['cricket.hitRate'] ?? {};
+      final bucketsSnap = snap['cricket.markBuckets'] ?? {};
+      final legsSnap = snap['cricket.legs'] ?? {};
+
+      final legsPlayed = legsSnap['legsPlayed'] as int? ?? 0;
+      final legsWon = legsSnap['legsWon'] as int? ?? 0;
+
+      return PlayerStats(
+        playerId: playerId,
+        gameType: gameType,
+        totalGames: 1,
+        gamesWon: legsWon > 0 ? 1 : 0,
+        winRate: legsWon > 0 ? 1.0 : 0.0,
+        // threeDartAverage is computed from raw dart scores for parity with
+        // the X01/countUp branches. For cricket it has no scoring meaning
+        // but callers that render generic per-game tiles still expect it.
+        threeDartAverage: threeDartAverage,
+        bustRate: 0.0,
+        highestTurnScore: 0,
+        totalDartsThrown: playerDartsInGame,
+        dartsPerLeg: legsPlayed > 0 ? playerDartsInGame / legsPlayed : 0.0,
+        legsPlayed: legsPlayed,
+        legsWon: legsWon,
+        marksPerTurn: (mptSnap['marksPerTurn'] as num?)?.toDouble(),
+        hitRate: (hitRateSnap['hitRate'] as num?)?.toDouble(),
+        sixMarkTurns: bucketsSnap['sixMarkExact'] as int? ?? 0,
+        nineMarkTurns: bucketsSnap['nineMarkExact'] as int? ?? 0,
+      );
+    }
+
     final runner = ProjectionRunner([
       X01BustRateProjection(),
       X01CheckoutProjection(),
