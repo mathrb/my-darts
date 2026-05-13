@@ -569,7 +569,7 @@ final class SequenceConflictException extends RepositoryException {
 final class GameNotEditableException extends RepositoryException {
   final String gameId;
   const GameNotEditableException(this.gameId)
-      : super('Cannot edit completed game $gameId');
+      : super('Game is complete and not editable: $gameId');
 }
 
 final class EventNotFoundException extends RepositoryException {
@@ -578,9 +578,14 @@ final class EventNotFoundException extends RepositoryException {
       : super('Event not found: $eventId');
 }
 
+// ── Player ────────────────────────────────────────────────────────────────
+final class PlayerHasGameHistoryException extends RepositoryException {
+  const PlayerHasGameHistoryException(super.reason);
+}
+
 // ── Validation ────────────────────────────────────────────────────────────
 final class ValidationException extends RepositoryException {
-  const ValidationException(super.reason);
+  const ValidationException(super.message);
 }
 ```
 
