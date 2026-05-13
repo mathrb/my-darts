@@ -17,9 +17,12 @@ dependencies:
   go_router: ^17.1.0
   
   # Database (drift everywhere: NativeDatabase on mobile/desktop, WasmDatabase on web)
+  # Pin sqlite3_flutter_libs to the 0.5.x line: 0.6.0+eol is an empty marker
+  # package that bundles no native libs, breaking Android. See issue tracking
+  # the long-term move to sqlite3 v3.
   drift: ^2.31.0
   sqlite3: ^2.9.4
-  sqlite3_flutter_libs: ">=0.5.41 <0.7.0"
+  sqlite3_flutter_libs: ^0.5.41
   path: ^1.8.3
   path_provider: ^2.1.1
   
