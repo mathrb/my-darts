@@ -54,58 +54,63 @@ class GameEventRepositoryDrift implements GameEventRepository {
 
   @override
   Future<void> appendEvent(GameEvent event) async {
-    // Check if game exists and is editable
-    final gameRow = await (_db.select(_db.games)
-      ..where((t) => t.gameId.equals(event.gameId))
-      ..limit(1))
-      .getSingleOrNull();
-    if (gameRow == null) throw GameNotFoundException(event.gameId);
-    if (gameRow.isComplete == 1) {
-      throw GameNotEditableException(event.gameId);
-    }
-
-    try {
-      await _db.into(_db.gameEvents).insert(
-        drift_db.GameEventsCompanion.insert(
-          eventId: event.eventId,
-          gameId: event.gameId,
-          eventType: event.eventType,
-          localSequence: event.localSequence,
-          occurredAt: event.occurredAt.toIso8601String(),
-          payloadJson: json.encode(event.payload),
-          synced: Value(event.synced ? 1 : 0),
-          actorId: event.actorId,
-          globalSequence: Value.absentIfNull(event.globalSequence),
-          source: Value(event.source.index),
-        ),
-        mode: InsertMode.insertOrFail,
-      );
-    } on Exception catch (e) {
-      if (isUniqueConstraintViolation(e)) {
-        // Check if it's an idempotent insert (same event_id already exists)
-        final existing = await (_db.select(_db.gameEvents)
-          ..where((t) => t.eventId.equals(event.eventId))
-          ..limit(1))
-          .getSingleOrNull();
-        if (existing != null) return; // Idempotent success
-
-        // Check if it's a sequence conflict (different event_id, same sequence)
-        final seqExisting = await (_db.select(_db.gameEvents)
-          ..where((t) =>
-              t.gameId.equals(event.gameId) &
-              t.localSequence.equals(event.localSequence))
-          ..limit(1))
-          .getSingleOrNull();
-        if (seqExisting != null && seqExisting.eventId != event.eventId) {
-          throw SequenceConflictException(event.gameId, event.localSequence);
-        }
+    // Wrap the existence + is-complete checks together with the insert in a
+    // single transaction so the gate is atomic against a concurrent
+    // `completeGame` — a check outside the transaction would have a TOCTOU
+    // window between the read and the insert.
+    await _db.transaction(() async {
+      final gameRow = await (_db.select(_db.games)
+        ..where((t) => t.gameId.equals(event.gameId))
+        ..limit(1))
+        .getSingleOrNull();
+      if (gameRow == null) throw GameNotFoundException(event.gameId);
+      if (gameRow.isComplete == 1) {
+        throw GameNotEditableException(event.gameId);
       }
-      if (e is RepositoryException) rethrow;
-      throw DatabaseException(
-        'Failed to append game event ${event.eventId} to game ${event.gameId}',
-        cause: e,
-      );
-    }
+
+      try {
+        await _db.into(_db.gameEvents).insert(
+          drift_db.GameEventsCompanion.insert(
+            eventId: event.eventId,
+            gameId: event.gameId,
+            eventType: event.eventType,
+            localSequence: event.localSequence,
+            occurredAt: event.occurredAt.toIso8601String(),
+            payloadJson: json.encode(event.payload),
+            synced: Value(event.synced ? 1 : 0),
+            actorId: event.actorId,
+            globalSequence: Value.absentIfNull(event.globalSequence),
+            source: Value(event.source.index),
+          ),
+          mode: InsertMode.insertOrFail,
+        );
+      } on Exception catch (e) {
+        if (isUniqueConstraintViolation(e)) {
+          // Check if it's an idempotent insert (same event_id already exists)
+          final existing = await (_db.select(_db.gameEvents)
+            ..where((t) => t.eventId.equals(event.eventId))
+            ..limit(1))
+            .getSingleOrNull();
+          if (existing != null) return; // Idempotent success
+
+          // Check if it's a sequence conflict (different event_id, same sequence)
+          final seqExisting = await (_db.select(_db.gameEvents)
+            ..where((t) =>
+                t.gameId.equals(event.gameId) &
+                t.localSequence.equals(event.localSequence))
+            ..limit(1))
+            .getSingleOrNull();
+          if (seqExisting != null && seqExisting.eventId != event.eventId) {
+            throw SequenceConflictException(event.gameId, event.localSequence);
+          }
+        }
+        if (e is RepositoryException) rethrow;
+        throw DatabaseException(
+          'Failed to append game event ${event.eventId} to game ${event.gameId}',
+          cause: e,
+        );
+      }
+    });
   }
 
   @override
@@ -121,16 +126,19 @@ class GameEventRepositoryDrift implements GameEventRepository {
     }
 
     final gameId = events.first.gameId;
-    final gameRow = await (_db.select(_db.games)
-      ..where((t) => t.gameId.equals(gameId))
-      ..limit(1))
-      .getSingleOrNull();
-    if (gameRow == null) throw GameNotFoundException(gameId);
-    if (gameRow.isComplete == 1) {
-      throw GameNotEditableException(gameId);
-    }
-
+    // Wrap the existence + is-complete checks together with the inserts in a
+    // single transaction so the gate is atomic against a concurrent
+    // `completeGame`.
     await _db.transaction(() async {
+      final gameRow = await (_db.select(_db.games)
+        ..where((t) => t.gameId.equals(gameId))
+        ..limit(1))
+        .getSingleOrNull();
+      if (gameRow == null) throw GameNotFoundException(gameId);
+      if (gameRow.isComplete == 1) {
+        throw GameNotEditableException(gameId);
+      }
+
       for (final event in events) {
         try {
           await _db.into(_db.gameEvents).insert(

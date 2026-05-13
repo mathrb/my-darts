@@ -370,16 +370,30 @@ abstract interface class GameEventRepository {
 
   /// Appends a single event. Silently ignores a duplicate [event.eventId].
   /// Throws [GameNotFoundException] if [event.gameId] does not exist.
+  /// Throws [GameNotEditableException] if the target game is already complete
+  /// (the event log is read-only after `completeGame`).
   /// Throws [SequenceConflictException] if [event.localSequence] is already
   /// taken by a different event ID for the same game.
   Future<void> appendEvent(GameEvent event);
 
   /// Appends multiple events in a single transaction. All-or-nothing.
+  /// All events must share the same [gameId]; otherwise throws
+  /// [ValidationException].
+  /// Throws [GameNotFoundException] if the target game does not exist, or
+  /// [GameNotEditableException] if the target game is already complete.
+  /// Throws [SequenceConflictException] on any sequence collision (rolls back).
   Future<void> appendEvents(List<GameEvent> events);
 
-  /// Marks [eventIds] as synced ([synced = 1]).
-  /// Silently skips IDs that are already marked synced or do not exist.
+  /// Marks [eventIds] as synced ([synced = 1]) inside a single transaction.
+  /// Throws [EventNotFoundException] if any ID does not exist; on failure the
+  /// transaction is rolled back so no partial updates land.
   Future<void> markSynced(List<String> eventIds);
+
+  /// Updates the [global_sequence] for specific events after server confirmation,
+  /// inside a single transaction. Throws [EventNotFoundException] if any ID
+  /// does not exist; on failure the transaction is rolled back so no partial
+  /// updates land.
+  Future<void> updateGlobalSequences(Map<String, int> eventIdToSequence);
 
   // ── Streams ───────────────────────────────────────────────────────────────
 
