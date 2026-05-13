@@ -515,5 +515,263 @@ void main() {
         expect(history.first.checkoutScore, isNull);
       },
     );
+
+    // Regression test for issue #129, sub-task 6 / 11(e):
+    // `getPlayerLegHistory` historically computed checkoutPct as
+    // `(1 / checkoutAttempts) * 100`, hard-coding successes to 1. The fix
+    // routes the computation through `X01CheckoutProjection`, so the
+    // returned percentage is the real successes ÷ attempts × 100 per leg.
+    //
+    // Discriminating fixture: a 2-leg X01 game where the player wins leg 1
+    // (1 success / 3 attempts → 33.33%) and LOSES leg 2 (0 successes / 2
+    // attempts → 0%). The losing leg is the key discriminator — on `main`
+    // it would either return null (production payloads omit
+    // `checkout_attempts`/`checkout_score`) or, with those keys populated,
+    // the bogus `(1/2)*100 = 50%`. Either way, never 0%.
+    test(
+      'getPlayerLegHistory checkout % uses real successes ÷ attempts per leg',
+      () async {
+        final playerRepo = await base.createPlayerRepository();
+        final gameRepo = await base.createGameRepository();
+        final dartThrowRepo = await base.createDartThrowRepository();
+        final gameEventRepo = await base.createGameEventRepository();
+        final statsRepo = await base.createStatisticsRepository();
+
+        const playerId = 'p1';
+        const opponentId = 'p2';
+        const gameId = 'g1';
+        const competitorId = 'c1';
+        const opponentCompetitorId = 'c2';
+
+        await playerRepo.createPlayer(Player(
+          playerId: playerId,
+          name: 'Test Player',
+          createdAt: DateTime.now(),
+          lastActive: DateTime.now(),
+        ));
+        await playerRepo.createPlayer(Player(
+          playerId: opponentId,
+          name: 'Opponent',
+          createdAt: DateTime.now(),
+          lastActive: DateTime.now(),
+        ));
+
+        await gameRepo.createGame(
+          Game(
+            gameId: gameId,
+            gameType: GameType.x01,
+            config: const GameConfig.x01(
+              startingScore: 501,
+              inStrategy: 'straight',
+              outStrategy: 'double',
+            ),
+            startTime: DateTime.now(),
+            isComplete: false,
+          ),
+          [
+            Competitor(
+              competitorId: competitorId,
+              gameId: gameId,
+              type: CompetitorType.solo,
+              name: 'Test Player',
+              players: [
+                CompetitorPlayer(playerId: playerId, rotationPosition: 0),
+              ],
+            ),
+            Competitor(
+              competitorId: opponentCompetitorId,
+              gameId: gameId,
+              type: CompetitorType.solo,
+              name: 'Opponent',
+              players: [
+                CompetitorPlayer(playerId: opponentId, rotationPosition: 1),
+              ],
+            ),
+          ],
+        );
+
+        int seq = 1;
+        int dartNum = 0;
+
+        Future<void> appendEvent(
+            String type, Map<String, dynamic> payload) async {
+          await gameEventRepo.appendEvent(GameEvent(
+            eventId: '$gameId-e$seq',
+            gameId: gameId,
+            eventType: type,
+            localSequence: seq++,
+            occurredAt: DateTime.now(),
+            payload: payload,
+            synced: false,
+            actorId: playerId,
+            source: EventSource.client,
+          ));
+        }
+
+        Future<void> throwPlayerDart(int turnNumber, int dartNumber,
+            String segment, int score, int segValue, int mult) async {
+          dartNum++;
+          await dartThrowRepo.insertDart(DartThrow(
+            dartId: '$gameId-d$dartNum',
+            gameId: gameId,
+            competitorId: competitorId,
+            playerId: playerId,
+            turnNumber: turnNumber,
+            dartNumber: dartNumber,
+            segment: segment,
+            score: score,
+          ));
+          await appendEvent('DartThrown', {
+            'competitor_id': competitorId,
+            'player_id': playerId,
+            'segment': segValue,
+            'multiplier': mult,
+            'score': score,
+            'input_method': 'manual',
+          });
+        }
+
+        // ── Leg 1: player has 3 checkout attempts and WINS the leg ──────
+        // Three TurnStarted events with starting_score ≤ 170 → 3 attempts.
+        // Player wins → 1 success. Expected checkoutPct = 100/3 ≈ 33.33%.
+
+        // Setup: pretend the player is already at 170 (use starting_score
+        // 170 directly on the first relevant turn; pre-game dart history
+        // isn't required for the projection — only TurnStarted's
+        // `starting_score` payload matters).
+        await appendEvent('TurnStarted', {
+          'competitor_id': competitorId,
+          'player_id': playerId,
+          'starting_score': 170,
+          'turn_index': 0,
+          'leg_index': 0,
+        });
+        // Attempt 1: miss the out shot — three single 20s, 60 scored, no
+        // checkout. New starting score = 110.
+        await throwPlayerDart(0, 1, 'S20', 20, 20, 1);
+        await throwPlayerDart(0, 2, 'S20', 20, 20, 1);
+        await throwPlayerDart(0, 3, 'S20', 20, 20, 1);
+        await appendEvent('TurnEnded', {
+          'competitor_id': competitorId,
+          'player_id': playerId,
+          'reason': 'normal',
+        });
+
+        await appendEvent('TurnStarted', {
+          'competitor_id': competitorId,
+          'player_id': playerId,
+          'starting_score': 110,
+          'turn_index': 1,
+          'leg_index': 0,
+        });
+        // Attempt 2: another miss. T20 + S10 + S20 = 90. New score = 20.
+        await throwPlayerDart(1, 1, 'T20', 60, 20, 3);
+        await throwPlayerDart(1, 2, 'S10', 10, 10, 1);
+        await throwPlayerDart(1, 3, 'S20', 20, 20, 1);
+        await appendEvent('TurnEnded', {
+          'competitor_id': competitorId,
+          'player_id': playerId,
+          'reason': 'normal',
+        });
+
+        await appendEvent('TurnStarted', {
+          'competitor_id': competitorId,
+          'player_id': playerId,
+          'starting_score': 20,
+          'turn_index': 2,
+          'leg_index': 0,
+        });
+        // Attempt 3: hit D10 to check out.
+        await throwPlayerDart(2, 1, 'D10', 20, 10, 2);
+        await appendEvent('TurnEnded', {
+          'competitor_id': competitorId,
+          'player_id': playerId,
+          'reason': 'checkout',
+        });
+
+        await appendEvent('LegCompleted', {
+          'winner_competitor_id': competitorId,
+          'winner_player_id': playerId,
+        });
+
+        // ── Leg 2: player has 2 checkout attempts and LOSES the leg ─────
+        // Two TurnStarted events ≤ 170 → 2 attempts. Player doesn't win →
+        // 0 successes. Expected checkoutPct = 0/2 = 0.0%.
+        // Pre-checkout turns (starting_score > 170) are recorded but don't
+        // count as attempts. We jump straight to the ≤170 territory.
+        await appendEvent('TurnStarted', {
+          'competitor_id': competitorId,
+          'player_id': playerId,
+          'starting_score': 130,
+          'turn_index': 0,
+          'leg_index': 1,
+        });
+        // Attempt 1: miss. T20 + T20 + S10 = 130 → score 0 would be bust;
+        // record a non-checkout finish that leaves the player still alive.
+        // To keep the leg-history math sane, use scoring darts that don't
+        // bust but also don't check out — three S20s = 60. New score 70.
+        await throwPlayerDart(0, 1, 'S20', 20, 20, 1);
+        await throwPlayerDart(0, 2, 'S20', 20, 20, 1);
+        await throwPlayerDart(0, 3, 'S20', 20, 20, 1);
+        await appendEvent('TurnEnded', {
+          'competitor_id': competitorId,
+          'player_id': playerId,
+          'reason': 'normal',
+        });
+
+        await appendEvent('TurnStarted', {
+          'competitor_id': competitorId,
+          'player_id': playerId,
+          'starting_score': 70,
+          'turn_index': 1,
+          'leg_index': 1,
+        });
+        // Attempt 2: miss again. S20 + S10 + S20 = 50. New score 20 — but
+        // opponent closes the leg before the next player turn.
+        await throwPlayerDart(1, 1, 'S20', 20, 20, 1);
+        await throwPlayerDart(1, 2, 'S10', 10, 10, 1);
+        await throwPlayerDart(1, 3, 'S20', 20, 20, 1);
+        await appendEvent('TurnEnded', {
+          'competitor_id': competitorId,
+          'player_id': playerId,
+          'reason': 'normal',
+        });
+
+        await appendEvent('LegCompleted', {
+          'winner_competitor_id': opponentCompetitorId,
+          'winner_player_id': opponentId,
+        });
+        await appendEvent('GameCompleted', {
+          'winner_competitor_id': opponentCompetitorId,
+          'winner_player_id': opponentId,
+        });
+
+        await gameRepo.completeGame(
+          gameId: gameId,
+          winnerCompetitorId: opponentCompetitorId,
+          endTime: DateTime.now(),
+        );
+
+        final history = await statsRepo.getPlayerLegHistory(
+          playerId,
+          gameType: GameType.x01,
+        );
+
+        expect(history, hasLength(2));
+
+        // Leg 1: 1 success / 3 attempts = 33.33%
+        expect(history[0].checkoutPct, isNotNull,
+            reason: 'Leg 1 had 3 attempts — % must not be null');
+        expect(history[0].checkoutPct!, closeTo(100 / 3, 0.01));
+
+        // Leg 2: the discriminator. Truth is 0/2 = 0%. Old buggy formula
+        // would have returned null (production payload omits the keys) or
+        // 50% (if the dead `checkout_attempts` payload key was wired up).
+        // Either way, never 0%.
+        expect(history[1].checkoutPct, isNotNull,
+            reason: 'Leg 2 had 2 attempts — % must not be null');
+        expect(history[1].checkoutPct!, closeTo(0.0, 0.01));
+      },
+    );
   });
 }

@@ -495,6 +495,46 @@ class PlayerStatsAssembler {
     );
   }
 
+  // ── Per-leg checkout stats (single player) ─────────────────────────────────
+
+  /// Computes X01 checkout stats for ONE leg's events for [playerId].
+  ///
+  /// Runs a fresh [X01CheckoutProjection] over the supplied leg-scoped
+  /// events. The projection is cumulative by design (its `reset(leg)` is a
+  /// no-op), but feeding it a single leg's events makes its snapshot
+  /// leg-scoped in practice. The returned percentage is
+  /// `successes / attempts * 100` (null when there are no attempts).
+  ///
+  /// Used by the leg-history loader to render the per-leg checkout %
+  /// series — the loader has the per-leg event slice already, so passing
+  /// it here keeps the computation in the assembler (single source of
+  /// truth) and replaces the historical bogus formula `(1 / attempts) * 100`.
+  ({int attempts, int successes, double? percentage})
+      legCheckoutStatsFromEvents({
+    required String playerId,
+    required List<GameEvent> legEvents,
+  }) {
+    final projection = X01CheckoutProjection();
+    projection.init(ProjectionContext(
+      playerId: playerId,
+      gameType: GameType.x01,
+      inStrategy: 'straight',
+      outStrategy: 'double',
+      playerIds: [playerId],
+    ));
+    for (final event in legEvents) {
+      if (projection.descriptor.consumedEventTypes.contains(event.eventType)) {
+        projection.apply(event);
+      }
+    }
+    final snap = projection.snapshot();
+    return (
+      attempts: snap['checkoutAttempts'] as int? ?? 0,
+      successes: snap['successfulCheckouts'] as int? ?? 0,
+      percentage: (snap['checkoutPercentage'] as num?)?.toDouble(),
+    );
+  }
+
   // ── Per-leg competitor stats ───────────────────────────────────────────────
 
   /// Builds per-competitor stats for a single leg's worth of events.
