@@ -755,7 +755,8 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
           .whereType<String>()
           .toList();
     } catch (e) {
-      return [];
+      throw StatisticsException(
+          'Failed to retrieve cricket variants: ${e.toString()}');
     }
   }
 

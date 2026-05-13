@@ -370,16 +370,30 @@ abstract interface class GameEventRepository {
 
   /// Appends a single event. Silently ignores a duplicate [event.eventId].
   /// Throws [GameNotFoundException] if [event.gameId] does not exist.
+  /// Throws [GameNotEditableException] if the target game is already complete
+  /// (the event log is read-only after `completeGame`).
   /// Throws [SequenceConflictException] if [event.localSequence] is already
   /// taken by a different event ID for the same game.
   Future<void> appendEvent(GameEvent event);
 
   /// Appends multiple events in a single transaction. All-or-nothing.
+  /// All events must share the same [gameId]; otherwise throws
+  /// [ValidationException].
+  /// Throws [GameNotFoundException] if the target game does not exist, or
+  /// [GameNotEditableException] if the target game is already complete.
+  /// Throws [SequenceConflictException] on any sequence collision (rolls back).
   Future<void> appendEvents(List<GameEvent> events);
 
-  /// Marks [eventIds] as synced ([synced = 1]).
-  /// Silently skips IDs that are already marked synced or do not exist.
+  /// Marks [eventIds] as synced ([synced = 1]) inside a single transaction.
+  /// Throws [EventNotFoundException] if any ID does not exist; on failure the
+  /// transaction is rolled back so no partial updates land.
   Future<void> markSynced(List<String> eventIds);
+
+  /// Updates the [global_sequence] for specific events after server confirmation,
+  /// inside a single transaction. Throws [EventNotFoundException] if any ID
+  /// does not exist; on failure the transaction is rolled back so no partial
+  /// updates land.
+  Future<void> updateGlobalSequences(Map<String, int> eventIdToSequence);
 
   // ── Streams ───────────────────────────────────────────────────────────────
 
@@ -394,6 +408,16 @@ abstract interface class GameEventRepository {
 class SequenceConflictException implements Exception {
   final String gameId;
   final int localSequence;
+}
+class GameNotEditableException implements Exception {
+  // Thrown by appendEvent/appendEvents when the target game is already complete.
+}
+class EventNotFoundException implements Exception {
+  // Thrown by markSynced/updateGlobalSequences when any id does not exist;
+  // the surrounding transaction is rolled back so no partial updates land.
+}
+class ValidationException implements Exception {
+  // Thrown by appendEvents when events span multiple game ids in one batch.
 }
 ```
 
@@ -540,6 +564,28 @@ final class SequenceConflictException extends RepositoryException {
   final int localSequence;
   const SequenceConflictException(this.gameId, this.localSequence)
       : super('Sequence $localSequence already taken in game $gameId');
+}
+
+final class GameNotEditableException extends RepositoryException {
+  final String gameId;
+  const GameNotEditableException(this.gameId)
+      : super('Game is complete and not editable: $gameId');
+}
+
+final class EventNotFoundException extends RepositoryException {
+  final String eventId;
+  const EventNotFoundException(this.eventId)
+      : super('Event not found: $eventId');
+}
+
+// ── Player ────────────────────────────────────────────────────────────────
+final class PlayerHasGameHistoryException extends RepositoryException {
+  const PlayerHasGameHistoryException(super.reason);
+}
+
+// ── Validation ────────────────────────────────────────────────────────────
+final class ValidationException extends RepositoryException {
+  const ValidationException(super.message);
 }
 ```
 

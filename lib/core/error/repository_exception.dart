@@ -36,10 +36,28 @@ final class DuplicateGameException extends RepositoryException {
       : super('Game already exists: $gameId');
 }
 
+/// Thrown by [GameRepository.completeGame] when called against a game that
+/// has already been finalized (`is_complete == 1`). Semantically scoped to
+/// "completing a game twice"; for "editing after completion" use
+/// [GameNotEditableException] instead.
 final class GameAlreadyCompleteException extends RepositoryException {
   final String gameId;
   const GameAlreadyCompleteException(this.gameId)
       : super('Game is already complete: $gameId');
+}
+
+/// Thrown when an attempt is made to mutate a finalized game's event log or
+/// throw history (`appendEvent`, `appendEvents`, `insertDart`, etc.) — i.e.
+/// the target game has `is_complete == 1`.
+///
+/// Distinguished from [GameAlreadyCompleteException], which is reserved for
+/// the `completeGame` double-finalization path. Both carry [gameId]; this
+/// type signals "the game is frozen, the operation is rejected" rather than
+/// "you can't complete a game twice".
+final class GameNotEditableException extends RepositoryException {
+  final String gameId;
+  const GameNotEditableException(this.gameId)
+      : super('Game is complete and not editable: $gameId');
 }
 
 final class MultipleActiveGamesException extends RepositoryException {

@@ -148,7 +148,7 @@ void runPlayerRepositoryContractTests(
       );
     });
 
-    if (insertHistory != null)
+    if (insertHistory != null) {
       test('should throw PlayerHasGameHistoryException when history exists',
           () async {
         final player = Player(
@@ -166,5 +166,29 @@ void runPlayerRepositoryContractTests(
           throwsA(isA<PlayerHasGameHistoryException>()),
         );
       });
+
+      test(
+          'should leave the player row intact when delete is rejected for history',
+          () async {
+        final player = Player(
+          playerId: 'p1',
+          name: 'Alice',
+          createdAt: DateTime.now(),
+          lastActive: DateTime.now(),
+        );
+
+        await repo.createPlayer(player);
+        await insertHistory('p1');
+
+        await expectLater(
+          () => repo.deletePlayer('p1'),
+          throwsA(isA<PlayerHasGameHistoryException>()),
+        );
+
+        final retrieved = await repo.getPlayer('p1');
+        expect(retrieved, isNotNull);
+        expect(retrieved!.playerId, 'p1');
+      });
+    }
   });
 }
