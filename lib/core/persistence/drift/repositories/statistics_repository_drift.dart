@@ -200,7 +200,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
           if (cj == null) return false;
           try {
             final cfg = jsonDecode(cj) as Map<String, dynamic>;
-            return cfg['starting_score'] == startingScore;
+            return cfg['startingScore'] == startingScore;
           } catch (_) {
             return false;
           }
@@ -295,8 +295,8 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       if (latestConfigJson != null) {
         try {
           final cfg = jsonDecode(latestConfigJson) as Map<String, dynamic>;
-          inStrategy = cfg['in_strategy'] as String? ?? inStrategy;
-          outStrategy = cfg['out_strategy'] as String? ?? outStrategy;
+          inStrategy = cfg['inStrategy'] as String? ?? inStrategy;
+          outStrategy = cfg['outStrategy'] as String? ?? outStrategy;
           atcVariant = cfg['variant'] as String? ?? atcVariant;
         } catch (_) {}
       }
@@ -481,7 +481,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         filtered = filtered.where((g) {
           try {
             final cfg = jsonDecode(g.configJson) as Map<String, dynamic>;
-            return cfg['starting_score'] == startingScore;
+            return cfg['startingScore'] == startingScore;
           } catch (_) {
             return false;
           }
@@ -513,7 +513,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         int? gamStartingScore;
         try {
           final cfg = jsonDecode(gameRow.configJson) as Map<String, dynamic>;
-          gamStartingScore = cfg['starting_score'] as int?;
+          gamStartingScore = cfg['startingScore'] as int?;
         } catch (_) {}
 
         // Get events for this game
@@ -723,7 +723,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
         if (configJson == null) continue;
         try {
           final cfg = jsonDecode(configJson) as Map<String, dynamic>;
-          final score = cfg['starting_score'] as int?;
+          final score = cfg['startingScore'] as int?;
           if (score != null) scores.add(score);
         } catch (_) {}
       }
