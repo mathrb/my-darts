@@ -12,6 +12,7 @@ import 'package:dart_lodge/features/game/domain/models/game_config.dart';
 import 'package:dart_lodge/features/game/domain/models/game_state_snapshot.dart';
 import 'package:dart_lodge/features/game/domain/repositories/game_repository.dart';
 import '../database.dart' as drift_db;
+import '../sqlite_error_codes.dart';
 
 
 
@@ -110,11 +111,23 @@ class GameRepositoryDrift implements GameRepository {
         }
       });
     } on Exception catch (e) {
-      final msg = e.toString();
-      if (msg.contains('is_complete') || msg.contains('idx_games_single_active')) {
-        throw const ActiveGameAlreadyExistsException();
+      if (isUniqueConstraintViolation(e)) {
+        final sql = extractSqliteException(e);
+        // The only relevant UNIQUE constraint that can fire here (after the
+        // pre-checked duplicate game_id) is the partial index enforcing
+        // "at most one active game". Identify it by the constraint name to
+        // disambiguate from any future UNIQUE additions on this table.
+        if (sql != null &&
+            (sql.message.contains('idx_games_single_active') ||
+                sql.message.contains('is_complete'))) {
+          throw const ActiveGameAlreadyExistsException();
+        }
       }
-      rethrow;
+      if (e is RepositoryException) rethrow;
+      throw DatabaseException(
+        'Failed to create game ${game.gameId}',
+        cause: e,
+      );
     }
   }
 

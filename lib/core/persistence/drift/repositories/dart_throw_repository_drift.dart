@@ -6,6 +6,7 @@ import 'package:dart_lodge/core/error/repository_exception.dart';
 import 'package:dart_lodge/features/game/domain/entities/dart_throw.dart';
 import 'package:dart_lodge/features/game/domain/repositories/dart_throw_repository.dart';
 import '../database.dart' as drift_db;
+import '../sqlite_error_codes.dart';
 
 class DartThrowRepositoryDrift implements DartThrowRepository {
   final drift_db.AppDatabase _db;
@@ -135,24 +136,14 @@ class DartThrowRepositoryDrift implements DartThrowRepository {
         mode: InsertMode.insertOrFail,
       );
     } on Exception catch (e) {
-      // Handle drift-specific exceptions using DriftWrappedException
-      if (e is DriftWrappedException) {
-        final cause = e.cause.toString();
-        if (cause.contains('UNIQUE constraint failed') ||
-            cause.contains('unique constraint failed') ||
-            cause.contains('already exists') ||
-            cause.contains('constraint failed')) {
-          throw DuplicateDartException(dart.dartId);
-        }
-      }
-      // Handle SqliteException directly
-      if (e.toString().contains('UNIQUE constraint failed') ||
-          e.toString().contains('unique constraint failed') ||
-          e.toString().contains('already exists') ||
-          e.toString().contains('constraint failed')) {
+      if (isUniqueConstraintViolation(e)) {
         throw DuplicateDartException(dart.dartId);
       }
-      rethrow;
+      if (e is RepositoryException) rethrow;
+      throw DatabaseException(
+        'Failed to insert dart throw ${dart.dartId} for game ${dart.gameId}',
+        cause: e,
+      );
     }
   }
 
@@ -195,24 +186,14 @@ class DartThrowRepositoryDrift implements DartThrowRepository {
             mode: InsertMode.insertOrFail,
           );
         } on Exception catch (e) {
-          // Handle drift-specific exceptions using DriftWrappedException
-          if (e is DriftWrappedException) {
-            final cause = e.cause.toString();
-            if (cause.contains('UNIQUE constraint failed') ||
-                cause.contains('unique constraint failed') ||
-                cause.contains('already exists') ||
-                cause.contains('constraint failed')) {
-              throw DuplicateDartException(dart.dartId);
-            }
-          }
-          // Handle SqliteException directly
-          if (e.toString().contains('UNIQUE constraint failed') ||
-              e.toString().contains('unique constraint failed') ||
-              e.toString().contains('already exists') ||
-              e.toString().contains('constraint failed')) {
+          if (isUniqueConstraintViolation(e)) {
             throw DuplicateDartException(dart.dartId);
           }
-          rethrow;
+          if (e is RepositoryException) rethrow;
+          throw DatabaseException(
+            'Failed to insert dart throw ${dart.dartId} for game ${dart.gameId}',
+            cause: e,
+          );
         }
       }
     });

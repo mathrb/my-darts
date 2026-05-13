@@ -130,8 +130,8 @@ void runGameEventRepositoryContractTests({
   });
 
   group('appendEvents', () {
-    test('should throw assertion error when events from different games are mixed', () {
-      // The assert fires before any database access, so no game creation needed.
+    test('should throw ValidationException when events from different games are mixed', () {
+      // Asserts are stripped in release; the contract is a real exception.
       final events = [
         GameEvent(
           eventId: 'e1',
@@ -159,7 +159,7 @@ void runGameEventRepositoryContractTests({
 
       expect(
         () => repo.appendEvents(events),
-        throwsA(isA<AssertionError>()),
+        throwsA(isA<ValidationException>()),
       );
     });
   });
@@ -182,9 +182,232 @@ void runGameEventRepositoryContractTests({
       ));
 
       await repo.markSynced(['e1']);
-      
+
       final unsynced = await repo.getUnsyncedEvents();
       expect(unsynced, isEmpty);
+    });
+
+    test('should throw EventNotFoundException for an unknown id', () async {
+      final gameId = 'g1';
+      await gameRepo.createGame(
+        Game(
+          gameId: gameId,
+          gameType: GameType.x01,
+          config: const GameConfig.x01(
+              startingScore: 501,
+              inStrategy: 'straight',
+              outStrategy: 'double'),
+          startTime: DateTime.now(),
+        ),
+        [],
+      );
+
+      await expectLater(
+        () => repo.markSynced(['no-such-event']),
+        throwsA(isA<EventNotFoundException>()),
+      );
+    });
+
+    test(
+        'should throw and roll back when mixing valid and unknown ids (fail-fast)',
+        () async {
+      final gameId = 'g1';
+      await gameRepo.createGame(
+        Game(
+          gameId: gameId,
+          gameType: GameType.x01,
+          config: const GameConfig.x01(
+              startingScore: 501,
+              inStrategy: 'straight',
+              outStrategy: 'double'),
+          startTime: DateTime.now(),
+        ),
+        [],
+      );
+
+      await repo.appendEvent(GameEvent(
+        eventId: 'e1',
+        gameId: gameId,
+        eventType: 'GameCreated',
+        localSequence: 0,
+        occurredAt: DateTime.now(),
+        payload: {},
+        synced: false,
+        actorId: 'system',
+        source: EventSource.client,
+      ));
+
+      await expectLater(
+        () => repo.markSynced(['e1', 'no-such-event']),
+        throwsA(isA<EventNotFoundException>()),
+      );
+
+      // The valid id must NOT have been marked synced — the whole call
+      // rolled back inside the transaction.
+      final unsynced = await repo.getUnsyncedEvents();
+      expect(unsynced.length, 1);
+      expect(unsynced.first.eventId, 'e1');
+      expect(unsynced.first.synced, isFalse);
+    });
+  });
+
+  group('updateGlobalSequences', () {
+    test('should throw EventNotFoundException for an unknown id', () async {
+      final gameId = 'g1';
+      await gameRepo.createGame(
+        Game(
+          gameId: gameId,
+          gameType: GameType.x01,
+          config: const GameConfig.x01(
+              startingScore: 501,
+              inStrategy: 'straight',
+              outStrategy: 'double'),
+          startTime: DateTime.now(),
+        ),
+        [],
+      );
+
+      await expectLater(
+        () => repo.updateGlobalSequences({'no-such-event': 42}),
+        throwsA(isA<EventNotFoundException>()),
+      );
+    });
+
+    test(
+        'should throw and roll back when mixing valid and unknown ids (fail-fast)',
+        () async {
+      final gameId = 'g1';
+      await gameRepo.createGame(
+        Game(
+          gameId: gameId,
+          gameType: GameType.x01,
+          config: const GameConfig.x01(
+              startingScore: 501,
+              inStrategy: 'straight',
+              outStrategy: 'double'),
+          startTime: DateTime.now(),
+        ),
+        [],
+      );
+
+      await repo.appendEvent(GameEvent(
+        eventId: 'e1',
+        gameId: gameId,
+        eventType: 'GameCreated',
+        localSequence: 0,
+        occurredAt: DateTime.now(),
+        payload: {},
+        synced: false,
+        actorId: 'system',
+        source: EventSource.client,
+      ));
+
+      await expectLater(
+        () => repo
+            .updateGlobalSequences({'e1': 100, 'no-such-event': 200}),
+        throwsA(isA<EventNotFoundException>()),
+      );
+
+      // The valid id must NOT have had its global_sequence set — the whole
+      // call rolled back inside the transaction.
+      final events = await repo.getEventsForGame(gameId);
+      expect(events.length, 1);
+      expect(events.first.eventId, 'e1');
+      expect(events.first.globalSequence, isNull);
+    });
+  });
+
+  group('appendEvent on completed game', () {
+    test('should throw GameNotEditableException for single append', () async {
+      final gameId = 'g1';
+      await gameRepo.createGame(
+        Game(
+          gameId: gameId,
+          gameType: GameType.x01,
+          config: const GameConfig.x01(
+              startingScore: 501,
+              inStrategy: 'straight',
+              outStrategy: 'double'),
+          startTime: DateTime.now(),
+          isComplete: false,
+        ),
+        [],
+      );
+
+      // Per CLAUDE.md ordering: create with isComplete: false, then call
+      // completeGame so we can append-after-complete.
+      await gameRepo.completeGame(
+        gameId: gameId,
+        winnerCompetitorId: null,
+        endTime: DateTime.now(),
+      );
+
+      await expectLater(
+        () => repo.appendEvent(GameEvent(
+          eventId: 'e-after',
+          gameId: gameId,
+          eventType: 'DartThrown',
+          localSequence: 0,
+          occurredAt: DateTime.now(),
+          payload: {},
+          synced: false,
+          actorId: 'system',
+          source: EventSource.client,
+        )),
+        throwsA(isA<GameNotEditableException>()),
+      );
+    });
+
+    test('should throw GameNotEditableException for batch append', () async {
+      final gameId = 'g1';
+      await gameRepo.createGame(
+        Game(
+          gameId: gameId,
+          gameType: GameType.x01,
+          config: const GameConfig.x01(
+              startingScore: 501,
+              inStrategy: 'straight',
+              outStrategy: 'double'),
+          startTime: DateTime.now(),
+          isComplete: false,
+        ),
+        [],
+      );
+      await gameRepo.completeGame(
+        gameId: gameId,
+        winnerCompetitorId: null,
+        endTime: DateTime.now(),
+      );
+
+      final events = [
+        GameEvent(
+          eventId: 'e-after-1',
+          gameId: gameId,
+          eventType: 'DartThrown',
+          localSequence: 0,
+          occurredAt: DateTime.now(),
+          payload: {},
+          synced: false,
+          actorId: 'system',
+          source: EventSource.client,
+        ),
+        GameEvent(
+          eventId: 'e-after-2',
+          gameId: gameId,
+          eventType: 'DartThrown',
+          localSequence: 1,
+          occurredAt: DateTime.now(),
+          payload: {},
+          synced: false,
+          actorId: 'system',
+          source: EventSource.client,
+        ),
+      ];
+
+      await expectLater(
+        () => repo.appendEvents(events),
+        throwsA(isA<GameNotEditableException>()),
+      );
     });
   });
 }

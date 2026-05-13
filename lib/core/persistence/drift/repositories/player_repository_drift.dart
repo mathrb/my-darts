@@ -6,6 +6,7 @@ import 'package:dart_lodge/core/error/repository_exception.dart';
 import 'package:dart_lodge/features/players/domain/entities/player.dart';
 import 'package:dart_lodge/features/players/domain/repositories/player_repository.dart';
 import '../database.dart' as drift_db;
+import '../sqlite_error_codes.dart';
 
 class PlayerRepositoryDrift implements PlayerRepository {
   final drift_db.AppDatabase _db;
@@ -58,13 +59,14 @@ class PlayerRepositoryDrift implements PlayerRepository {
         mode: InsertMode.insertOrFail,
       );
     } on Exception catch (e) {
-      final msg = e.toString();
-      if (msg.contains('UNIQUE constraint failed') ||
-          msg.contains('unique constraint failed') ||
-          msg.contains('already exists')) {
+      if (isUniqueConstraintViolation(e)) {
         throw DuplicatePlayerException(player.playerId);
       }
-      rethrow;
+      if (e is RepositoryException) rethrow;
+      throw DatabaseException(
+        'Failed to create player ${player.playerId}',
+        cause: e,
+      );
     }
   }
 
@@ -101,19 +103,38 @@ class PlayerRepositoryDrift implements PlayerRepository {
 
   @override
   Future<void> deletePlayer(String playerId) async {
-    final rows = await (_db.select(_db.competitorPlayers)
-          ..where((t) => t.playerId.equals(playerId)))
-        .get();
+    await _db.transaction(() async {
+      // Fast-path check: if the player has competitor_players rows we know
+      // the delete will hit ON DELETE RESTRICT. We still rely on the FK below
+      // as the canonical guarantee (TOCTOU-safe inside the transaction).
+      final rows = await (_db.select(_db.competitorPlayers)
+            ..where((t) => t.playerId.equals(playerId)))
+          .get();
 
-    if (rows.isNotEmpty) {
-      throw const PlayerHasGameHistoryException('Player has game history');
-    }
+      if (rows.isNotEmpty) {
+        throw PlayerHasGameHistoryException(playerId);
+      }
 
-    final rowsAffected = await (_db.delete(_db.players)
-          ..where((t) => t.playerId.equals(playerId)))
-        .go();
+      try {
+        final rowsAffected = await (_db.delete(_db.players)
+              ..where((t) => t.playerId.equals(playerId)))
+            .go();
 
-    if (rowsAffected == 0) throw PlayerNotFoundException(playerId);
+        if (rowsAffected == 0) throw PlayerNotFoundException(playerId);
+      } on Exception catch (e) {
+        if (isForeignKeyConstraintViolation(e)) {
+          // A competitor_players row appeared between the scan and the delete;
+          // the FK with ON DELETE RESTRICT blocked us. Surface the typed
+          // exception rather than leaking a raw SqliteException.
+          throw PlayerHasGameHistoryException(playerId);
+        }
+        if (e is RepositoryException) rethrow;
+        throw DatabaseException(
+          'Failed to delete player $playerId',
+          cause: e,
+        );
+      }
+    });
   }
 
   @override
