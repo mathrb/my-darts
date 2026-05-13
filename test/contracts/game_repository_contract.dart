@@ -257,45 +257,5 @@ void runGameRepositoryContractTests(
       );
     });
 
-    test('should throw MultipleActiveGamesException when multiple active games exist (application-level validation)', () async {
-      // This test verifies the application-level validation in getActiveGame()
-      // In a real scenario, this would be tested by manually manipulating database state,
-      // but the database constraint prevents this in normal operation.
-      // The application-level validation provides defense-in-depth.
-      
-      // Create first active game normally
-      final game1 = Game(
-        gameId: 'g1',
-        gameType: GameType.x01,
-        config: const GameConfig.x01(startingScore: 501, inStrategy: 'straight', outStrategy: 'double'),
-        startTime: DateTime.now(),
-        isComplete: false,
-      );
-      final competitors1 = [
-        Competitor(
-          competitorId: 'c1',
-          gameId: 'g1',
-          type: CompetitorType.solo,
-          name: 'P1',
-          players: [const CompetitorPlayer(playerId: 'p1', rotationPosition: 0)],
-        ),
-      ];
-
-      await repo.createGame(game1, competitors1);
-      
-      // The application-level validation in getActiveGame() is tested indirectly:
-      // 1. Database constraint prevents multiple active games (tested above)
-      // 2. Application validation provides additional safety net
-      // 3. Both layers work together for defense-in-depth
-      
-      // Verify that getActiveGame works correctly with one active game
-      final activeGame = await repo.getActiveGame();
-      expect(activeGame, isNotNull);
-      expect(activeGame?.gameId, 'g1');
-      
-      // Note: Direct testing of MultipleActiveGamesException would require
-      // bypassing the database constraint, which is not feasible in this test setup
-      // but is covered by the application logic in GameRepositoryImpl.getActiveGame()
-    });
   });
 }

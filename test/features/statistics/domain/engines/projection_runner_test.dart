@@ -30,7 +30,6 @@ ProjectionContext _makeContext({String playerId = 'p1'}) => ProjectionContext(
       gameType: GameType.x01,
       inStrategy: 'straight',
       outStrategy: 'double',
-      playerIds: ['p1', 'p2'],
     );
 
 void main() {

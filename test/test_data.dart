@@ -7,8 +7,6 @@ import 'package:dart_lodge/features/game/domain/entities/dart_throw.dart';
 import 'package:dart_lodge/features/game/domain/entities/game_event.dart';
 import 'package:dart_lodge/features/game/domain/models/game_config.dart';
 import 'package:dart_lodge/core/utils/constants.dart';
-import 'package:dart_lodge/features/players/domain/repositories/player_repository.dart';
-import 'package:dart_lodge/features/game/domain/repositories/game_repository.dart';
 
 class TestData {
   /// Player Test Data
@@ -97,21 +95,6 @@ class TestData {
       source: EventSource.client,
     );
   }
-
-  /// Cleanup Methods
-  static Future<void> cleanupPlayers(PlayerRepository repo) async {
-    // Implementation would depend on engine capabilities
-    // For testing, we can clear the in-memory database between tests
-  }
-
-  static Future<void> cleanupGames(GameRepository repo) async {
-    // Implementation would depend on engine capabilities
-  }
-
-  /// Game Types for Testing
-  static List<String> get testGameTypes => [
-    'x01', 'cricket', 'aroundTheClock', 'killer'
-  ];
 
   /// Common Test Constants
   static const String testPlayerId = 'test-player-1';

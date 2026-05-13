@@ -26,7 +26,6 @@ ProjectionContext _makeContext({String playerId = 'p1'}) => ProjectionContext(
       gameType: GameType.cricket,
       inStrategy: 'straight',
       outStrategy: 'double',
-      playerIds: ['p1', 'p2'],
     );
 
 void _applyTurn(CricketMarkBucketsProjection engine, List<String> segments,

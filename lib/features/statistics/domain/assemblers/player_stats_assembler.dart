@@ -94,7 +94,6 @@ class PlayerStatsAssembler {
       gameType: gameType,
       inStrategy: inStrategy,
       outStrategy: outStrategy,
-      playerIds: [playerId],
       soloGameIds: soloGameIds,
     );
 
@@ -378,7 +377,6 @@ class PlayerStatsAssembler {
             gameType: GameType.x01,
             inStrategy: 'straight',
             outStrategy: 'double',
-            playerIds: playerIds,
           ));
           runner.run(events);
           final snap = runner.snapshot();
@@ -412,7 +410,6 @@ class PlayerStatsAssembler {
             gameType: GameType.countUp,
             inStrategy: 'straight',
             outStrategy: 'straight',
-            playerIds: playerIds,
           ));
           runner.run(events);
           final snap = runner.snapshot();
@@ -435,7 +432,6 @@ class PlayerStatsAssembler {
             gameType: GameType.cricket,
             inStrategy: 'straight',
             outStrategy: 'straight',
-            playerIds: playerIds,
           ));
           runner.run(events);
           final snap = runner.snapshot();
@@ -520,7 +516,6 @@ class PlayerStatsAssembler {
       gameType: GameType.x01,
       inStrategy: 'straight',
       outStrategy: 'double',
-      playerIds: [playerId],
     ));
     for (final event in legEvents) {
       if (projection.descriptor.consumedEventTypes.contains(event.eventType)) {
@@ -583,7 +578,6 @@ class PlayerStatsAssembler {
           gameType: GameType.countUp,
           inStrategy: 'straight',
           outStrategy: 'straight',
-          playerIds: allPlayerIds,
         ));
         runner.run(events);
         final snap = runner.snapshot();
@@ -632,7 +626,6 @@ class PlayerStatsAssembler {
           gameType: GameType.x01,
           inStrategy: 'straight',
           outStrategy: 'double',
-          playerIds: allPlayerIds,
         ));
         runner.run(events);
         final snap = runner.snapshot();
@@ -697,7 +690,6 @@ class PlayerStatsAssembler {
         gameType: GameType.cricket,
         inStrategy: 'straight',
         outStrategy: 'straight',
-        playerIds: allPlayerIds,
       ));
       runner.run(events);
       final snap = runner.snapshot();
@@ -762,7 +754,6 @@ class PlayerStatsAssembler {
         gameType: GameType.countUp,
         inStrategy: 'straight',
         outStrategy: 'straight',
-        playerIds: [playerId],
       ));
       runner.run(events);
       final snap = runner.snapshot();
@@ -814,7 +805,6 @@ class PlayerStatsAssembler {
         gameType: GameType.cricket,
         inStrategy: 'straight',
         outStrategy: 'straight',
-        playerIds: [playerId],
       ));
       runner.run(events);
       final snap = runner.snapshot();
@@ -867,7 +857,6 @@ class PlayerStatsAssembler {
       gameType: gameType,
       inStrategy: 'straight',
       outStrategy: 'double',
-      playerIds: [playerId],
     ));
     runner.run(events);
     final snap = runner.snapshot();
