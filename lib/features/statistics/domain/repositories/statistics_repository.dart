@@ -66,14 +66,4 @@ abstract interface class StatisticsRepository {
   /// [gameType] is required for the same reasons as [getPlayerStats].
   Stream<PlayerStats> watchPlayerStats(String playerId,
       {required GameType gameType});
-
-  // Leaderboard
-
-  /// Returns all players ranked by [PlayerStats.threeDartAverage] descending
-  /// for [gameType]. Excludes players with fewer than [minGames] games.
-  Future<List<PlayerStats>> getLeaderboard({
-    required GameType gameType,
-    int minGames = 1,
-    int limit = 50,
-  });
 }
