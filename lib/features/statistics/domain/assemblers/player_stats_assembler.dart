@@ -755,10 +755,10 @@ class PlayerStatsAssembler {
     }
 
     if (gameType == GameType.cricket) {
-      // Per-game cricket bundle. Mirrors the projection set used in
-      // `gameStatsFromEvents` per-game cricket path, plus the CricketLegs /
-      // CricketHitRate projections so the slice exposes the same shape as
-      // the career cricket bundle in `fromEvents`. Reads `*Exact` keys for
+      // Per-game cricket bundle. Wires the same cricket projections as the
+      // career path in `fromEvents`, so per-game `PlayerStats` exposes the
+      // same shape (incl. `bestLegMpt` / `bestGameHitRate` — meaningful on
+      // a single-game slice for multi-leg cricket). Reads `*Exact` keys for
       // mark buckets, per the per-game "exact-N" convention (see CLAUDE.md
       // "Cricket mark-bucket field overload").
       final runner = ProjectionRunner([
@@ -766,6 +766,8 @@ class PlayerStatsAssembler {
         CricketHitRateProjection(),
         CricketMarkBucketsProjection(),
         CricketLegsProjection(),
+        CricketBestLegMptProjection(),
+        CricketBestGameHitRateProjection(),
       ]);
       runner.init(ProjectionContext(
         playerId: playerId,
@@ -781,6 +783,8 @@ class PlayerStatsAssembler {
       final hitRateSnap = snap['cricket.hitRate'] ?? {};
       final bucketsSnap = snap['cricket.markBuckets'] ?? {};
       final legsSnap = snap['cricket.legs'] ?? {};
+      final bestLegMptSnap = snap['cricket.bestLegMpt'] ?? {};
+      final bestGameHitRateSnap = snap['cricket.bestGameHitRate'] ?? {};
 
       final legsPlayed = legsSnap['legsPlayed'] as int? ?? 0;
       final legsWon = legsSnap['legsWon'] as int? ?? 0;
@@ -805,6 +809,9 @@ class PlayerStatsAssembler {
         hitRate: (hitRateSnap['hitRate'] as num?)?.toDouble(),
         sixMarkTurns: bucketsSnap['sixMarkExact'] as int? ?? 0,
         nineMarkTurns: bucketsSnap['nineMarkExact'] as int? ?? 0,
+        bestLegMpt: (bestLegMptSnap['bestLegMpt'] as num?)?.toDouble(),
+        bestGameHitRate:
+            (bestGameHitRateSnap['bestGameHitRate'] as num?)?.toDouble(),
       );
     }
 

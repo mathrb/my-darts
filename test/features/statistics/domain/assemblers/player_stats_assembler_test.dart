@@ -234,6 +234,13 @@ void main() {
       expect(stats.legsPlayed, 1);
       expect(stats.legsWon, 1);
 
+      // Best-of fields: on a single-leg game both equal the leg/game's own
+      // values. Surfaced for parity with the career bundle so multi-leg
+      // games can show "best leg MPT this game" without per-game callers
+      // having to recompute.
+      expect(stats.bestLegMpt, closeTo(5.0, 1e-9));
+      expect(stats.bestGameHitRate, closeTo(4 / 6, 1e-9));
+
       // X01-shaped fields must NOT be populated for a cricket per-game slice.
       // (`checkoutPercentage` and `highestCheckout` are nullable; PPR-shaped
       // fields default to 0/null.)
