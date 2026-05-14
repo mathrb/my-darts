@@ -801,15 +801,15 @@ class PlayerStatsAssembler {
   ///   - X01 `checkoutScore` is the player's most recent `TurnStarted`
   ///     `starting_score` BEFORE `LegCompleted` IFF that player won the leg.
   ///   - ATC practice score = atcHits / atcDartsAtTarget for current player;
-  ///     other practice gametypes use raw leg score.
-  ///     **Caveat:** the ATC hit-rate tracking hard-codes the ascending
-  ///     `standard` variant (target = legDartCount, walking 1→20). The
-  ///     `reverse` (20→1) and `doublesOnly` ATC variants are NOT modelled and
-  ///     will silently produce incorrect `practiceScore` values for non-standard
-  ///     games. Full multi-variant support is tracked separately.
+  ///     other practice gametypes use raw leg score. All three ATC variants
+  ///     (`standard`, `reverse`, `doublesOnly`) are supported — target
+  ///     progression and hit detection mirror
+  ///     `StatelessAroundTheClockEngine` (issue #157).
   ///
   /// [gameType] selects the practice-score branch. Pass `null` to treat the
-  /// game as non-practice (no `practiceScore`).
+  /// game as non-practice (no `practiceScore`). [atcVariant] is consulted only
+  /// when [gameType] is [GameType.aroundTheClock]; valid values are
+  /// `'standard'`, `'reverse'`, `'doublesOnly'`. Defaults to `'standard'`.
   List<PlayerLegSnapshot> legHistoryFromEvents({
     required String playerId,
     required String gameId,
@@ -818,6 +818,7 @@ class PlayerStatsAssembler {
     required int? startingScore,
     required List<GameEvent> events,
     int startingLegIndex = 0,
+    String atcVariant = 'standard',
   }) {
     final isPracticeGame =
         gameType != null && _practiceGameTypes.contains(gameType);
@@ -831,10 +832,17 @@ class PlayerStatsAssembler {
     int legTotalTurns = 0;
     int currentTurnMarks = 0;
 
-    // ATC hit-rate tracking (player-scoped).
+    // ATC hit-rate tracking (player-scoped). Target progression mirrors
+    // `StatelessAroundTheClockEngine`:
+    //   - 'standard' / 'doublesOnly': ascend 1 → 20
+    //   - 'reverse':                  descend 20 → 1
+    // 'doublesOnly' additionally requires `multiplier == 2` to register a hit.
+    final bool atcReverse = atcVariant == 'reverse';
+    final bool atcDoublesOnly = atcVariant == 'doublesOnly';
+    final int atcInitialTarget = atcReverse ? 20 : 1;
     int atcDartsAtTarget = 0;
     int atcHits = 0;
-    int atcCurrentTarget = 1;
+    int atcCurrentTarget = atcInitialTarget;
     bool atcInPlayerTurn = false;
 
     // X01 checkout-score tracking.
@@ -875,16 +883,30 @@ class PlayerStatsAssembler {
             }
           }
 
-          // ATC progression (player-scoped, standard variant matches segment).
+          // ATC progression (player-scoped). Hit detection and target
+          // advancement mirror `StatelessAroundTheClockEngine` (issue #157):
+          //   - 'standard' / 'doublesOnly': ascend 1 → 20; complete at 20.
+          //   - 'reverse':                  descend 20 → 1; complete at 1.
+          //   - 'doublesOnly':              hit requires multiplier == 2.
+          // Once the sequence is complete (target stepped past the terminal
+          // value) no further darts count toward atcDartsAtTarget — matches
+          // the historical "<= 20" gate.
           if (isPracticeGame &&
               gameType == GameType.aroundTheClock &&
               atcInPlayerTurn) {
             final segVal = segInt ?? 0;
-            if (atcCurrentTarget <= 20) {
+            final multVal = mult ?? 1;
+            final bool sequenceActive = atcReverse
+                ? atcCurrentTarget >= 1
+                : atcCurrentTarget <= 20;
+            if (sequenceActive) {
               atcDartsAtTarget++;
-              if (segVal == atcCurrentTarget) {
+              final bool segmentMatches = segVal == atcCurrentTarget;
+              final bool multiplierOk = !atcDoublesOnly || multVal == 2;
+              if (segmentMatches && multiplierOk) {
                 atcHits++;
-                atcCurrentTarget++;
+                atcCurrentTarget =
+                    atcReverse ? atcCurrentTarget - 1 : atcCurrentTarget + 1;
               }
             }
           }
@@ -945,7 +967,7 @@ class PlayerStatsAssembler {
           currentTurnMarks = 0;
           atcDartsAtTarget = 0;
           atcHits = 0;
-          atcCurrentTarget = 1;
+          atcCurrentTarget = atcInitialTarget;
           atcInPlayerTurn = false;
           lastPlayerTurnStartingScore = null;
           currentLegEvents.clear();
@@ -1219,6 +1241,16 @@ class PlayerStatsAssembler {
     int totalDartsThrown,
     String variant,
   ) {
+    // Variant target-progression mirrors StatelessAroundTheClockEngine:
+    //   'standard' / 'doublesOnly': ascend 1→20, completion when target > 20
+    //   'reverse':                 descend 20→1, completion when target < 1
+    // 'doublesOnly' additionally requires multiplier == 2 to register a hit.
+    final isReverse = variant == 'reverse';
+    final initialTarget = isReverse ? 20 : 1;
+    bool sequenceActive(int t) => isReverse ? t >= 1 : t <= 20;
+    bool sequenceComplete(int t) => isReverse ? t < 1 : t > 20;
+    int advance(int t) => isReverse ? t - 1 : t + 1;
+
     int totalDartsAtTargets = 0;
     int totalHits = 0;
     int completions = 0;
@@ -1227,7 +1259,7 @@ class PlayerStatsAssembler {
     final Map<int, int> segHits = {};
     final Map<int, int> segAttempts = {};
 
-    int currentTarget = 1;
+    int currentTarget = initialTarget;
     int gameTurns = 0;
     bool inPlayerTurn = false;
 
@@ -1240,7 +1272,7 @@ class PlayerStatsAssembler {
           if (!inPlayerTurn) break;
           final seg = (event.payload['segment'] as num?)?.toInt() ?? 0;
           final mult = (event.payload['multiplier'] as num?)?.toInt() ?? 1;
-          if (currentTarget <= 20) {
+          if (sequenceActive(currentTarget)) {
             totalDartsAtTargets++;
             segAttempts[currentTarget] = (segAttempts[currentTarget] ?? 0) + 1;
             final hit = variant == 'doublesOnly'
@@ -1249,33 +1281,33 @@ class PlayerStatsAssembler {
             if (hit) {
               totalHits++;
               segHits[currentTarget] = (segHits[currentTarget] ?? 0) + 1;
-              currentTarget++;
+              currentTarget = advance(currentTarget);
             }
           }
         case 'TurnEnded':
           inPlayerTurn = false;
         case 'LegCompleted':
-          if (currentTarget > 20) {
+          if (sequenceComplete(currentTarget)) {
             completions++;
             totalTurnsForCompletions += gameTurns;
             if (bestTurns == null || gameTurns < bestTurns) {
               bestTurns = gameTurns;
             }
           }
-          currentTarget = 1;
+          currentTarget = initialTarget;
           gameTurns = 0;
           inPlayerTurn = false;
         case 'GameCompleted':
           // ATC is a 1-leg practice game: GameCompleted signals drill completion
           // (LegCompleted is never emitted when legsToWin==1).
-          if (currentTarget > 20) {
+          if (sequenceComplete(currentTarget)) {
             completions++;
             totalTurnsForCompletions += gameTurns;
             if (bestTurns == null || gameTurns < bestTurns) {
               bestTurns = gameTurns;
             }
           }
-          currentTarget = 1;
+          currentTarget = initialTarget;
           gameTurns = 0;
           inPlayerTurn = false;
       }
