@@ -12,6 +12,7 @@ import 'package:dart_lodge/features/game/domain/models/game_config.dart';
 import 'package:dart_lodge/features/game/domain/models/game_state_snapshot.dart';
 import 'package:dart_lodge/features/game/domain/repositories/game_repository.dart';
 import '../database.dart' as drift_db;
+import '../repository_parsers.dart';
 import '../sqlite_error_codes.dart';
 
 
@@ -34,7 +35,7 @@ class GameRepositoryDrift implements GameRepository {
     
     return Game(
       gameId: result.gameId,
-      gameType: _parseGameType(result.gameType),
+      gameType: parseGameTypeFromColumn(result.gameType),
       config: GameConfig.fromJson(json.decode(result.configJson)),
       startTime: DateTime.parse(result.startTime),
       endTime: result.endTime != null ? DateTime.parse(result.endTime!) : null,
@@ -175,7 +176,7 @@ class GameRepositoryDrift implements GameRepository {
     
     return Game(
       gameId: result.gameId,
-      gameType: _parseGameType(result.gameType),
+      gameType: parseGameTypeFromColumn(result.gameType),
       config: GameConfig.fromJson(json.decode(result.configJson)),
       startTime: DateTime.parse(result.startTime),
       endTime: result.endTime != null ? DateTime.parse(result.endTime!) : null,
@@ -291,7 +292,7 @@ class GameRepositoryDrift implements GameRepository {
 
     return results.map((row) => Game(
       gameId: row.gameId,
-      gameType: _parseGameType(row.gameType),
+      gameType: parseGameTypeFromColumn(row.gameType),
       config: GameConfig.fromJson(json.decode(row.configJson)),
       startTime: DateTime.parse(row.startTime),
       endTime: row.endTime != null ? DateTime.parse(row.endTime!) : null,
@@ -334,7 +335,7 @@ class GameRepositoryDrift implements GameRepository {
       .watchSingleOrNull()
       .map((row) => row != null ? Game(
             gameId: row.gameId,
-            gameType: _parseGameType(row.gameType),
+            gameType: parseGameTypeFromColumn(row.gameType),
             config: GameConfig.fromJson(json.decode(row.configJson)),
             startTime: DateTime.parse(row.startTime),
             endTime: row.endTime != null ? DateTime.parse(row.endTime!) : null,
@@ -357,7 +358,7 @@ class GameRepositoryDrift implements GameRepository {
     return query.watch()
       .map((rows) => rows.map((row) => Game(
             gameId: row.gameId,
-            gameType: _parseGameType(row.gameType),
+            gameType: parseGameTypeFromColumn(row.gameType),
             config: GameConfig.fromJson(json.decode(row.configJson)),
             startTime: DateTime.parse(row.startTime),
             endTime: row.endTime != null ? DateTime.parse(row.endTime!) : null,
@@ -367,14 +368,5 @@ class GameRepositoryDrift implements GameRepository {
           )).toList());
   }
 
-  // Helper method to parse game type from string
-  GameType _parseGameType(String gameTypeString) {
-    return GameType.values.firstWhere(
-      (type) => type.name == gameTypeString,
-      orElse: () => throw DatabaseException(
-        'Unknown game type in database: $gameTypeString',
-      ),
-    );
-  }
 
 }
