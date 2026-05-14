@@ -18,10 +18,17 @@ abstract interface class GameRepository {
 
   /// Returns all completed games ordered by [endTime] descending.
   /// [limit] and [offset] support pagination.
+  ///
+  /// [dateFrom] and [dateTo] are inclusive endTime filters when supplied. Push
+  /// date filtering to the database (rather than the caller) so that paginated
+  /// pages stay aligned with the displayed-rows count — otherwise the offset
+  /// would walk against unfiltered rows.
   Future<List<Game>> getCompletedGames({
     int limit = 20,
     int offset = 0,
     GameType? filterByType,
+    DateTime? dateFrom,
+    DateTime? dateTo,
   });
 
   /// Returns all competitors for [gameId], each with their player roster.

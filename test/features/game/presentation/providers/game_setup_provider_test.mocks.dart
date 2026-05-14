@@ -163,12 +163,16 @@ class MockGameRepository extends _i1.Mock implements _i8.GameRepository {
     int? limit = 20,
     int? offset = 0,
     _i9.GameType? filterByType,
+    DateTime? dateFrom,
+    DateTime? dateTo,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#getCompletedGames, [], {
               #limit: limit,
               #offset: offset,
               #filterByType: filterByType,
+              #dateFrom: dateFrom,
+              #dateTo: dateTo,
             }),
             returnValue: _i4.Future<List<_i2.Game>>.value(<_i2.Game>[]),
           )

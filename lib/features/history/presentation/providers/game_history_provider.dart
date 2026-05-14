@@ -2,7 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:dart_lodge/core/persistence/database_provider.dart';
 import 'package:dart_lodge/core/utils/constants.dart';
 import 'package:dart_lodge/features/game/domain/entities/competitor.dart';
-import 'package:dart_lodge/features/game/domain/entities/game.dart';
 import 'package:dart_lodge/features/history/presentation/state/game_history_state.dart';
 
 part 'game_history_provider.g.dart';
@@ -16,6 +15,13 @@ class GameHistoryNotifier extends _$GameHistoryNotifier {
   DateTime? _filterDateTo;
   List<String> _filterPlayerIds = [];
 
+  // Synchronous in-flight flag for loadNextPage. The AsyncValue-based
+  // `isLoadingMore` check (state.value!.isLoadingMore) is unreliable as a
+  // guard because `state = AsyncData(...)` doesn't propagate to readers until
+  // the next microtask — rapid scroll events can issue parallel loadNextPage
+  // calls before the guard flips and produce duplicate rows.
+  bool _loadingNextPage = false;
+
   @override
   Future<GameHistoryState> build() async {
     final repo = ref.read(gameRepositoryProvider);
@@ -23,6 +29,8 @@ class GameHistoryNotifier extends _$GameHistoryNotifier {
       limit: _pageSize,
       offset: 0,
       filterByType: _filterGameType,
+      dateFrom: _filterDateFrom,
+      dateTo: _filterDateTo,
     );
 
     final competitorsList = await Future.wait(
@@ -33,14 +41,9 @@ class GameHistoryNotifier extends _$GameHistoryNotifier {
       for (var i = 0; i < games.length; i++) games[i].gameId: competitorsList[i],
     };
 
-    final filtered = _applyDateFilter(games);
-    final filteredCompMap = <String, List<Competitor>>{
-      for (final g in filtered) g.gameId: competitorMap[g.gameId] ?? [],
-    };
-
     return GameHistoryState(
-      games: filtered,
-      competitorsByGameId: filteredCompMap,
+      games: games,
+      competitorsByGameId: competitorMap,
       hasMore: games.length >= _pageSize,
       filterGameType: _filterGameType,
       filterDateFrom: _filterDateFrom,
@@ -49,21 +52,11 @@ class GameHistoryNotifier extends _$GameHistoryNotifier {
     );
   }
 
-  List<Game> _applyDateFilter(List<Game> games) {
-    if (_filterDateFrom == null && _filterDateTo == null) return games;
-    return games.where((g) {
-      if (g.endTime == null) return false;
-      final end = g.endTime!;
-      if (_filterDateFrom != null && end.isBefore(_filterDateFrom!)) return false;
-      if (_filterDateTo != null &&
-          end.isAfter(_filterDateTo!.add(const Duration(days: 1)))) return false;
-      return true;
-    }).toList();
-  }
-
   Future<void> loadNextPage() async {
+    if (_loadingNextPage) return;
     final current = state.value;
-    if (current == null || !current.hasMore || current.isLoadingMore) return;
+    if (current == null || !current.hasMore) return;
+    _loadingNextPage = true;
 
     state = AsyncData(current.copyWith(isLoadingMore: true));
 
@@ -73,6 +66,8 @@ class GameHistoryNotifier extends _$GameHistoryNotifier {
         limit: _pageSize,
         offset: current.games.length,
         filterByType: _filterGameType,
+        dateFrom: _filterDateFrom,
+        dateTo: _filterDateTo,
       );
 
       final competitorsList = await Future.wait(
@@ -83,19 +78,16 @@ class GameHistoryNotifier extends _$GameHistoryNotifier {
         for (var i = 0; i < games.length; i++) games[i].gameId: competitorsList[i],
       };
 
-      final filtered = _applyDateFilter(games);
-      final filteredCompMap = <String, List<Competitor>>{
-        for (final g in filtered) g.gameId: newCompMap[g.gameId] ?? [],
-      };
-
       state = AsyncData(current.copyWith(
-        games: [...current.games, ...filtered],
-        competitorsByGameId: {...current.competitorsByGameId, ...filteredCompMap},
+        games: [...current.games, ...games],
+        competitorsByGameId: {...current.competitorsByGameId, ...newCompMap},
         hasMore: games.length >= _pageSize,
         isLoadingMore: false,
       ));
     } catch (e, st) {
       state = AsyncError(e, st);
+    } finally {
+      _loadingNextPage = false;
     }
   }
 
