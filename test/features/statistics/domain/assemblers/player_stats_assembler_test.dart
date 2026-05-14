@@ -305,6 +305,55 @@ void main() {
       expect(stats.atcHitRate, 0.0);
       expect(stats.atcCompletions, 0);
     });
+
+    test('reverse variant: descend 20→1 to complete (career path)', () {
+      // Walk targets 20 → 1 ascending order in the EVENT stream but the
+      // expected progression descends. Each dart hits its descending target.
+      final events = <GameEvent>[];
+      for (int target = 20; target >= 1; target--) {
+        events.addAll([
+          turnStarted(),
+          dart(target, 1),
+          turnEnded(),
+        ]);
+      }
+      events.add(gameCompleted(winnerPlayerId: playerId));
+
+      final stats = assembler.fromEvents(
+        playerId: playerId,
+        gameType: GameType.aroundTheClock,
+        events: events,
+        totalGames: 1,
+        totalDartsThrown: 20,
+        atcVariant: 'reverse',
+      );
+
+      expect(stats.atcCompletions, 1);
+      expect(stats.atcHitRate, 1.0);
+      expect(stats.atcBestTurns, 20);
+    });
+
+    test('reverse variant: ascending throw is NOT a hit (career path)', () {
+      // First throw should be at target 20 but player hits 1 instead.
+      final events = [
+        turnStarted(),
+        dart(1, 1),
+        turnEnded(),
+        gameCompleted(),
+      ];
+
+      final stats = assembler.fromEvents(
+        playerId: playerId,
+        gameType: GameType.aroundTheClock,
+        events: events,
+        totalGames: 1,
+        totalDartsThrown: 1,
+        atcVariant: 'reverse',
+      );
+
+      expect(stats.atcHitRate, 0.0);
+      expect(stats.atcCompletions, 0);
+    });
   });
 
   group("practice — Bob's 27", () {

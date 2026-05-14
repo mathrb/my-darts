@@ -1241,6 +1241,16 @@ class PlayerStatsAssembler {
     int totalDartsThrown,
     String variant,
   ) {
+    // Variant target-progression mirrors StatelessAroundTheClockEngine:
+    //   'standard' / 'doublesOnly': ascend 1→20, completion when target > 20
+    //   'reverse':                 descend 20→1, completion when target < 1
+    // 'doublesOnly' additionally requires multiplier == 2 to register a hit.
+    final isReverse = variant == 'reverse';
+    final initialTarget = isReverse ? 20 : 1;
+    bool sequenceActive(int t) => isReverse ? t >= 1 : t <= 20;
+    bool sequenceComplete(int t) => isReverse ? t < 1 : t > 20;
+    int advance(int t) => isReverse ? t - 1 : t + 1;
+
     int totalDartsAtTargets = 0;
     int totalHits = 0;
     int completions = 0;
@@ -1249,7 +1259,7 @@ class PlayerStatsAssembler {
     final Map<int, int> segHits = {};
     final Map<int, int> segAttempts = {};
 
-    int currentTarget = 1;
+    int currentTarget = initialTarget;
     int gameTurns = 0;
     bool inPlayerTurn = false;
 
@@ -1262,7 +1272,7 @@ class PlayerStatsAssembler {
           if (!inPlayerTurn) break;
           final seg = (event.payload['segment'] as num?)?.toInt() ?? 0;
           final mult = (event.payload['multiplier'] as num?)?.toInt() ?? 1;
-          if (currentTarget <= 20) {
+          if (sequenceActive(currentTarget)) {
             totalDartsAtTargets++;
             segAttempts[currentTarget] = (segAttempts[currentTarget] ?? 0) + 1;
             final hit = variant == 'doublesOnly'
@@ -1271,33 +1281,33 @@ class PlayerStatsAssembler {
             if (hit) {
               totalHits++;
               segHits[currentTarget] = (segHits[currentTarget] ?? 0) + 1;
-              currentTarget++;
+              currentTarget = advance(currentTarget);
             }
           }
         case 'TurnEnded':
           inPlayerTurn = false;
         case 'LegCompleted':
-          if (currentTarget > 20) {
+          if (sequenceComplete(currentTarget)) {
             completions++;
             totalTurnsForCompletions += gameTurns;
             if (bestTurns == null || gameTurns < bestTurns) {
               bestTurns = gameTurns;
             }
           }
-          currentTarget = 1;
+          currentTarget = initialTarget;
           gameTurns = 0;
           inPlayerTurn = false;
         case 'GameCompleted':
           // ATC is a 1-leg practice game: GameCompleted signals drill completion
           // (LegCompleted is never emitted when legsToWin==1).
-          if (currentTarget > 20) {
+          if (sequenceComplete(currentTarget)) {
             completions++;
             totalTurnsForCompletions += gameTurns;
             if (bestTurns == null || gameTurns < bestTurns) {
               bestTurns = gameTurns;
             }
           }
-          currentTarget = 1;
+          currentTarget = initialTarget;
           gameTurns = 0;
           inPlayerTurn = false;
       }
