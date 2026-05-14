@@ -1,13 +1,13 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../core/persistence/database_provider.dart';
-import '../../../../core/utils/constants.dart';
-import '../../domain/entities/game_stats.dart';
-import '../../domain/entities/player_stats.dart';
-import '../../domain/entities/player_leg_snapshot.dart';
-import '../state/player_stats_page_state.dart';
+import 'package:dart_lodge/core/persistence/database_provider.dart';
+import 'package:dart_lodge/core/utils/constants.dart';
+import 'package:dart_lodge/features/statistics/domain/entities/game_stats.dart';
+import 'package:dart_lodge/features/statistics/domain/entities/player_stats.dart';
+import 'package:dart_lodge/features/statistics/domain/entities/player_leg_snapshot.dart';
+import 'package:dart_lodge/features/statistics/presentation/state/player_stats_page_state.dart';
 
-part 'statistics_provider.g.dart';
+part 'statistics_providers.g.dart';
 
 @riverpod
 Stream<PlayerStats> playerStats(Ref ref, String playerId) {
