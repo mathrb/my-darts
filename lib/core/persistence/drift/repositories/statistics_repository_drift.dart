@@ -322,10 +322,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       if (game == null) {
         throw GameNotFoundException(gameId);
       }
-      final gameType = GameType.values.firstWhere(
-        (type) => type.name == game.gameType,
-        orElse: () => GameType.x01,
-      );
+      final gameType = parseGameTypeFromColumn(game.gameType);
 
       // 2. Verify player participated and aggregate their darts/score.
       final playerThrows = await (_db.select(_db.dartThrows)
