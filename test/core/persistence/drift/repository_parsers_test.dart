@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dart_lodge/core/error/repository_exception.dart';
 import 'package:dart_lodge/core/utils/constants.dart';
 import 'package:dart_lodge/core/persistence/drift/repository_parsers.dart';
-import 'package:dart_lodge/features/game/domain/entities/game_event.dart';
 
 void main() {
   group('parseGameTypeFromColumn', () {
