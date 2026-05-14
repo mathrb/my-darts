@@ -263,6 +263,8 @@ class GameRepositoryDrift implements GameRepository {
     int limit = 20,
     int offset = 0,
     GameType? filterByType,
+    DateTime? dateFrom,
+    DateTime? dateTo,
   }) async {
     final query = _db.select(_db.games)
       ..where((t) => t.isComplete.equals(1))
@@ -271,6 +273,18 @@ class GameRepositoryDrift implements GameRepository {
 
     if (filterByType != null) {
       query.where((t) => t.gameType.equals(filterByType.name));
+    }
+
+    // endTime is stored as an ISO-8601 string, which sorts lexicographically.
+    if (dateFrom != null) {
+      final fromIso = dateFrom.toIso8601String();
+      query.where((t) => t.endTime.isBiggerOrEqualValue(fromIso));
+    }
+    if (dateTo != null) {
+      // Treat dateTo as an inclusive day boundary (matches the prior
+      // client-side filter that added 1 day to the upper bound).
+      final toIso = dateTo.add(const Duration(days: 1)).toIso8601String();
+      query.where((t) => t.endTime.isSmallerOrEqualValue(toIso));
     }
 
     final results = await query.get();
