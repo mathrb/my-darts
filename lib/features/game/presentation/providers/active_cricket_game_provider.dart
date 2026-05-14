@@ -123,8 +123,13 @@ class ActiveCricketGameNotifier extends _$ActiveCricketGameNotifier {
         );
       }
 
-      // Emit TurnEnded; downstream behaviour depends on engine outcome
-      // (normal rotation vs round-cap termination).
+      // The TurnEnded event was already persisted by ProcessCricketDartUseCase
+      // when the turn ended (3rd real dart or MISS-fill in the loop above).
+      // Re-fetch the latest sequence so any newly emitted events here pick up
+      // sequence numbers after that TurnEnded. We re-apply a TRANSIENT
+      // TurnEnded through the engine locally (NOT persisting it again) so the
+      // engine outcome — round-cap, leg, or game — drives what happens next.
+      // Mirrors the X01 ActiveGameNotifier._startNextTurn pattern.
       int nextSeq = await ref
               .read(gameEventRepositoryProvider)
               .getLatestSequence(updated.gameId) +
@@ -135,23 +140,22 @@ class ActiveCricketGameNotifier extends _$ActiveCricketGameNotifier {
           ? currentCompetitor.playerIds.first
           : 'system';
 
-      final turnEndedEvent = buildTurnEndedEvent(
+      // Construct a transient TurnEnded matching the one already in the log
+      // so the engine can compute the post-turn state. NOT appended.
+      final transientTurnEnded = buildTurnEndedEvent(
         gameId: updated.gameId,
         competitorId: currentCompetitor.competitorId,
         playerId: actorId,
-        localSequence: nextSeq++,
+        localSequence: -1,
         actorId: actorId,
       );
 
       final engine = ref.read(cricketEngineProvider);
-      final turnEndedResult = engine.apply(updated, turnEndedEvent);
+      final turnEndedResult = engine.apply(updated, transientTurnEnded);
       updated = turnEndedResult.state;
-      final eventsToStore = <GameEvent>[turnEndedEvent];
+      final eventsToStore = <GameEvent>[];
 
       if (turnEndedResult.outcome == LegOutcome.roundCapReached) {
-        await ref
-            .read(gameEventRepositoryProvider)
-            .appendEvents([turnEndedEvent]);
         return ActiveCricketGameState(
           gameState: updated,
           pendingCapSelection: true,
