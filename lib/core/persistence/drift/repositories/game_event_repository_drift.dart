@@ -5,10 +5,10 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:dart_lodge/core/error/repository_exception.dart';
-import 'package:dart_lodge/core/utils/constants.dart';
 import 'package:dart_lodge/features/game/domain/entities/game_event.dart';
 import 'package:dart_lodge/features/game/domain/repositories/game_event_repository.dart';
 import '../database.dart' as drift_db;
+import '../repository_parsers.dart';
 import '../sqlite_error_codes.dart';
 
 class GameEventRepositoryDrift implements GameEventRepository {
@@ -36,7 +36,7 @@ class GameEventRepositoryDrift implements GameEventRepository {
       synced: row.synced == 1,
       actorId: row.actorId,
       globalSequence: row.globalSequence,
-      source: _parseEventSource(row.source),
+      source: parseEventSourceFromColumn(row.source),
     )).toList();
   }
 
@@ -269,7 +269,7 @@ class GameEventRepositoryDrift implements GameEventRepository {
       synced: row.synced == 1,
       actorId: row.actorId,
       globalSequence: row.globalSequence,
-      source: _parseEventSource(row.source),
+      source: parseEventSourceFromColumn(row.source),
     )).toList();
   }
 
@@ -296,7 +296,7 @@ class GameEventRepositoryDrift implements GameEventRepository {
       synced: row.synced == 1,
       actorId: row.actorId,
       globalSequence: row.globalSequence,
-      source: _parseEventSource(row.source),
+      source: parseEventSourceFromColumn(row.source),
     )).toList();
   }
 
@@ -318,16 +318,7 @@ class GameEventRepositoryDrift implements GameEventRepository {
             synced: row.synced == 1,
             actorId: row.actorId,
             globalSequence: row.globalSequence,
-            source: _parseEventSource(row.source),
+            source: parseEventSourceFromColumn(row.source),
           )).toList());
   }
-
-  // Helper method to parse event source from int
-  EventSource _parseEventSource(int sourceInt) {
-    return EventSource.values.firstWhere(
-      (source) => source.index == sourceInt,
-      orElse: () => EventSource.values.first,
-    );
-  }
-
 }

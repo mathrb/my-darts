@@ -13,6 +13,7 @@ import 'package:dart_lodge/features/statistics/domain/entities/player_stats.dart
 import 'package:dart_lodge/features/statistics/domain/entities/player_leg_snapshot.dart';
 import 'package:dart_lodge/features/statistics/domain/entities/game_stats.dart';
 import '../database.dart' as drift_db;
+import '../repository_parsers.dart';
 
 class StatisticsRepositoryDrift implements StatisticsRepository {
   final drift_db.AppDatabase _db;
@@ -32,10 +33,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       if (gameRow == null) {
         throw GameNotFoundException(gameId);
       }
-      final gameType = GameType.values.firstWhere(
-        (t) => t.name == gameRow.gameType,
-        orElse: () => GameType.x01,
-      );
+      final gameType = parseGameTypeFromColumn(gameRow.gameType);
 
       // 2. Load throws for the game.
       final dartThrows = await (_db.select(_db.dartThrows)
@@ -88,7 +86,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
                 synced: row.synced == 1,
                 actorId: row.actorId,
                 globalSequence: row.globalSequence,
-                source: EventSource.client,
+                source: parseEventSourceFromColumn(row.source),
               ))
           .toList();
 
@@ -270,7 +268,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
                   synced: row.synced == 1,
                   actorId: row.actorId,
                   globalSequence: row.globalSequence,
-                  source: EventSource.client,
+                  source: parseEventSourceFromColumn(row.source),
                 ))
             .toList(),
         legLimit,
@@ -324,10 +322,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
       if (game == null) {
         throw GameNotFoundException(gameId);
       }
-      final gameType = GameType.values.firstWhere(
-        (type) => type.name == game.gameType,
-        orElse: () => GameType.x01,
-      );
+      final gameType = parseGameTypeFromColumn(game.gameType);
 
       // 2. Verify player participated and aggregate their darts/score.
       final playerThrows = await (_db.select(_db.dartThrows)
@@ -357,7 +352,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
                 synced: row.synced == 1,
                 actorId: row.actorId,
                 globalSequence: row.globalSequence,
-                source: EventSource.client,
+                source: parseEventSourceFromColumn(row.source),
               ))
           .toList();
 
@@ -528,7 +523,7 @@ class StatisticsRepositoryDrift implements StatisticsRepository {
               synced: event.synced == 1,
               actorId: event.actorId,
               globalSequence: event.globalSequence,
-              source: EventSource.client,
+              source: parseEventSourceFromColumn(event.source),
             ),
         ];
 
