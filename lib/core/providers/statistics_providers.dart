@@ -27,12 +27,6 @@ Stream<PlayerStats> playerStats(Ref ref, String playerId) {
 }
 
 @riverpod
-Stream<GameStats> liveGameStats(Ref ref, String gameId) {
-  final repository = ref.watch(statisticsRepositoryProvider);
-  return repository.watchGameStats(gameId);
-}
-
-@riverpod
 Future<GameStats> gameStats(Ref ref, String gameId) {
   final repository = ref.watch(statisticsRepositoryProvider);
   return repository.getGameStats(gameId);

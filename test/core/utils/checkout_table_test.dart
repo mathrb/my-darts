@@ -2,36 +2,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dart_lodge/core/utils/checkout_table.dart';
 
 void main() {
-  group('checkoutSuggestion (double-out, backward compat)', () {
-    test('returns suggestion for score in range', () {
-      expect(checkoutSuggestion(170), 'T20 · T20 · DB');
-      expect(checkoutSuggestion(100), 'T20 · D20');
-      expect(checkoutSuggestion(50), 'DB');
-      expect(checkoutSuggestion(2), 'D1');
-    });
-
-    test('returns null for score out of range', () {
-      expect(checkoutSuggestion(1), isNull);
-      expect(checkoutSuggestion(171), isNull);
-      expect(checkoutSuggestion(0), isNull);
-    });
-  });
-
   group('checkoutSuggestionForStrategy', () {
     group('double out', () {
-      test('returns same as legacy function', () {
-        for (int score = 2; score <= 170; score++) {
-          expect(
-            checkoutSuggestionForStrategy(score, 'double'),
-            checkoutSuggestion(score),
-            reason: 'Mismatch at score $score',
-          );
-        }
+      test('returns suggestion for score in range', () {
+        expect(checkoutSuggestionForStrategy(170, 'double'), 'T20 · T20 · DB');
+        expect(checkoutSuggestionForStrategy(100, 'double'), 'T20 · D20');
+        expect(checkoutSuggestionForStrategy(50, 'double'), 'DB');
+        expect(checkoutSuggestionForStrategy(2, 'double'), 'D1');
       });
 
       test('returns null outside range', () {
         expect(checkoutSuggestionForStrategy(1, 'double'), isNull);
         expect(checkoutSuggestionForStrategy(171, 'double'), isNull);
+        expect(checkoutSuggestionForStrategy(0, 'double'), isNull);
       });
     });
 

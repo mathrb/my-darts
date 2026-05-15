@@ -519,9 +519,6 @@ const Map<int, String> kMasterOutCheckoutTable = {
   2: 'D1',
 };
 
-/// Returns a checkout suggestion for the given [score] using double-out rules.
-String? checkoutSuggestion(int score) => kCheckoutTable[score];
-
 /// Lookup config for each out strategy: (table, minScore, maxScore).
 ({Map<int, String> table, int min, int max}) _configFor(String outStrategy) =>
     switch (outStrategy) {

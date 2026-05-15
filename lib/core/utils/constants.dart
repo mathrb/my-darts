@@ -57,14 +57,6 @@ enum EventSource {
 class DatabaseConstants {
   static const String databaseName = 'darts_app.db';
   static const int databaseVersion = 1;
-
-  // Table names
-  static const String playersTable = 'players';
-  static const String gamesTable = 'games';
-  static const String competitorsTable = 'competitors';
-  static const String competitorPlayersTable = 'competitor_players';
-  static const String dartThrowsTable = 'dart_throws';
-  static const String gameEventsTable = 'game_events';
 }
 
 // Game Configuration Constants
