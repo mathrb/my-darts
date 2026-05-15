@@ -30,43 +30,40 @@ class VariantSelectionPage extends ConsumerWidget {
         ? ref.watch(lastGameConfigProvider(category)).value
         : null;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) context.go(GameRoutes.home);
-      },
-      child: Scaffold(
+    return Scaffold(
       body: SafeArea(
         child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 64),
-        cacheExtent: 5000,
-        children: [
-          AppHeader(
-            showBack: true,
-            onBack: () => context.go(GameRoutes.home),
-            trailing: IconButton(
-              icon: Icon(Icons.settings, color: cs.onSurface, semanticLabel: 'Settings'),
-              tooltip: 'Settings',
-              onPressed: () => context.go(GameRoutes.settings),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 64),
+          cacheExtent: 5000,
+          children: [
+            AppHeader(
+              showBack: true,
+              onBack: () => context.canPop()
+                  ? context.pop()
+                  : context.go(GameRoutes.home),
+              trailing: IconButton(
+                icon: Icon(Icons.settings,
+                    color: cs.onSurface, semanticLabel: 'Settings'),
+                tooltip: 'Settings',
+                onPressed: () => context.push(GameRoutes.settings),
+              ),
             ),
-          ),
-          _PageHeader(category: category),
-          const SizedBox(height: 24),
-          if (lastConfig != null) ...[
-            _LastPlayedCard(
-              config: lastConfig,
-              onTap: () {
-                ref.read(gameSetupProvider.notifier).selectVariant(lastConfig);
-                context.push('/game/player-selection');
-              },
-            ),
-            const SizedBox(height: 16),
+            _PageHeader(category: category),
+            const SizedBox(height: 24),
+            if (lastConfig != null) ...[
+              _LastPlayedCard(
+                config: lastConfig,
+                onTap: () {
+                  ref.read(gameSetupProvider.notifier).selectVariant(lastConfig);
+                  context.push(GameRoutes.playerSelection);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+            ..._variantRows(context, ref, selectedConfig),
           ],
-          ..._variantRows(context, ref, selectedConfig),
-        ],
         ),
       ),
-    ),
     );
   }
 
@@ -91,7 +88,7 @@ class VariantSelectionPage extends ConsumerWidget {
             ? null
             : () {
                 ref.read(gameSetupProvider.notifier).selectVariant(v.config!);
-                context.push('/game/player-selection');
+                context.push(GameRoutes.playerSelection);
               },
       ));
     }
