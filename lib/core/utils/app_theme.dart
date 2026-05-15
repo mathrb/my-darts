@@ -45,9 +45,7 @@ abstract final class AppTheme {
   static const double opacityChartAreaFill = 0.30; // trend chart background area
 
   // Elevation shadow alpha tokens (centralized; see DESIGN_SYSTEM §5).
-  // Three semantic intensities — pick by component, never by literal.
   // `opacityActiveCardShadow` (0.50) above is the spec'd active-player shadow.
-  static const double shadowAlphaSheet  = 0.20; // bottom sheets, floating modals
   static const double shadowAlphaCard   = 0.40; // elevated Match Mode card stack
 
   static ThemeData light() => _build(Brightness.light);
