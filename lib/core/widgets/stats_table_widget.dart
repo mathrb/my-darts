@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/app_spacing.dart';
+
 sealed class StatsTableRow {}
 
 /// Header row for a stats table.
@@ -77,7 +79,12 @@ class StatsTableWidget extends StatelessWidget {
   ) {
     return Container(
       color: theme.scaffoldBackgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      // `vertical: 6` is off-grid (AppSpacing is 4-pt); keeping as a
+      // literal until the header sizing is revisited.
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.space4,
+        vertical: 6,
+      ),
       child: Row(
         children: [
           if (row.leftLabel != null)
@@ -116,7 +123,10 @@ class StatsTableWidget extends StatelessWidget {
   ) {
     return Container(
       color: bg,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.space4,
+        vertical: AppSpacing.space3,
+      ),
       child: Row(
         children: [
           Expanded(

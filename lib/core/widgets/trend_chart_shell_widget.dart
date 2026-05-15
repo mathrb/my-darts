@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/app_spacing.dart';
 import '../utils/app_theme.dart';
 
 class TrendChartShellWidget extends StatelessWidget {
@@ -23,7 +24,12 @@ class TrendChartShellWidget extends StatelessWidget {
       ),
       child: hasEnoughData
           ? Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.space2,
+                AppSpacing.space2,
+                AppSpacing.space4,
+                AppSpacing.space2,
+              ),
               child: child,
             )
           : Center(
