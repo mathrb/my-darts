@@ -8,6 +8,32 @@ import 'package:dart_lodge/features/players/presentation/state/player_form_state
 
 part 'players_provider.g.dart';
 
+/// Outcome of `EditPlayerNotifier.deletePlayer`. Sealed so callers must
+/// exhaustively distinguish success from the two failure modes:
+/// the player has saved game history (expected, common path → show the
+/// "cannot delete a player with game history" SnackBar) versus an
+/// unexpected error (DB issue, missing player, etc. → show a generic
+/// retry SnackBar). Pre-`DeletePlayerResult` (the bool return type used
+/// up to #214) the two cases collapsed into a single `false`, so
+/// callers showed the wrong-but-plausible "has game history" message
+/// for every failure.
+sealed class DeletePlayerResult {
+  const DeletePlayerResult();
+}
+
+final class DeletePlayerSuccess extends DeletePlayerResult {
+  const DeletePlayerSuccess();
+}
+
+final class DeletePlayerHasGameHistory extends DeletePlayerResult {
+  const DeletePlayerHasGameHistory();
+}
+
+final class DeletePlayerUnexpectedError extends DeletePlayerResult {
+  final Object error;
+  const DeletePlayerUnexpectedError(this.error);
+}
+
 String _playerFormErrorMessage(Object e) =>
     (e is DuplicatePlayerException || e is DuplicatePlayerNameException)
         ? 'A player with this name already exists'
@@ -62,21 +88,18 @@ class EditPlayerNotifier extends _$EditPlayerNotifier {
     );
   }
 
-  /// Returns true on success, false on any failure (callers show a
-  /// SnackBar). Generic failures don't bleed `error.toString()` into the
-  /// invisible `nameError` field — the previous behavior was misleading
-  /// because the edit form's name input may already be gone by the time
-  /// the error surfaces.
-  Future<bool> deletePlayer(String playerId) async {
-    final result = await AsyncValue.guard(() async {
+  /// Deletes a player. Returns a sealed [DeletePlayerResult] so callers
+  /// can show targeted feedback per case (see the type's docstring).
+  Future<DeletePlayerResult> deletePlayer(String playerId) async {
+    try {
       await ref.read(playerRepositoryProvider).deletePlayer(playerId);
-    });
-
-    if (result.hasValue) {
       ref.invalidate(allPlayersProvider);
-      return true;
+      return const DeletePlayerSuccess();
+    } on PlayerHasGameHistoryException {
+      return const DeletePlayerHasGameHistory();
+    } catch (e) {
+      return DeletePlayerUnexpectedError(e);
     }
-    return false;
   }
 }
 

@@ -143,17 +143,28 @@ class _PlayerList extends ConsumerWidget {
     if (confirmed != true) return;
     if (!context.mounted) return;
 
-    final ok = await ref
+    final result = await ref
         .read(editPlayerProvider.notifier)
         .deletePlayer(player.playerId);
 
     if (!context.mounted) return;
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cannot delete a player with game history'),
-        ),
-      );
+    switch (result) {
+      case DeletePlayerSuccess():
+        // List rebuilds via the invalidated `allPlayersProvider`; no
+        // page-level navigation needed here.
+        break;
+      case DeletePlayerHasGameHistory():
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot delete a player with game history'),
+          ),
+        );
+      case DeletePlayerUnexpectedError():
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to delete player. Please try again.'),
+          ),
+        );
     }
   }
 }
