@@ -60,6 +60,30 @@ class PlayerStatsAssembler {
     GameType.checkoutPractice,
   };
 
+  /// Strips DartThrown events whose IDs appear in any DartCorrected
+  /// payload's `original_event_id`. Replay-aware code must skip the
+  /// original (pre-correction) darts so the snapshot reflects post-undo
+  /// state — mirrors UndoLastDartUseCase.
+  ///
+  /// Applied at every public method entry that consumes raw events, not
+  /// just the career path. Without this, per-game / per-leg / leg-history
+  /// projections double-counted the corrected dart AND its replacement
+  /// after any undo (#187).
+  static List<GameEvent> _stripCorrectedDarts(List<GameEvent> events) {
+    final correctedDartIds = <String>{};
+    for (final e in events) {
+      if (e.eventType != 'DartCorrected') continue;
+      final origId = e.payload['original_event_id'];
+      if (origId is String) correctedDartIds.add(origId);
+    }
+    if (correctedDartIds.isEmpty) return events;
+    return events
+        .where((e) =>
+            e.eventType != 'DartThrown' ||
+            !correctedDartIds.contains(e.eventId))
+        .toList();
+  }
+
   /// Builds a PlayerStats snapshot from events the caller has already
   /// loaded, filtered to the player's completed games of [gameType], and
   /// (if applicable) leg-limit-trimmed.
@@ -78,11 +102,15 @@ class PlayerStatsAssembler {
     String atcVariant = 'standard',
     Set<String> soloGameIds = const {},
   }) {
+    // Strip corrected darts upfront so both the practice branch and the
+    // X01/cricket/countUp branch below see post-correction events (#187).
+    final stripped = _stripCorrectedDarts(events);
+
     if (_practiceGameTypes.contains(gameType)) {
       return _buildPracticeStats(
         playerId: playerId,
         gameType: gameType,
-        events: events,
+        events: stripped,
         totalGames: totalGames,
         totalDartsThrown: totalDartsThrown,
         atcVariant: atcVariant,
@@ -133,24 +161,9 @@ class PlayerStatsAssembler {
                 X01BestGameCheckoutPercentageProjection(),
               ]);
 
-    // Pull DartThrown eventIds referenced by DartCorrected.original_event_id
-    // and filter them out of the replay stream — mirrors UndoLastDartUseCase
-    // so the original (pre-correction) darts stop contributing to the
-    // snapshot.
-    final correctedDartIds = <String>{};
-    for (final e in events) {
-      if (e.eventType != 'DartCorrected') continue;
-      final origId = e.payload['original_event_id'];
-      if (origId is String) correctedDartIds.add(origId);
-    }
-
-    final filteredEvents = correctedDartIds.isEmpty
-        ? events
-        : events
-            .where((e) =>
-                e.eventType != 'DartThrown' ||
-                !correctedDartIds.contains(e.eventId))
-            .toList();
+    // `stripped` (computed above) has already removed corrected DartThrown
+    // events — replay-aware code mirrors UndoLastDartUseCase.
+    final filteredEvents = stripped;
 
     // One pass over filteredEvents is sufficient: corrected DartThrown events
     // are already excluded, so the snapshot reflects post-correction state.
@@ -296,6 +309,9 @@ class PlayerStatsAssembler {
         gameType: gameType.name,
       );
     }
+
+    // Strip corrected darts so per-game stats reflect post-undo state (#187).
+    events = _stripCorrectedDarts(events);
 
     // Group throws by competitor → by player.
     final Map<String, Map<String, List<int>>> byCompetitor = {};
@@ -541,6 +557,9 @@ class PlayerStatsAssembler {
       inStrategy: 'straight',
       outStrategy: 'double',
     ));
+    // Strip corrected darts so an undo inside the leg doesn't double-count
+    // the corrected DartThrown and its replacement (#187).
+    legEvents = _stripCorrectedDarts(legEvents);
     for (final event in legEvents) {
       if (projection.descriptor.consumedEventTypes.contains(event.eventType)) {
         projection.apply(event);
@@ -572,6 +591,9 @@ class PlayerStatsAssembler {
     required GameType gameType,
   }) {
     final playerIds = competitor.players.map((p) => p.playerId).toList();
+
+    // Strip corrected darts so per-leg stats reflect post-undo state (#187).
+    events = _stripCorrectedDarts(events);
 
     var darts = 0;
     for (final e in events) {
@@ -815,6 +837,9 @@ class PlayerStatsAssembler {
     int startingLegIndex = 0,
     String atcVariant = 'standard',
   }) {
+    // Strip corrected darts so leg-history reflects post-undo state (#187).
+    events = _stripCorrectedDarts(events);
+
     final isPracticeGame =
         gameType != null && _practiceGameTypes.contains(gameType);
 
@@ -987,6 +1012,14 @@ class PlayerStatsAssembler {
     required int playerScoreInGame,
     required List<GameEvent> events,
   }) {
+    // Strip corrected darts so per-player-per-game stats reflect post-undo
+    // state (#187). Note: AVG uses caller-supplied dart aggregates, so an
+    // undo that happened mid-game must also be reflected in
+    // playerDartsInGame / playerScoreInGame — those are the caller's
+    // responsibility. This filter only governs the projection branches
+    // below.
+    events = _stripCorrectedDarts(events);
+
     final threeDartAverage = playerDartsInGame > 0
         ? (playerScoreInGame / playerDartsInGame) * 3
         : 0.0;

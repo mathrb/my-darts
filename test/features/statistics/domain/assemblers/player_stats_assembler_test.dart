@@ -1112,5 +1112,49 @@ void main() {
       expect(c.marksPerRound, 9.0);
       expect(c.nineMarkTurns, 1);
     });
+
+    test(
+        'strips corrected DartThrown events (regression for #187)',
+        () {
+      // gameStatsFromEvents previously consumed raw events. If a player
+      // threw a dart, undone it, and re-threw, the corrected original AND
+      // its replacement both fed projections — inflating mark buckets,
+      // averages, etc.
+      //
+      // Setup: turn 1 — c1 throws T20 (60), undoes it (DartCorrected
+      // references the original's eventId), then re-throws T20 (60).
+      // Replay-aware code must count only ONE T20 in the bucket.
+      //
+      // The helper `event()` assigns sequential localSequence + eventId
+      // 'e<seq>'. Predict the original's eventId from its position.
+      final events = [
+        turnStarted(turnNumber: 1, startingScore: 100), // e1
+        dart(20, 3),                                    // e2 (the corrected dart)
+        event('DartCorrected', {'original_event_id': 'e2'}), // e3
+        dart(20, 3),                                    // e4 (replacement)
+        turnEnded(),                                    // e5
+      ];
+
+      final stats = assembler.gameStatsFromEvents(
+        gameId: gameId,
+        gameType: GameType.x01,
+        throws: [
+          // One throw — caller is responsible for excluding corrected darts
+          // from `throws` (UndoLastDartUseCase deletes the dart_throws row).
+          (competitorId: 'c1', playerId: playerId, score: 60),
+        ],
+        competitorNames: const {'c1': 'Alice'},
+        events: events,
+      );
+
+      final c = stats.byCompetitor.single;
+      // Without the strip, the projection sees BOTH T20s in the same turn
+      // (60 + 60 = 120) and lands one turn in the 100+ bucket. With the
+      // strip, only the replacement contributes (60) and lands in 60+.
+      expect(c.sixtyPlusTurns, 1,
+          reason: 'corrected dart must not be double-counted');
+      expect(c.oneHundredPlusTurns, 0,
+          reason: '60+60 from double-count would inflate to 100+ bucket');
+    });
   });
 }
