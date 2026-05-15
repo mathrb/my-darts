@@ -1259,12 +1259,19 @@ class PlayerStatsAssembler {
     bool inPlayerTurn = false;
 
     for (final event in events) {
+      // Gate per-player events on payload.player_id so the loop ignores
+      // events from other competitors. ATC is solo-only today, but a
+      // future multi-competitor ATC variant (or any shared-event load
+      // path) would otherwise count other players' turns into gameTurns
+      // and segment-attempts — mirrors _computeBobs27Stats (#191).
+      final epid = event.payload['player_id'] as String?;
       switch (event.eventType) {
         case 'TurnStarted':
+          if (epid != playerId) break;
           inPlayerTurn = true;
           gameTurns++;
         case 'DartThrown':
-          if (!inPlayerTurn) break;
+          if (!inPlayerTurn || epid != playerId) break;
           final seg = (event.payload['segment'] as num?)?.toInt() ?? 0;
           final mult = (event.payload['multiplier'] as num?)?.toInt() ?? 1;
           if (sequenceActive(currentTarget)) {
@@ -1280,6 +1287,7 @@ class PlayerStatsAssembler {
             }
           }
         case 'TurnEnded':
+          if (epid != playerId) break;
           inPlayerTurn = false;
         case 'LegCompleted':
           if (sequenceComplete(currentTarget)) {

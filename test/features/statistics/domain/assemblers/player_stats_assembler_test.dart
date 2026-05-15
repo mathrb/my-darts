@@ -354,6 +354,79 @@ void main() {
       expect(stats.atcHitRate, 0.0);
       expect(stats.atcCompletions, 0);
     });
+
+    test(
+        'ignores events from other players (regression for #191)',
+        () {
+      // ATC is solo-only today, but the loop must still gate per-player so
+      // a future multi-competitor variant or shared-event load path
+      // doesn't count other competitors' turns. Mirrors _computeBobs27Stats.
+      //
+      // Setup: p1 (our player) throws one hit at target 1.
+      // Interleaved: p2 (other player) throws three hits at targets 2-4
+      // and runs three full turns. Pre-fix, p2's events flipped
+      // `inPlayerTurn = true`, incremented `gameTurns`, advanced
+      // `currentTarget` past 1, and counted p2's hits as our own.
+      const otherPlayer = 'p2';
+      final events = <GameEvent>[
+        // p1's turn
+        event('TurnStarted',
+            {'player_id': playerId, 'turn_number': 1}),
+        event('DartThrown', {
+          'player_id': playerId,
+          'segment': 1,
+          'multiplier': 1,
+          'score': 1,
+        }),
+        event('TurnEnded', {'player_id': playerId}),
+        // p2's three turns hitting 2, 3, 4 (would advance currentTarget if
+        // the filter is absent)
+        event('TurnStarted',
+            {'player_id': otherPlayer, 'turn_number': 1}),
+        event('DartThrown', {
+          'player_id': otherPlayer,
+          'segment': 2,
+          'multiplier': 1,
+          'score': 2,
+        }),
+        event('TurnEnded', {'player_id': otherPlayer}),
+        event('TurnStarted',
+            {'player_id': otherPlayer, 'turn_number': 2}),
+        event('DartThrown', {
+          'player_id': otherPlayer,
+          'segment': 3,
+          'multiplier': 1,
+          'score': 3,
+        }),
+        event('TurnEnded', {'player_id': otherPlayer}),
+        event('TurnStarted',
+            {'player_id': otherPlayer, 'turn_number': 3}),
+        event('DartThrown', {
+          'player_id': otherPlayer,
+          'segment': 4,
+          'multiplier': 1,
+          'score': 4,
+        }),
+        event('TurnEnded', {'player_id': otherPlayer}),
+        gameCompleted(),
+      ];
+
+      final stats = assembler.fromEvents(
+        playerId: playerId,
+        gameType: GameType.aroundTheClock,
+        events: events,
+        totalGames: 1,
+        totalDartsThrown: 1, // only p1 darts count for the caller
+      );
+
+      // Only p1's single hit at target 1 should register.
+      expect(stats.atcHitRate, 1.0,
+          reason: '1 dart at target 1 (hit) — p2 events must be ignored');
+      expect(stats.atcSegmentHits, {1: 1},
+          reason: 'only target 1 should appear in p1\'s hit map');
+      expect(stats.atcSegmentAttempts, {1: 1},
+          reason: 'p2\'s attempts at targets 2-4 must not leak in');
+    });
   });
 
   group("practice — Bob's 27", () {
