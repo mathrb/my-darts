@@ -84,13 +84,22 @@ competitors      List<UUID>
 #### `GameCompleted`
 
 ```text
-winner_id        UUID?
-completion_type  Enum        {checkout, forfeit, timeout}
+winner_competitor_id  UUID?
+winner_player_id      UUID?       (optional; resolved player for the
+                                  winning competitor when known)
+completion_type       Enum        {checkout, forfeit, timeout}
 ```
 
 **Invariant**
 
 * No further gameplay events allowed after this
+* `winner_competitor_id` matches the `Game.winner_competitor_id`
+  column and mirrors `LegCompleted`'s payload key
+
+**Backwards compatibility:** Events persisted before this rename
+used the key `winner_id` instead of `winner_competitor_id`. All
+engine readers fall back to `winner_id` when `winner_competitor_id`
+is absent, so existing event logs continue to deserialise.
 
 ---
 

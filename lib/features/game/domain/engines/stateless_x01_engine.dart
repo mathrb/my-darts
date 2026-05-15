@@ -484,7 +484,8 @@ class StatelessX01Engine implements GameEngine {
     return state.copyWith(
       isComplete: true,
       status: GameEngineStatus.completed,
-      winnerCompetitorId: event.payload['winner_id'],
+      winnerCompetitorId: (event.payload['winner_competitor_id'] ??
+          event.payload['winner_id']) as String?,
       turnActive: false,
     );
   }

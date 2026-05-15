@@ -34,7 +34,9 @@ class EndCheckoutPracticeUseCase {
       eventType: 'GameCompleted',
       localSequence: nextSeq,
       occurredAt: DateTime.now(),
-      payload: {'winner_id': null},
+      // Aligned with `buildGameCompletedEvent`'s payload key. Reader
+      // fallback handles the legacy `winner_id` form for older events.
+      payload: {'winner_competitor_id': null},
       synced: false,
       actorId: 'system',
       source: EventSource.client,

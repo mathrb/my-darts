@@ -274,7 +274,7 @@ class StatelessAroundTheClockEngine implements GameEngine {
     return state.copyWith(
       isComplete: true,
       status: GameEngineStatus.completed,
-      winnerCompetitorId: event.payload['winner_id'] as String?,
+      winnerCompetitorId: event.payload['winner_competitor_id'] as String? ?? event.payload['winner_id'] as String?,
       turnActive: false,
     );
   }
