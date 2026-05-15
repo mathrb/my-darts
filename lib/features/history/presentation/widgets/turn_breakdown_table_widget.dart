@@ -71,7 +71,7 @@ class _TurnTable extends StatelessWidget {
         return ['Turn', 'Start', 'Darts', 'Total', 'End'];
       case GameType.countUp:
         return ['Round', 'Darts', 'Score', 'Total'];
-      default:
+      case GameType.aroundTheClock:
         return ['Round', 'Darts', 'Score'];
     }
   }
@@ -195,7 +195,7 @@ class _TurnTable extends StatelessWidget {
           txt(StatFormatter.fmtInt(row.turnScore)),
           txt(StatFormatter.fmtInt(row.runningTotal)),
         ];
-      default:
+      case GameType.aroundTheClock:
         return [
           txt(StatFormatter.fmtInt(row.round)),
           dartsCell(),

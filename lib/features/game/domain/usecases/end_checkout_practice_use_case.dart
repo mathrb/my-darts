@@ -2,6 +2,7 @@
 // Allows explicit early exit from a checkout practice session before the
 // engine auto-completes. Marks the game complete with no winner.
 
+import '../engines/base_game_engine.dart';
 import '../entities/game_event.dart';
 import '../repositories/game_repository.dart';
 import '../repositories/game_event_repository.dart';
@@ -49,6 +50,13 @@ class EndCheckoutPracticeUseCase {
       endTime: DateTime.now(),
     );
 
-    return currentState.copyWith(isComplete: true);
+    return currentState.copyWith(
+      isComplete: true,
+      // Match what the engines do on game completion — keeps the status
+      // field's invariant aligned with isComplete so anything keyed on
+      // `state.status == GameEngineStatus.completed` (e.g. future UI
+      // gates) doesn't diverge from `state.isComplete == true`.
+      status: GameEngineStatus.completed,
+    );
   }
 }

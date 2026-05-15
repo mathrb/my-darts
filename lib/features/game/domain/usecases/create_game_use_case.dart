@@ -25,10 +25,10 @@ class CreateGameUseCase {
 
   static final Set<int> _validX01StartingScores =
       GameConfigurationConstants.x01StartingScores.toSet();
-  static final Set<String> _validStrategies = {
-    ...GameConfigurationConstants.x01InStrategies,
-    ...GameConfigurationConstants.x01OutStrategies,
-  };
+  static final Set<String> _validInStrategies =
+      GameConfigurationConstants.x01InStrategies.toSet();
+  static final Set<String> _validOutStrategies =
+      GameConfigurationConstants.x01OutStrategies.toSet();
 
   Future<Game> execute(Game game, List<Competitor> competitors) async {
     _validate(game, competitors);
@@ -119,17 +119,17 @@ class CreateGameUseCase {
         );
       }
 
-      if (!_validStrategies.contains(config.inStrategy)) {
+      if (!_validInStrategies.contains(config.inStrategy)) {
         throw ValidationException(
           'Invalid in-strategy: "${config.inStrategy}". '
-          'Must be one of: ${_validStrategies.join(', ')}.',
+          'Must be one of: ${_validInStrategies.join(', ')}.',
         );
       }
 
-      if (!_validStrategies.contains(config.outStrategy)) {
+      if (!_validOutStrategies.contains(config.outStrategy)) {
         throw ValidationException(
           'Invalid out-strategy: "${config.outStrategy}". '
-          'Must be one of: ${_validStrategies.join(', ')}.',
+          'Must be one of: ${_validOutStrategies.join(', ')}.',
         );
       }
 
