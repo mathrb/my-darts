@@ -27,3 +27,12 @@ EventSource parseEventSourceFromColumn(int value) {
     ),
   );
 }
+
+CompetitorType parseCompetitorTypeFromColumn(String value) {
+  return CompetitorType.values.firstWhere(
+    (type) => type.name == value,
+    orElse: () => throw DatabaseException(
+      'Unknown competitor type in database: $value',
+    ),
+  );
+}

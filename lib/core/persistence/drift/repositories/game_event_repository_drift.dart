@@ -8,8 +8,8 @@ import 'package:dart_lodge/core/error/repository_exception.dart';
 import 'package:dart_lodge/features/game/domain/entities/game_event.dart';
 import 'package:dart_lodge/features/game/domain/repositories/game_event_repository.dart';
 import '../database.dart' as drift_db;
+import '../event_unique_violation_handler.dart';
 import '../repository_parsers.dart';
-import '../sqlite_error_codes.dart';
 
 class GameEventRepositoryDrift implements GameEventRepository {
   final drift_db.AppDatabase _db;
@@ -88,30 +88,8 @@ class GameEventRepositoryDrift implements GameEventRepository {
           mode: InsertMode.insertOrFail,
         );
       } on Exception catch (e) {
-        if (isUniqueConstraintViolation(e)) {
-          // Check if it's an idempotent insert (same event_id already exists)
-          final existing = await (_db.select(_db.gameEvents)
-            ..where((t) => t.eventId.equals(event.eventId))
-            ..limit(1))
-            .getSingleOrNull();
-          if (existing != null) return; // Idempotent success
-
-          // Check if it's a sequence conflict (different event_id, same sequence)
-          final seqExisting = await (_db.select(_db.gameEvents)
-            ..where((t) =>
-                t.gameId.equals(event.gameId) &
-                t.localSequence.equals(event.localSequence))
-            ..limit(1))
-            .getSingleOrNull();
-          if (seqExisting != null && seqExisting.eventId != event.eventId) {
-            throw SequenceConflictException(event.gameId, event.localSequence);
-          }
-        }
-        if (e is RepositoryException) rethrow;
-        throw DatabaseException(
-          'Failed to append game event ${event.eventId} to game ${event.gameId}',
-          cause: e,
-        );
+        await resolveGameEventUniqueViolation(_db, event, e);
+        // Idempotent duplicate: the helper returned true; treat as success.
       }
     });
   }
@@ -160,30 +138,10 @@ class GameEventRepositoryDrift implements GameEventRepository {
             mode: InsertMode.insertOrFail,
           );
         } on Exception catch (e) {
-          if (isUniqueConstraintViolation(e)) {
-            // Check if it's an idempotent insert (same event_id already exists)
-            final existing = await (_db.select(_db.gameEvents)
-              ..where((t) => t.eventId.equals(event.eventId))
-              ..limit(1))
-              .getSingleOrNull();
-            if (existing != null) continue; // Idempotent success
-
-            // Check if it's a sequence conflict
-            final seqExisting = await (_db.select(_db.gameEvents)
-              ..where((t) =>
-                  t.gameId.equals(event.gameId) &
-                  t.localSequence.equals(event.localSequence))
-              ..limit(1))
-              .getSingleOrNull();
-            if (seqExisting != null && seqExisting.eventId != event.eventId) {
-              throw SequenceConflictException(event.gameId, event.localSequence);
-            }
-          }
-          if (e is RepositoryException) rethrow;
-          throw DatabaseException(
-            'Failed to append game event ${event.eventId} to game ${event.gameId}',
-            cause: e,
-          );
+          // Idempotent duplicate → helper returns true → skip; otherwise
+          // it throws (`SequenceConflictException` / `DatabaseException`).
+          await resolveGameEventUniqueViolation(_db, event, e);
+          continue;
         }
       }
     });
