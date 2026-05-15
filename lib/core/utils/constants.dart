@@ -13,58 +13,22 @@ enum GameType {
   countUp;
 
   /// Maximum number of players allowed for this game type, or null if unlimited.
+  /// Exhaustive over every enum case so that adding a new GameType is a
+  /// compile error here rather than a silent default to "unlimited" (#169).
   int? get maxPlayers => switch (this) {
-    GameType.x01 => 6,
-    GameType.cricket => 6,
-    GameType.catch40 || GameType.bobs27 || GameType.checkoutPractice => 1,
-    GameType.countUp => 6,
-    _ => null,
-  };
+        GameType.x01 => 6,
+        GameType.cricket => 6,
+        GameType.aroundTheClock => null,
+        GameType.shanghai => null,
+        GameType.catch40 => 1,
+        GameType.bobs27 => 1,
+        GameType.checkoutPractice => 1,
+        GameType.countUp => 6,
+      };
 }
 
 // Competitor Types
 enum CompetitorType { solo, team }
-
-// Dart Segments
-class DartSegments {
-  static const List<String> standardNumbers = [
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8',
-    '9',
-    '10',
-    '11',
-    '12',
-    '13',
-    '14',
-    '15',
-    '16',
-    '17',
-    '18',
-    '19',
-    '20',
-  ];
-
-  static const List<String> multipliers = ['', 'D', 'T'];
-
-  static const String singleBull = 'SB';
-  static const String doubleBull = 'DB';
-  static const String miss = 'MISS';
-
-  static final List<String> allSegments = [
-    ...standardNumbers,
-    ...standardNumbers.map((n) => 'D$n'),
-    ...standardNumbers.map((n) => 'T$n'),
-    singleBull,
-    doubleBull,
-    miss,
-  ];
-}
 
 // Event Source Enum
 enum EventSource {
@@ -103,28 +67,12 @@ class DatabaseConstants {
   static const String gameEventsTable = 'game_events';
 }
 
-// API Constants (for future backend integration)
-class ApiConstants {
-  static const String baseUrl = 'http://localhost:8000';
-  static const String apiVersion = 'v1';
-  static const String authEndpoint = '/api/\$apiVersion/auth';
-  static const String playersEndpoint = '/api/\$apiVersion/players';
-  static const String gamesEndpoint = '/api/\$apiVersion/games';
-  static const String statisticsEndpoint = '/api/\$apiVersion/statistics';
-  static const String syncEndpoint = '/api/\$apiVersion/sync';
-}
-
 // Game Configuration Constants
 class GameConfigurationConstants {
   static const List<int> x01StartingScores = [301, 501, 701, 901];
   static const List<String> x01InStrategies = ['straight', 'double', 'master'];
   static const List<String> x01OutStrategies = ['straight', 'double', 'master'];
 
-  static const List<String> cricketVariants = [
-    'standard',
-    'cut-throat',
-    'no-score',
-  ];
   static const List<String> cricketNumbers = [
     '15',
     '16',
@@ -134,13 +82,6 @@ class GameConfigurationConstants {
     '20',
     'bull',
   ];
-
-  static const List<String> aroundTheClockDirections = [
-    'ascending',
-    'descending',
-    'random',
-  ];
-  static const List<int> aroundTheClockRequiredHits = [1, 2, 3];
 
   // Count-up game (rounds-based, additive scoring with optional handicap).
   static const List<int> countUpAllowedRounds = [8, 12, 16, 20];
