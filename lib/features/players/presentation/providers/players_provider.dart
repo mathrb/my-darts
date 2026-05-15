@@ -90,6 +90,12 @@ class EditPlayerNotifier extends _$EditPlayerNotifier {
 
   /// Deletes a player. Returns a sealed [DeletePlayerResult] so callers
   /// can show targeted feedback per case (see the type's docstring).
+  ///
+  /// Catches only `Exception` so Dart `Error` subclasses (assertion
+  /// failures, stack overflow, etc.) still propagate to Riverpod's
+  /// error boundary and Sentry — matching the previous
+  /// `AsyncValue.guard` semantics. Wrapping them silently would mask
+  /// programming errors as a generic "Failed to delete player" SnackBar.
   Future<DeletePlayerResult> deletePlayer(String playerId) async {
     try {
       await ref.read(playerRepositoryProvider).deletePlayer(playerId);
@@ -97,7 +103,7 @@ class EditPlayerNotifier extends _$EditPlayerNotifier {
       return const DeletePlayerSuccess();
     } on PlayerHasGameHistoryException {
       return const DeletePlayerHasGameHistory();
-    } catch (e) {
+    } on Exception catch (e) {
       return DeletePlayerUnexpectedError(e);
     }
   }
