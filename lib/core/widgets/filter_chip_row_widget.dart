@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/app_spacing.dart';
+
 class FilterChipRowWidget<T> extends StatelessWidget {
   const FilterChipRowWidget({
     required this.items,
@@ -39,7 +41,10 @@ class FilterChipRowWidget<T> extends StatelessWidget {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.space4,
+        vertical: AppSpacing.space2,
+      ),
       child: Row(
         children: [
           if (allLabel != null) ...[
@@ -48,11 +53,11 @@ class FilterChipRowWidget<T> extends StatelessWidget {
               isSelected: selected == null,
               onTap: () => onSelected(null),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.space2),
           ],
           ...items.map(
             (item) => Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: AppSpacing.space2),
               child: chip(
                 label: labelBuilder(item),
                 isSelected: selected == item,

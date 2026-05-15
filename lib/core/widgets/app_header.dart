@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dart_lodge/core/utils/app_spacing.dart';
 import 'package:dart_lodge/core/utils/app_text_styles.dart';
 
 /// App-wide top header row: logo, optional back button, and trailing action slot.
@@ -24,7 +25,10 @@ class AppHeader extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 4),
+      padding: const EdgeInsets.only(
+        top: AppSpacing.space4,
+        bottom: AppSpacing.space1,
+      ),
       child: Row(
         children: [
           if (showBack)
