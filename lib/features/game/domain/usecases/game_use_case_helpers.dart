@@ -116,7 +116,11 @@ GameEvent buildGameCompletedEvent({
     localSequence: localSequence,
     occurredAt: DateTime.now(),
     payload: {
-      'winner_id': winnerCompetitorId,
+      // Aligned with LegCompleted's `winner_competitor_id` and the
+      // `Game.winnerCompetitorId` JSON key. Engine readers also accept
+      // the legacy `winner_id` key for backwards compatibility with
+      // events persisted before this rename.
+      'winner_competitor_id': winnerCompetitorId,
       if (winnerPlayerId != null) 'winner_player_id': winnerPlayerId,
     },
     synced: false,

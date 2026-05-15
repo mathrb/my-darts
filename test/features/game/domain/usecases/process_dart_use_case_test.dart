@@ -309,7 +309,7 @@ void main() {
       expect(events[1].payload['reason'], 'normal');
       expect(events[2].eventType, 'LegCompleted');
       expect(events[3].eventType, 'GameCompleted');
-      expect(events[3].payload['winner_id'], 'c1');
+      expect(events[3].payload['winner_competitor_id'], 'c1');
     });
   });
 
