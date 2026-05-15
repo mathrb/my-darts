@@ -307,6 +307,38 @@ the centralized constants below. Never inline a raw float.
 
 If contrast is required for accessibility on a floating element, use a "Ghost Border": `outlineVariant` at **10–20% opacity**. Never use 100% opacity.
 
+### `AppTheme.opacity*` Tokens vs. Component-Local Alpha
+
+The `AppTheme.opacity*` constants are for **cross-cutting design-system
+concepts** — shadow intensities, ghost-border weights, status/bottom-bar
+fills, the kinetic-card icon container's fill and border, the score
+numeral shadow blur, the chart area fill. They have a single canonical
+value across the whole app and should never be inlined as raw floats.
+
+A small set of **component-local opacity literals** is allowed and
+expected:
+
+* `InkWell.splashColor` / `highlightColor` overrides (commonly 0.03 –
+  0.12 of a themed colour — they tune one component's tap feedback and
+  are not a system-wide concept).
+* Per-widget background tints layered on a themed colour (e.g. an
+  active-row indicator at 0.10 of `primaryContainer`, a tab divider at
+  0.15 of `outlineVariant`).
+* Per-widget placeholder / inactive text states (e.g. score numeral
+  inactive at 0.25 of `onSurfaceVariant`).
+
+These are component-internal tuning, not design-system tokens. They
+satisfy the "always start from a themed colour" rule (every `withValues(alpha:
+0.xx)` call must be applied to a `ColorScheme` field — never to a raw
+`Color(0xFFRRGGBB)`).
+
+If a component-local literal starts appearing in three or more widgets
+with the same alpha and the same semantic intent, promote it to an
+`AppTheme.opacity*` token. Conversely, do **not** mass-migrate every
+`withValues(alpha:)` call to the existing tokens — values that happen
+to match numerically (e.g. random 0.30s vs. `opacityScoreNumeralShadow`)
+are not interchangeable when the intent differs.
+
 ---
 
 ## 6. Shape Tokens
