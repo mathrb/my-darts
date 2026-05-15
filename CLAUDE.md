@@ -253,13 +253,15 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 
 **Squash-merge only:** PRs are always squash-merged. Don't rebase-merge or merge-commit. Branches auto-delete after merge.
 
+**PR reviews:** every PR — including small or "obvious" ones — gets reviewed via the `code-review:code-review` skill before merge. Self-review via `gh pr diff` is not sufficient. The skill runs an 8-step pipeline (eligibility → CLAUDE.md fetch → summary → 5 parallel Sonnet reviews covering CLAUDE.md compliance / bugs / git history / prior PR comments / in-code comments → confidence scoring at 0/25/50/75/100 → filter ≥80 → post). Issues that score below 80 should still be fixed by the author if real (just not posted as inline comments). CI must be green before merging.
+
 **Releases are tag-driven:** Pushing a tag `vX.Y.Z` (or `vX.Y.Z-rcN` for pre-release) triggers `release.yml`, which builds and publishes the signed APK to GitHub Releases. Never manually upload an APK to a release. Tags must point to a commit that's reachable from `main` (`release.yml` enforces this). Full process in `docs/RELEASES.md`.
 
 **Version bumps:** When asked to bump the version, edit only `pubspec.yaml`'s `version:` field (e.g. `1.0.0+0` → `1.1.0+0`) in a `chore: bump version to X.Y.Z` PR. The `+N` suffix is a placeholder; CI overrides `versionCode` from `github.run_number` on tag builds.
 
 **CI does not run `build_runner`:** Generated `.g.dart` / `.freezed.dart` / `.mocks.dart` files are committed. After editing any `@freezed`, `@riverpod`, or `@GenerateMocks` annotation, regenerate locally and commit the result in the same PR — CI will fail otherwise.
 
-**Analyze in CI:** `test.yml` runs `flutter analyze --no-fatal-infos`. Warnings block CI; infos are advisory. ~190 info-level lints are tolerated (deprecated `overrideWith`, `curly_braces_in_flow_control_structures`, `avoid_print` in test infra). Cleaning them is optional polish — never tighten this flag without raising it. **Always run project-wide `flutter analyze --no-fatal-infos` before pushing — `flutter analyze <path>` may not surface unused-import / unused-variable warnings that the project-wide variant catches.**
+**Analyze in CI:** `test.yml` runs `flutter analyze --no-fatal-infos`. Warnings block CI; infos are advisory. ~190 info-level lints are tolerated (deprecated `overrideWith`, `curly_braces_in_flow_control_structures`, `avoid_print` in test infra). Cleaning them is optional polish — never tighten this flag without raising it. **Always run project-wide `flutter analyze --no-fatal-infos` before pushing — `flutter analyze <path>` may not surface unused-import / unused-variable warnings that the project-wide variant catches.** For a fast pre-push check that filters out the info noise, grep: `flutter analyze --no-fatal-infos 2>&1 | grep -E '^\s*(warning|error) •'` — empty output means CI-clean. Run this **after** your last file change, not just once early in the session: warnings introduced by later test/import edits will otherwise slip through.
 
 **"Unused" in `lib/` may be forgotten wiring:** When `flutter analyze` flags an unused field, parameter, or import in `lib/`, check whether it represents incomplete wiring (a setter that updates a field nothing reads, a constructor param never used in the body) before deleting. If unsure, ask — silent deletion can lock in a no-op user-facing control as the intended behavior.
 
@@ -270,6 +272,8 @@ Used in `dart_throws.segment`, `DartThrown` event payloads, and all engine logic
 **Projection snapshots are two-level:** top level keyed by `engine.descriptor.id` (e.g. `'x01.doubleOut'`), inner map keyed by field name (e.g. `'doubleOutSuccessRate'`). Wiring a new engine into `PlayerStatsAssembler.fromEvents` means reading at both levels — running an engine without reading its snapshot is a silent no-op.
 
 **`.flutter-plugins-dependencies`** regenerates on every `flutter pub get` / `flutter run`; never commit it (commonly shows `M` in `git status`).
+
+**Sentry error handlers:** `SentryFlutter.init` auto-installs `FlutterError.onError` and `PlatformDispatcher.instance.onError` via `FlutterErrorIntegration` and `OnErrorIntegration` (sentry_flutter ≥ ~7.x; current pin 9.19.0). Do NOT add manual handlers in `main.dart` — they would override Sentry's wiring and silence the crash pipeline. See the `lib/main.dart` header comment.
 
 ---
 
