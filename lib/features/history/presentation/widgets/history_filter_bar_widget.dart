@@ -3,6 +3,15 @@ import 'package:intl/intl.dart';
 import 'package:dart_lodge/core/utils/constants.dart';
 import 'package:dart_lodge/features/history/presentation/widgets/game_summary_card_widget.dart';
 
+/// Floor passed to `showDateRangePicker.firstDate`. Chosen pragmatically
+/// as "before any game in this app could plausibly exist" — DartLodge
+/// shipped its first build in 2026 and no migration brings in older
+/// data, so 2020 is comfortably below the earliest possible game date.
+/// Kept as a single named constant rather than a magic literal so a
+/// future "tie firstDate to the earliest persisted game" provider can
+/// replace this site without code-archaeology.
+final DateTime _kFilterFirstDate = DateTime(2020);
+
 class HistoryFilterBarWidget extends StatelessWidget {
   final GameType? selectedGameType;
   final DateTime? selectedDateFrom;
@@ -35,7 +44,7 @@ class HistoryFilterBarWidget extends StatelessWidget {
             : null;
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime(2020),
+      firstDate: _kFilterFirstDate,
       lastDate: DateTime.now().add(const Duration(days: 1)),
       initialDateRange: initial,
     );
