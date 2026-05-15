@@ -12,6 +12,7 @@ import 'package:dart_lodge/features/game/domain/entities/competitor.dart';
 import 'package:dart_lodge/features/game/domain/models/game_config.dart';
 import 'package:dart_lodge/features/game/domain/repositories/game_repository.dart';
 import '../database.dart' as drift_db;
+import '../event_unique_violation_handler.dart';
 import '../repository_parsers.dart';
 import '../sqlite_error_codes.dart';
 
@@ -191,9 +192,10 @@ class GameRepositoryDrift implements GameRepository {
         throw GameAlreadyCompleteException(gameId);
       }
 
-      // Insert events — inlined from GameEventRepositoryDrift.appendEvents so
-      // the transactional boundary stays local. Idempotent on duplicate
-      // event_id (matches sibling-repo behavior).
+      // Insert events. Idempotent on duplicate event_id; sequence conflicts
+      // bubble up via SequenceConflictException — matching
+      // GameEventRepositoryDrift.appendEvents semantics through the shared
+      // `resolveGameEventUniqueViolation` helper.
       for (final event in events) {
         try {
           await _db.into(_db.gameEvents).insert(
@@ -212,31 +214,8 @@ class GameRepositoryDrift implements GameRepository {
                 mode: InsertMode.insertOrFail,
               );
         } on Exception catch (e) {
-          if (isUniqueConstraintViolation(e)) {
-            final existingEvent = await (_db.select(_db.gameEvents)
-                  ..where((t) => t.eventId.equals(event.eventId))
-                  ..limit(1))
-                .getSingleOrNull();
-            if (existingEvent != null) continue;
-
-            final seqExisting = await (_db.select(_db.gameEvents)
-                  ..where((t) =>
-                      t.gameId.equals(event.gameId) &
-                      t.localSequence.equals(event.localSequence))
-                  ..limit(1))
-                .getSingleOrNull();
-            if (seqExisting != null &&
-                seqExisting.eventId != event.eventId) {
-              throw SequenceConflictException(
-                  event.gameId, event.localSequence);
-            }
-          }
-          if (e is RepositoryException) rethrow;
-          throw DatabaseException(
-            'Failed to append game event ${event.eventId} to game '
-            '${event.gameId}',
-            cause: e,
-          );
+          await resolveGameEventUniqueViolation(_db, event, e);
+          continue;
         }
       }
 
@@ -298,7 +277,7 @@ class GameRepositoryDrift implements GameRepository {
         () => {
           'competitorId': competitorRow.competitorId,
           'gameId': competitorRow.gameId,
-          'type': _parseCompetitorType(competitorRow.type),
+          'type': parseCompetitorTypeFromColumn(competitorRow.type),
           'name': competitorRow.name,
           'players': <CompetitorPlayer>[],
         },
@@ -327,16 +306,6 @@ class GameRepositoryDrift implements GameRepository {
         players: sortedPlayers,
       );
     }).toList();
-  }
-
-  // Helper method to parse competitor type from string
-  CompetitorType _parseCompetitorType(String typeString) {
-    return CompetitorType.values.firstWhere(
-      (type) => type.name == typeString,
-      orElse: () => throw DatabaseException(
-        'Unknown competitor type in database: $typeString',
-      ),
-    );
   }
 
   /// Maps a drift `games` row to a domain `Game`. Wraps json.decode +
