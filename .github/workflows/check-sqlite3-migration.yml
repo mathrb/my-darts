@@ -66,23 +66,23 @@ jobs:
             exit 0
           fi
 
+          body=$(printf '%s\n' \
+            "\`riverpod_generator ${LATEST}\` is available on pub.dev (stable)." \
+            "" \
+            "This was the remaining blocker for the sqlite3 v3 migration tracked in #126." \
+            "" \
+            "Next steps:" \
+            "- bump \`riverpod_generator\` to \`^${LATEST}\` in \`pubspec.yaml\`" \
+            "- bump \`drift\` / \`drift_dev\` to \`^2.33.0\` (or latest)" \
+            "- bump \`sqlite3\` to \`^3.1.5\` (or latest)" \
+            "- remove \`sqlite3_flutter_libs\` dependency" \
+            "- delete \`applyWorkaroundToOpenSqlite3OnOldAndroidVersions\` call in \`lib/core/persistence/drift/database_factory_native.dart\`" \
+            "- re-download \`web/sqlite3.wasm\` matching the new sqlite3 version" \
+            "- run \`build_runner build\`, \`flutter analyze\`, \`flutter test\`" \
+            "- build and sideload a debug APK to confirm native libs auto-bundle" \
+            "" \
+            "Auto-filed by \`.github/workflows/check-sqlite3-migration.yml\`.")
+
           gh issue create --repo "$GITHUB_REPOSITORY" \
             --title "$title" \
-            --body "$(cat <<EOF
-\`riverpod_generator ${LATEST}\` is available on pub.dev (stable).
-
-This was the remaining blocker for the sqlite3 v3 migration tracked in #126.
-
-Next steps:
-- bump \`riverpod_generator\` to \`^${LATEST}\` in \`pubspec.yaml\`
-- bump \`drift\` / \`drift_dev\` to \`^2.33.0\` (or latest)
-- bump \`sqlite3\` to \`^3.1.5\` (or latest)
-- remove \`sqlite3_flutter_libs\` dependency
-- delete \`applyWorkaroundToOpenSqlite3OnOldAndroidVersions\` call in \`lib/core/persistence/drift/database_factory_native.dart\`
-- re-download \`web/sqlite3.wasm\` matching the new sqlite3 version
-- run \`build_runner build\`, \`flutter analyze\`, \`flutter test\`
-- build and sideload a debug APK to confirm native libs auto-bundle
-
-Auto-filed by \`.github/workflows/check-sqlite3-migration.yml\`.
-EOF
-)"
+            --body "$body"
