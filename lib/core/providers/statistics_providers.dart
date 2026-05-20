@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:dart_lodge/core/persistence/database_provider.dart';
 import 'package:dart_lodge/core/utils/constants.dart';
+import 'package:dart_lodge/features/game/domain/models/game_result.dart';
 import 'package:dart_lodge/features/statistics/domain/entities/game_stats.dart';
 import 'package:dart_lodge/features/statistics/domain/entities/player_stats.dart';
 
@@ -30,4 +31,13 @@ Stream<PlayerStats> playerStats(Ref ref, String playerId) {
 Future<GameStats> gameStats(Ref ref, String gameId) {
   final repository = ref.watch(statisticsRepositoryProvider);
   return repository.getGameStats(gameId);
+}
+
+/// Replays `game_events` through the practice/Shanghai engine and returns
+/// the post-game `GameResult`. Returns null for x01/cricket/count-up — those
+/// stay on [gameStatsProvider] (x01-shaped summary chrome fits them).
+@riverpod
+Future<GameResult?> gameResult(Ref ref, String gameId) {
+  final useCase = ref.watch(getGameResultUseCaseProvider);
+  return useCase.execute(gameId);
 }
