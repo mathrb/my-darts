@@ -1691,6 +1691,54 @@ final class EndPracticeUseCaseProvider
 String _$endPracticeUseCaseHash() =>
     r'34a35681dc9f14a2a4c227aea98eac5c41aeec93';
 
+@ProviderFor(getGameResultUseCase)
+final getGameResultUseCaseProvider = GetGameResultUseCaseProvider._();
+
+final class GetGameResultUseCaseProvider
+    extends
+        $FunctionalProvider<
+          GetGameResultUseCase,
+          GetGameResultUseCase,
+          GetGameResultUseCase
+        >
+    with $Provider<GetGameResultUseCase> {
+  GetGameResultUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'getGameResultUseCaseProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$getGameResultUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<GetGameResultUseCase> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  GetGameResultUseCase create(Ref ref) {
+    return getGameResultUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GetGameResultUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GetGameResultUseCase>(value),
+    );
+  }
+}
+
+String _$getGameResultUseCaseHash() =>
+    r'dc95e14fbc7cc59d3f9be5522bd741ec318efcc8';
+
 /// Persists the last-used [GameConfig] per game category ('x01' or 'cricket').
 /// Used by VariantSelectionPage to show a "Last Used" quick-start tile.
 

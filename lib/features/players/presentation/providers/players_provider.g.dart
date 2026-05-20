@@ -42,7 +42,7 @@ final class EditPlayerNotifierProvider
 }
 
 String _$editPlayerNotifierHash() =>
-    r'8cb715958e62add6e67ca593f09e29b56e102f1f';
+    r'fee365c170a176fe5b6d7c2924da6962eead1085';
 
 abstract class _$EditPlayerNotifier extends $Notifier<PlayerFormState> {
   PlayerFormState build();

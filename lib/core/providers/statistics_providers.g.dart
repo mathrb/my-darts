@@ -205,3 +205,97 @@ final class GameStatsFamily extends $Family
   @override
   String toString() => r'gameStatsProvider';
 }
+
+/// Replays `game_events` through the practice/Shanghai engine and returns
+/// the post-game `GameResult`. Returns null for x01/cricket/count-up — those
+/// stay on [gameStatsProvider] (x01-shaped summary chrome fits them).
+
+@ProviderFor(gameResult)
+final gameResultProvider = GameResultFamily._();
+
+/// Replays `game_events` through the practice/Shanghai engine and returns
+/// the post-game `GameResult`. Returns null for x01/cricket/count-up — those
+/// stay on [gameStatsProvider] (x01-shaped summary chrome fits them).
+
+final class GameResultProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<GameResult?>,
+          GameResult?,
+          FutureOr<GameResult?>
+        >
+    with $FutureModifier<GameResult?>, $FutureProvider<GameResult?> {
+  /// Replays `game_events` through the practice/Shanghai engine and returns
+  /// the post-game `GameResult`. Returns null for x01/cricket/count-up — those
+  /// stay on [gameStatsProvider] (x01-shaped summary chrome fits them).
+  GameResultProvider._({
+    required GameResultFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'gameResultProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$gameResultHash();
+
+  @override
+  String toString() {
+    return r'gameResultProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<GameResult?> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<GameResult?> create(Ref ref) {
+    final argument = this.argument as String;
+    return gameResult(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is GameResultProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$gameResultHash() => r'e669d3bec51794a7ac0ab7b25912af3e7e2db839';
+
+/// Replays `game_events` through the practice/Shanghai engine and returns
+/// the post-game `GameResult`. Returns null for x01/cricket/count-up — those
+/// stay on [gameStatsProvider] (x01-shaped summary chrome fits them).
+
+final class GameResultFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<GameResult?>, String> {
+  GameResultFamily._()
+    : super(
+        retry: null,
+        name: r'gameResultProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Replays `game_events` through the practice/Shanghai engine and returns
+  /// the post-game `GameResult`. Returns null for x01/cricket/count-up — those
+  /// stay on [gameStatsProvider] (x01-shaped summary chrome fits them).
+
+  GameResultProvider call(String gameId) =>
+      GameResultProvider._(argument: gameId, from: this);
+
+  @override
+  String toString() => r'gameResultProvider';
+}

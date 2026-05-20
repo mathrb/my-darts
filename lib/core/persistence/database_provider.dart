@@ -31,6 +31,7 @@ import '../../features/game/domain/usecases/process_dart_use_case.dart';
 import '../../features/game/domain/usecases/process_cricket_dart_use_case.dart';
 import '../../features/game/domain/usecases/process_practice_dart_use_case.dart';
 import '../../features/game/domain/usecases/end_practice_use_case.dart';
+import '../../features/game/domain/usecases/get_game_result_use_case.dart';
 import '../../features/game/domain/usecases/undo_last_dart_use_case.dart';
 import '../../features/game/domain/usecases/create_game_use_case.dart';
 import '../../features/game/domain/models/game_config.dart';
@@ -268,6 +269,19 @@ EndPracticeUseCase endPracticeUseCase(Ref ref) =>
     EndPracticeUseCase(
       ref.watch(gameRepositoryProvider),
       ref.watch(gameEventRepositoryProvider),
+    );
+
+// Post-game result use case for practice drills + Shanghai. Consumed by
+// `gameResultProvider` in `core/providers/statistics_providers.dart`.
+@Riverpod(keepAlive: true)
+GetGameResultUseCase getGameResultUseCase(Ref ref) => GetGameResultUseCase(
+      ref.watch(gameRepositoryProvider),
+      ref.watch(gameEventRepositoryProvider),
+      ref.watch(aroundTheClockEngineProvider),
+      ref.watch(catch40EngineProvider),
+      ref.watch(bobs27EngineProvider),
+      ref.watch(shanghaiEngineProvider),
+      ref.watch(checkoutPracticeEngineProvider),
     );
 
 /// Persists the last-used [GameConfig] per game category ('x01' or 'cricket').
